@@ -45,7 +45,7 @@ export default function ChatPage() {
     const chat = mockChats.find(c => c.id === selectedChat);
     return <ChatDetail chat={chat!} onBack={() => setSelectedChat(null)} />;
   }
-  return <div className="min-h-screen bg-primary-foreground">
+  return <div className="min-h-screen bg-[#5f4ba0]">
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b border-border/30 px-4 py-3 bg-secondary-foreground">
         <div className="flex items-center justify-between mb-4">
