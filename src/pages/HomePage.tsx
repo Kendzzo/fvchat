@@ -73,7 +73,7 @@ export default function HomePage() {
         {/* Tabs */}
         <div className="flex border-b border-border/30">
           <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2">
+            <span className="flex items-center justify-center gap-2 font-bold">
               <ImageIcon className="w-4 h-4" />
               Publicaciones
             </span>
@@ -100,7 +100,7 @@ export default function HomePage() {
       }} exit={{
         opacity: 0,
         x: 20
-      }} className="p-4 space-y-4 bg-primary-foreground">
+      }} className="p-4 space-y-4 bg-[#6f5cc7] rounded-lg">
             {/* Stories/Avatars Row */}
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -130,9 +130,9 @@ export default function HomePage() {
           y: 0
         }} transition={{
           delay: index * 0.1
-        }} className="post-card">
+        }} className="post-card border-white bg-[#2f2357]">
                 {/* Post Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between text-white">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                       <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-lg">
@@ -140,7 +140,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <div>
-                      <p className="font-semibold text-sm">@{post.author.nick}</p>
+                      <p className="font-semibold text-sm text-white">@{post.author.nick}</p>
                       <p className="text-xs text-muted-foreground">{post.createdAt}</p>
                     </div>
                   </div>
@@ -160,10 +160,10 @@ export default function HomePage() {
                 </div>
 
                 {/* Post Text */}
-                <p className="text-sm">{post.text}</p>
+                <p className="text-sm text-[#e8e6ff]">{post.text}</p>
 
                 {/* Post Actions */}
-                <div className="flex items-center gap-6 pt-2">
+                <div className="flex items-center gap-6 pt-2 text-success-foreground">
                   <motion.button whileTap={{
               scale: 0.9
             }} onClick={() => toggleLike(post.id)} className="flex items-center gap-2 text-sm">
