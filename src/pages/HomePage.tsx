@@ -67,7 +67,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="px-4 py-3">
-          <h1 className="font-bold gradient-text text-4xl font-mono text-white">VFC</h1>
+          <h1 className="font-gaming font-bold gradient-text text-4xl">VFC</h1>
         </div>
 
         {/* Tabs */}
@@ -80,7 +80,7 @@ export default function HomePage() {
             {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2 font-bold">
+            <span className="flex items-center justify-center gap-2">
               <Trophy className="w-4 h-4" />
               Desafíos
             </span>
@@ -100,16 +100,16 @@ export default function HomePage() {
       }} exit={{
         opacity: 0,
         x: 20
-      }} className="p-4 space-y-4 bg-primary-foreground">
+      }} className="p-4 space-y-4 bg-[#5f4ba0]">
             {/* Stories/Avatars Row */}
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide text-destructive-foreground">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                   <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
                     ➕
                   </div>
                 </div>
-                <span className="text-xs text-success-foreground font-semibold">Tu historia</span>
+                <span className="text-xs text-muted-foreground">Tu historia</span>
               </div>
               {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="avatar-frame w-16 h-16">
@@ -117,7 +117,7 @@ export default function HomePage() {
                       {emoji}
                     </div>
                   </div>
-                  <span className="text-xs text-success-foreground">Amigo{i + 1}</span>
+                  <span className="text-xs text-muted-foreground">Amigo{i + 1}</span>
                 </div>)}
             </div>
 
