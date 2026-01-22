@@ -45,9 +45,9 @@ export default function ChatPage() {
     const chat = mockChats.find(c => c.id === selectedChat);
     return <ChatDetail chat={chat!} onBack={() => setSelectedChat(null)} />;
   }
-  return <div className="min-h-screen bg-[#3d2f6f]">
+  return <div className="min-h-screen bg-primary-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl border-b border-border/30 px-4 py-3 bg-[#3d2f6f]">
+      <header className="sticky top-0 z-40 backdrop-blur-xl border-b border-border/30 px-4 py-3 bg-secondary-foreground">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-gaming font-bold gradient-text">Chat</h1>
           <motion.button whileTap={{
@@ -76,7 +76,7 @@ export default function ChatPage() {
         x: 0
       }} transition={{
         delay: index * 0.05
-      }} onClick={() => setSelectedChat(chat.id)} className="w-full glass-card p-4 flex items-center gap-4 transition-colors bg-[#2f2357] border-white">
+      }} onClick={() => setSelectedChat(chat.id)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors">
               <div className="relative">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                   <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
