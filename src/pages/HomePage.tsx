@@ -67,20 +67,20 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="px-4 py-3">
-          <h1 className="font-gaming font-bold gradient-text text-4xl">VFC</h1>
+          <h1 className="font-gaming gradient-text font-extrabold text-5xl">VFC</h1>
         </div>
 
         {/* Tabs */}
         <div className="flex border-b border-border/30">
           <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2 text-base">
+            <span className="flex items-center justify-center gap-2">
               <ImageIcon className="w-4 h-4" />
               Publicaciones
             </span>
-            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary mx-[20px]" />}
+            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2 text-base">
+            <span className="flex items-center justify-center gap-2">
               <Trophy className="w-4 h-4" />
               Desafíos
             </span>
@@ -100,7 +100,7 @@ export default function HomePage() {
       }} exit={{
         opacity: 0,
         x: 20
-      }} className="p-4 space-y-4 bg-[#5f4ba0]">
+      }} className="p-4 space-y-4 bg-primary-foreground">
             {/* Stories/Avatars Row */}
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -109,7 +109,7 @@ export default function HomePage() {
                     ➕
                   </div>
                 </div>
-                <span className="text-white font-bold text-sm">Tu historia</span>
+                <span className="text-xs text-muted-foreground">Tu historia</span>
               </div>
               {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="avatar-frame w-16 h-16">
@@ -117,7 +117,7 @@ export default function HomePage() {
                       {emoji}
                     </div>
                   </div>
-                  <span className="text-white text-sm">Amigo{i + 1}</span>
+                  <span className="text-xs text-muted-foreground">Amigo{i + 1}</span>
                 </div>)}
             </div>
 
@@ -130,7 +130,7 @@ export default function HomePage() {
           y: 0
         }} transition={{
           delay: index * 0.1
-        }} className="post-card border-success-foreground border-solid border">
+        }} className="post-card">
                 {/* Post Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -151,7 +151,7 @@ export default function HomePage() {
 
                 {/* Post Content */}
                 <div className="relative rounded-xl overflow-hidden -mx-4 aspect-square">
-                  <img src={post.content} alt="" className="w-full h-full object-contain rounded-md" />
+                  <img src={post.content} alt="" className="w-full h-full object-cover" />
                   {post.type === "video" && <div className="absolute inset-0 flex items-center justify-center bg-background/20">
                       <div className="w-16 h-16 rounded-full bg-background/80 flex items-center justify-center">
                         <Play className="w-8 h-8 text-foreground ml-1" />
