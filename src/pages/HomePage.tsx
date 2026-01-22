@@ -102,7 +102,7 @@ export default function HomePage() {
         x: 20
       }} className="p-4 space-y-4 bg-[#6f5cc7] rounded-lg">
             {/* Stories/Avatars Row */}
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide text-success-foreground">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                   <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
@@ -163,7 +163,7 @@ export default function HomePage() {
                 <p className="text-sm text-[#e8e6ff]">{post.text}</p>
 
                 {/* Post Actions */}
-                <div className="flex items-center gap-6 pt-2 text-success-foreground">
+                <div className="flex items-center gap-6 pt-2 text-[#b9b2e6]">
                   <motion.button whileTap={{
               scale: 0.9
             }} onClick={() => toggleLike(post.id)} className="flex items-center gap-2 text-sm">
