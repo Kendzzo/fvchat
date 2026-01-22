@@ -45,11 +45,11 @@ export default function ChatPage() {
     const chat = mockChats.find(c => c.id === selectedChat);
     return <ChatDetail chat={chat!} onBack={() => setSelectedChat(null)} />;
   }
-  return <div className="min-h-screen bg-[#5f4ba0]">
+  return <div className="min-h-screen bg-primary-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl border-b border-border/30 px-4 py-3 bg-secondary-foreground">
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-gaming font-bold gradient-text text-3xl">Chat</h1>
+          <h1 className="text-xl font-gaming font-bold gradient-text">Chat</h1>
           <motion.button whileTap={{
           scale: 0.9
         }} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
@@ -65,7 +65,7 @@ export default function ChatPage() {
       </header>
 
       {/* Chat List */}
-      <div className="p-4 space-y-2 border-white">
+      <div className="p-4 space-y-2">
         {filteredChats.length === 0 ? <div className="text-center py-12">
             <p className="text-muted-foreground">No se encontraron chats</p>
           </div> : filteredChats.map((chat, index) => <motion.button key={chat.id} initial={{
@@ -76,7 +76,7 @@ export default function ChatPage() {
         x: 0
       }} transition={{
         delay: index * 0.05
-      }} onClick={() => setSelectedChat(chat.id)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors border-white">
+      }} onClick={() => setSelectedChat(chat.id)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors">
               <div className="relative">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                   <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
@@ -173,7 +173,7 @@ function ChatDetail({
       </header>
 
       {/* Messages */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+      <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-primary-foreground">
         {messages.map(msg => <motion.div key={msg.id} initial={{
         opacity: 0,
         y: 10
