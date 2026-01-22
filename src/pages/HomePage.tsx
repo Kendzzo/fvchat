@@ -109,7 +109,7 @@ export default function HomePage() {
                     ➕
                   </div>
                 </div>
-                <span className="text-xs text-white font-bold">Tu historia</span>
+                <span className="text-white font-bold text-sm">Tu historia</span>
               </div>
               {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="avatar-frame w-16 h-16">
@@ -117,7 +117,7 @@ export default function HomePage() {
                       {emoji}
                     </div>
                   </div>
-                  <span className="text-xs text-white">Amigo{i + 1}</span>
+                  <span className="text-white text-sm">Amigo{i + 1}</span>
                 </div>)}
             </div>
 
