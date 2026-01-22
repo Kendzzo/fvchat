@@ -37,7 +37,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <div className="p-4 space-y-6 bg-primary-foreground">
+      <div className="p-4 space-y-6 bg-[#3d2f6f]">
         {/* Profile Card */}
         <motion.div initial={{
         opacity: 0,
@@ -45,7 +45,7 @@ export default function ProfilePage() {
       }} animate={{
         opacity: 1,
         y: 0
-      }} className="glass-card p-6 text-center">
+      }} className="glass-card p-6 text-center border-success-foreground">
           {/* Avatar */}
           <div className="relative inline-block mb-4">
             <div className="w-28 h-28 rounded-full bg-gradient-to-r from-primary via-secondary to-accent p-1 animate-pulse-glow">
