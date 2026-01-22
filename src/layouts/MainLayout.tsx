@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Home, MessageCircle, PlusCircle, Swords, User } from "lucide-react";
+import { Home, MessageCircle, PlusCircle, Swords, User, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 const navItems = [{
@@ -43,7 +43,7 @@ export default function MainLayout() {
                 {item.isMain ? <motion.div whileTap={{
               scale: 0.9
             }} className="relative -mt-6 rounded-full p-3 bg-gradient-to-r from-primary to-secondary shadow-neon-purple">
-                    <Icon className="text-foreground w-[50px] h-[50px]" />
+                    <Plus className="text-foreground w-[50px] h-[50px]" />
                     {isActive && <motion.div layoutId="nav-glow" className="absolute inset-0 rounded-full bg-secondary/30 blur-xl" initial={false} transition={{
                 type: "spring",
                 stiffness: 350,
