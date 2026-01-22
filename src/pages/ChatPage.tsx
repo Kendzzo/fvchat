@@ -65,7 +65,7 @@ export default function ChatPage() {
       </header>
 
       {/* Chat List */}
-      <div className="p-4 space-y-2">
+      <div className="p-4 space-y-2 border-white">
         {filteredChats.length === 0 ? <div className="text-center py-12">
             <p className="text-muted-foreground">No se encontraron chats</p>
           </div> : filteredChats.map((chat, index) => <motion.button key={chat.id} initial={{
@@ -76,7 +76,7 @@ export default function ChatPage() {
         x: 0
       }} transition={{
         delay: index * 0.05
-      }} onClick={() => setSelectedChat(chat.id)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors">
+      }} onClick={() => setSelectedChat(chat.id)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors border-white">
               <div className="relative">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                   <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
