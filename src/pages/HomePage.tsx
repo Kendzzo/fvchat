@@ -100,7 +100,7 @@ export default function HomePage() {
       }} exit={{
         opacity: 0,
         x: 20
-      }} className="p-4 space-y-4 bg-primary-foreground">
+      }} className="p-4 space-y-4 bg-[#3d2f6f]">
             {/* Stories/Avatars Row */}
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
