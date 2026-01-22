@@ -151,7 +151,7 @@ export default function HomePage() {
 
                 {/* Post Content */}
                 <div className="relative rounded-xl overflow-hidden -mx-4 aspect-square">
-                  <img src={post.content} alt="" className="w-full h-full object-cover" />
+                  <img src={post.content} alt="" className="w-full h-full object-cover rounded-lg shadow-card" />
                   {post.type === "video" && <div className="absolute inset-0 flex items-center justify-center bg-background/20">
                       <div className="w-16 h-16 rounded-full bg-background/80 flex items-center justify-center">
                         <Play className="w-8 h-8 text-foreground ml-1" />
