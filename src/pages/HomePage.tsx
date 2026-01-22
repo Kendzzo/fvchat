@@ -77,7 +77,7 @@ export default function HomePage() {
               <ImageIcon className="w-4 h-4" />
               Publicaciones
             </span>
-            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
+            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary mx-[20px]" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
             <span className="flex items-center justify-center gap-2">
@@ -109,7 +109,7 @@ export default function HomePage() {
                     ➕
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground">Tu historia</span>
+                <span className="text-xs text-white font-bold">Tu historia</span>
               </div>
               {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="avatar-frame w-16 h-16">
@@ -117,7 +117,7 @@ export default function HomePage() {
                       {emoji}
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">Amigo{i + 1}</span>
+                  <span className="text-xs text-white">Amigo{i + 1}</span>
                 </div>)}
             </div>
 
@@ -130,7 +130,7 @@ export default function HomePage() {
           y: 0
         }} transition={{
           delay: index * 0.1
-        }} className="post-card">
+        }} className="post-card border-success-foreground border-solid border">
                 {/* Post Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
