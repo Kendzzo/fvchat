@@ -14,16 +14,447 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      challenge_entries: {
+        Row: {
+          challenge_id: string
+          content_url: string
+          created_at: string
+          id: string
+          likes_count: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          content_url: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          content_url?: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_entries_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          challenge_date: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          challenge_date: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          challenge_date?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      chats: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_group: boolean
+          name: string | null
+          participant_ids: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_group?: boolean
+          name?: string | null
+          participant_ids: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_group?: boolean
+          name?: string | null
+          participant_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chats_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          author_id: string
+          created_at: string
+          id: string
+          post_id: string
+          text: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          id?: string
+          post_id: string
+          text: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          sender_id: string
+          status: Database["public"]["Enums"]["friendship_status"]
+          tutor_approved: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          sender_id: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+          tutor_approved?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          sender_id?: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+          tutor_approved?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          chat_id: string
+          content: string
+          created_at: string
+          id: string
+          is_blocked: boolean
+          sender_id: string
+          type: Database["public"]["Enums"]["content_type"]
+        }
+        Insert: {
+          chat_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_blocked?: boolean
+          sender_id: string
+          type?: Database["public"]["Enums"]["content_type"]
+        }
+        Update: {
+          chat_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_blocked?: boolean
+          sender_id?: string
+          type?: Database["public"]["Enums"]["content_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string
+          challenge_id: string | null
+          content_url: string | null
+          created_at: string
+          id: string
+          is_challenge_entry: boolean
+          likes_count: number
+          privacy: Database["public"]["Enums"]["post_privacy"]
+          text: string | null
+          type: Database["public"]["Enums"]["content_type"]
+        }
+        Insert: {
+          author_id: string
+          challenge_id?: string | null
+          content_url?: string | null
+          created_at?: string
+          id?: string
+          is_challenge_entry?: boolean
+          likes_count?: number
+          privacy?: Database["public"]["Enums"]["post_privacy"]
+          text?: string | null
+          type: Database["public"]["Enums"]["content_type"]
+        }
+        Update: {
+          author_id?: string
+          challenge_id?: string | null
+          content_url?: string | null
+          created_at?: string
+          id?: string
+          is_challenge_entry?: boolean
+          likes_count?: number
+          privacy?: Database["public"]["Enums"]["post_privacy"]
+          text?: string | null
+          type?: Database["public"]["Enums"]["content_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          account_status: Database["public"]["Enums"]["account_status"]
+          age_group: Database["public"]["Enums"]["age_group"]
+          avatar_data: Json | null
+          birth_year: number
+          created_at: string
+          id: string
+          language_infractions_count: number
+          nick: string
+          tutor_email: string
+          updated_at: string
+        }
+        Insert: {
+          account_status?: Database["public"]["Enums"]["account_status"]
+          age_group?: Database["public"]["Enums"]["age_group"]
+          avatar_data?: Json | null
+          birth_year: number
+          created_at?: string
+          id: string
+          language_infractions_count?: number
+          nick: string
+          tutor_email: string
+          updated_at?: string
+        }
+        Update: {
+          account_status?: Database["public"]["Enums"]["account_status"]
+          age_group?: Database["public"]["Enums"]["age_group"]
+          avatar_data?: Json | null
+          birth_year?: number
+          created_at?: string
+          id?: string
+          language_infractions_count?: number
+          nick?: string
+          tutor_email?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rewards: {
+        Row: {
+          created_at: string
+          id: string
+          item_data: Json
+          item_type: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_data: Json
+          item_type: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_data?: Json
+          item_type?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutors: {
+        Row: {
+          approval_history: Json | null
+          children_ids: string[] | null
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          approval_history?: Json | null
+          children_ids?: string[] | null
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          approval_history?: Json | null
+          children_ids?: string[] | null
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_age_group: {
+        Args: { _birth_year: number }
+        Returns: Database["public"]["Enums"]["age_group"]
+      }
+      can_access_post: {
+        Args: { _post_id: string; _user_id: string }
+        Returns: boolean
+      }
+      get_user_age_group: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["age_group"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_blocked_user: { Args: { _user_id: string }; Returns: boolean }
+      is_chat_participant: {
+        Args: { _chat_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_friend: {
+        Args: { _user_a: string; _user_b: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      account_status: "pending_approval" | "active" | "suspended"
+      age_group: "6-8" | "9-12" | "13-16"
+      app_role: "admin" | "moderator" | "user"
+      content_type: "photo" | "video" | "text" | "audio" | "image"
+      friendship_status: "pending" | "approved" | "rejected"
+      post_privacy: "friends_only" | "same_age_group"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +581,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      account_status: ["pending_approval", "active", "suspended"],
+      age_group: ["6-8", "9-12", "13-16"],
+      app_role: ["admin", "moderator", "user"],
+      content_type: ["photo", "video", "text", "audio", "image"],
+      friendship_status: ["pending", "approved", "rejected"],
+      post_privacy: ["friends_only", "same_age_group"],
+    },
   },
 } as const
