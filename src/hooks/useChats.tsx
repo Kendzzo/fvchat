@@ -1,0 +1,260 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+
+export interface Chat {
+  id: string;
+  is_group: boolean;
+  name: string | null;
+  participant_ids: string[];
+  created_by: string | null;
+  created_at: string;
+  lastMessage?: string;
+  lastMessageTime?: string;
+  unreadCount?: number;
+  otherParticipant?: {
+    nick: string;
+    avatar_data: Record<string, unknown>;
+    isOnline?: boolean;
+  };
+}
+
+export interface Message {
+  id: string;
+  chat_id: string;
+  sender_id: string;
+  type: 'text' | 'photo' | 'video' | 'audio' | 'image';
+  content: string;
+  is_blocked: boolean;
+  created_at: string;
+  sender?: {
+    nick: string;
+    avatar_data: Record<string, unknown>;
+  };
+}
+
+export function useChats() {
+  const { user } = useAuth();
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchChats = async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from('chats')
+        .select('*')
+        .contains('participant_ids', [user.id])
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        console.error('Error fetching chats:', fetchError);
+        setError(fetchError.message);
+        return;
+      }
+
+      // Fetch last message and participant info for each chat
+      const chatsWithDetails = await Promise.all(
+        (data || []).map(async (chat) => {
+          // Get last message
+          const { data: messages } = await supabase
+            .from('messages')
+            .select('content, created_at')
+            .eq('chat_id', chat.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          // Get other participant for 1-1 chats
+          let otherParticipant = null;
+          if (!chat.is_group) {
+            const otherId = chat.participant_ids.find((id: string) => id !== user.id);
+            if (otherId) {
+              const { data: participantData } = await supabase
+                .from('profiles')
+                .select('nick, avatar_data')
+                .eq('id', otherId)
+                .maybeSingle();
+              otherParticipant = participantData;
+            }
+          }
+
+          return {
+            ...chat,
+            lastMessage: messages?.[0]?.content || '',
+            lastMessageTime: messages?.[0]?.created_at || chat.created_at,
+            unreadCount: 0, // TODO: Implement unread count
+            otherParticipant
+          } as Chat;
+        })
+      );
+
+      setChats(chatsWithDetails);
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Error al cargar chats');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createChat = async (participantIds: string[], isGroup: boolean = false, name?: string) => {
+    if (!user) return { error: new Error('No autenticado') };
+
+    try {
+      const allParticipants = [...new Set([user.id, ...participantIds])];
+      
+      const { data, error: insertError } = await supabase
+        .from('chats')
+        .insert({
+          participant_ids: allParticipants,
+          is_group: isGroup,
+          name: name || null,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        return { error: new Error(insertError.message) };
+      }
+
+      await fetchChats();
+      return { data, error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  useEffect(() => {
+    fetchChats();
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel('chats-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        () => {
+          fetchChats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  return {
+    chats,
+    isLoading,
+    error,
+    createChat,
+    refreshChats: fetchChats
+  };
+}
+
+export function useMessages(chatId: string | null) {
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchMessages = async () => {
+    if (!chatId || !user) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:profiles!messages_sender_id_fkey(nick, avatar_data)
+        `)
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return;
+      }
+
+      setMessages(data as Message[]);
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendMessage = async (content: string, type: Message['type'] = 'text') => {
+    if (!user || !chatId) return { error: new Error('No autenticado o chat no seleccionado') };
+
+    try {
+      const { data, error: insertError } = await supabase
+        .from('messages')
+        .insert({
+          chat_id: chatId,
+          sender_id: user.id,
+          content,
+          type
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        return { error: new Error(insertError.message) };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+
+    if (chatId) {
+      // Subscribe to new messages for this chat
+      const channel = supabase
+        .channel(`messages-${chatId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `chat_id=eq.${chatId}`
+          },
+          (payload) => {
+            setMessages(prev => [...prev, payload.new as Message]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [chatId, user]);
+
+  return {
+    messages,
+    isLoading,
+    sendMessage,
+    refreshMessages: fetchMessages
+  };
+}
