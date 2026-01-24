@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { ArrowLeft, Check, AlertCircle, Shield, Mail } from "lucide-react";
+import { ArrowLeft, Check, AlertCircle, Shield, Mail, Loader2 } from "lucide-react";
 import vfcLogo from "@/assets/vfc-logo.png";
+import { useAuth } from "@/hooks/useAuth";
 
 const currentYear = new Date().getFullYear();
 const validYears = Array.from({ length: 11 }, (_, i) => currentYear - 16 + i); // 2010-2020
@@ -12,6 +13,7 @@ const bannedWords = ["tonto", "idiota", "estupido", "malo"];
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [step, setStep] = useState(1);
   const [nick, setNick] = useState("");
   const [birthYear, setBirthYear] = useState("");
@@ -20,6 +22,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [nickError, setNickError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateNick = (value: string) => {
     // No números
@@ -87,7 +90,7 @@ export default function RegisterPage() {
     setStep(3);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres");
@@ -98,8 +101,36 @@ export default function RegisterPage() {
       return;
     }
     setError("");
-    // TODO: Implement real registration
-    setStep(4);
+    setIsLoading(true);
+
+    try {
+      // Create email from nick for auth
+      const email = `${nick.toLowerCase()}@vfc.app`;
+      
+      const { error: signUpError } = await signUp(
+        email,
+        password,
+        nick,
+        parseInt(birthYear),
+        tutorEmail
+      );
+
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
+          setError("Este nick ya está registrado");
+        } else {
+          setError(signUpError.message);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      setStep(4);
+    } catch (err) {
+      setError("Error al crear la cuenta");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getAgeGroup = (year: string) => {
@@ -121,7 +152,7 @@ export default function RegisterPage() {
       <div className="relative z-10 p-4 flex items-center gap-4">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => step > 1 ? setStep(step - 1) : navigate("/")}
+          onClick={() => step > 1 && step < 4 ? setStep(step - 1) : navigate("/")}
           className="p-2 rounded-xl bg-card/50 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -335,6 +366,7 @@ export default function RegisterPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
                   className="input-gaming w-full"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -348,6 +380,7 @@ export default function RegisterPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repite tu contraseña"
                   className="input-gaming w-full"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -362,12 +395,20 @@ export default function RegisterPage() {
               )}
 
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                whileTap={{ scale: isLoading ? 1 : 0.98 }}
                 type="submit"
-                className="btn-gaming w-full py-4 rounded-2xl text-foreground font-gaming text-lg"
+                disabled={isLoading}
+                className="btn-gaming w-full py-4 rounded-2xl text-foreground font-gaming text-lg disabled:opacity-70 flex items-center justify-center gap-2"
               >
-                Crear cuenta
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Creando cuenta...
+                  </>
+                ) : (
+                  "Crear cuenta"
+                )}
               </motion.button>
             </form>
           </motion.div>
@@ -385,36 +426,36 @@ export default function RegisterPage() {
               transition={{ type: "spring", delay: 0.2 }}
               className="w-24 h-24 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-6"
             >
-              <Mail className="w-12 h-12 text-secondary" />
+              <Check className="w-12 h-12 text-secondary" />
             </motion.div>
 
             <h1 className="text-2xl font-gaming font-bold gradient-text mb-2">
-              ¡Ya casi está!
+              ¡Cuenta creada!
             </h1>
             <p className="text-muted-foreground mb-6">
-              Hemos enviado un email a <span className="text-foreground font-medium">{tutorEmail}</span>
+              Tu cuenta ha sido creada exitosamente
             </p>
 
             <div className="p-4 rounded-xl bg-card border border-border/50 text-sm text-left space-y-2">
-              <p className="text-foreground font-medium">¿Qué pasa ahora?</p>
+              <p className="text-foreground font-medium">Tu información:</p>
               <ul className="text-muted-foreground space-y-2">
                 <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs text-primary">1</span>
+                  <span className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs text-secondary">✓</span>
                   </span>
-                  Tu tutor recibirá un email
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs text-primary">2</span>
-                  </span>
-                  Debe hacer clic en "Aprobar"
+                  Nick: @{nick}
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs text-secondary">3</span>
+                    <span className="text-xs text-secondary">✓</span>
                   </span>
-                  ¡Podrás entrar en VFC!
+                  Grupo de edad: {getAgeGroup(birthYear)}
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs text-secondary">✓</span>
+                  </span>
+                  Tutor: {tutorEmail}
                 </li>
               </ul>
             </div>
@@ -422,10 +463,10 @@ export default function RegisterPage() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => navigate("/login")}
-              className="mt-6 py-3 px-8 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground transition-colors font-medium"
+              onClick={() => navigate("/app")}
+              className="btn-gaming w-full py-4 rounded-2xl text-foreground font-gaming text-lg mt-6"
             >
-              Ir al login
+              ¡Entrar a VFC!
             </motion.button>
           </motion.div>
         )}
