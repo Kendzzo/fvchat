@@ -5,47 +5,45 @@ import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, Chevron
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useFriendships } from "@/hooks/useFriendships";
-
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { profile, signOut, isLoading: authLoading } = useAuth();
-  const { posts, isLoading: postsLoading } = usePosts();
-  const { friends } = useFriendships();
+  const {
+    profile,
+    signOut,
+    isLoading: authLoading
+  } = useAuth();
+  const {
+    posts,
+    isLoading: postsLoading
+  } = usePosts();
+  const {
+    friends
+  } = useFriendships();
   const [activeTab, setActiveTab] = useState<"posts" | "likes">("posts");
   const [showSettings, setShowSettings] = useState(false);
-
   const handleLogout = async () => {
     await signOut();
     navigate("/");
   };
-
   const myPosts = posts.filter(p => p.author_id === profile?.id);
   const totalLikes = myPosts.reduce((sum, post) => sum + post.likes_count, 0);
-
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
-
   if (showSettings) {
     return <SettingsView onBack={() => setShowSettings(false)} onLogout={handleLogout} />;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-gaming font-bold">@{profile?.nick || "Usuario"}</h1>
           <div className="flex items-center gap-2">
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowSettings(true)}
-              className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <motion.button whileTap={{
+            scale: 0.9
+          }} onClick={() => setShowSettings(true)} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
               <Settings className="w-5 h-5" />
             </motion.button>
           </div>
@@ -54,11 +52,13 @@ export default function ProfilePage() {
 
       <div className="p-4 space-y-6 bg-[#3d2f6f]">
         {/* Profile Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-6 text-center border-success-foreground"
-        >
+        <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} className="glass-card p-6 text-center border-success-foreground bg-primary-foreground">
           {/* Avatar */}
           <div className="relative inline-block mb-4">
             <div className="w-28 h-28 rounded-full bg-gradient-to-r from-primary via-secondary to-accent p-1 animate-pulse-glow">
@@ -66,10 +66,9 @@ export default function ProfilePage() {
                 {(profile?.avatar_data as any)?.emoji || "🎮"}
               </div>
             </div>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground shadow-lg"
-            >
+            <motion.button whileTap={{
+            scale: 0.9
+          }} className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground shadow-lg">
               <Edit3 className="w-5 h-5" />
             </motion.button>
             
@@ -88,121 +87,85 @@ export default function ProfilePage() {
           </p>
 
           {/* Badges */}
-          <div className="flex items-center justify-center gap-2 mb-6">
-            {["🌟", "🎮", "💪"].map((badge, i) => (
-              <div
-                key={i}
-                className="w-10 h-10 rounded-xl bg-card border border-border/50 flex items-center justify-center text-xl"
-              >
+          <div className="flex items-center justify-center mb-6 gap-[10px]">
+            {["🌟", "🎮", "💪"].map((badge, i) => <div key={i} className="w-10 h-10 rounded-xl bg-card border border-border/50 flex items-center justify-center text-xl">
                 {badge}
-              </div>
-            ))}
+              </div>)}
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="p-3 rounded-xl bg-card">
-              <p className="text-2xl font-gaming font-bold gradient-text">{myPosts.length}</p>
-              <p className="text-xs text-muted-foreground">Posts</p>
+            <div className="p-3 rounded-xl bg-primary-foreground">
+              <p className="font-gaming font-bold gradient-text text-4xl">{myPosts.length}</p>
+              <p className="text-muted-foreground font-bold text-lg">Posts</p>
             </div>
-            <div className="p-3 rounded-xl bg-card">
-              <p className="text-2xl font-gaming font-bold gradient-text">{friends.length}</p>
-              <p className="text-xs text-muted-foreground">Amigos</p>
+            <div className="p-3 rounded-xl bg-primary-foreground">
+              <p className="font-gaming font-bold gradient-text text-4xl">{friends.length}</p>
+              <p className="text-muted-foreground font-bold text-lg">Amigos</p>
             </div>
-            <div className="p-3 rounded-xl bg-card">
-              <p className="text-2xl font-gaming font-bold text-destructive">{totalLikes}</p>
-              <p className="text-xs text-muted-foreground">Likes</p>
+            <div className="p-3 rounded-xl bg-primary-foreground">
+              <p className="font-gaming font-bold text-destructive text-4xl">{totalLikes}</p>
+              <p className="text-muted-foreground text-lg font-bold">Likes</p>
             </div>
           </div>
         </motion.div>
 
         {/* Actions */}
         <div className="flex gap-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground font-medium flex items-center justify-center gap-2"
-          >
+          <motion.button whileHover={{
+          scale: 1.02
+        }} whileTap={{
+          scale: 0.98
+        }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground font-medium flex items-center justify-center gap-2">
             <UserPlus className="w-5 h-5" />
             Añadir amigos
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="py-3 px-4 rounded-xl border-2 border-border/50 text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <motion.button whileHover={{
+          scale: 1.02
+        }} whileTap={{
+          scale: 0.98
+        }} className="py-3 px-4 rounded-xl border-2 border-border/50 text-muted-foreground hover:text-foreground transition-colors">
             <QrCode className="w-5 h-5" />
           </motion.button>
         </div>
 
         {/* Tabs */}
         <div className="flex border-b border-border/30">
-          <button
-            onClick={() => setActiveTab("posts")}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${
-              activeTab === "posts" ? "text-foreground" : "text-muted-foreground"
-            }`}
-          >
+          <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
             <Grid className="w-4 h-4" />
             Mis posts
-            {activeTab === "posts" && (
-              <motion.div
-                layoutId="profile-tab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"
-              />
-            )}
+            {activeTab === "posts" && <motion.div layoutId="profile-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
           </button>
-          <button
-            onClick={() => setActiveTab("likes")}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${
-              activeTab === "likes" ? "text-foreground" : "text-muted-foreground"
-            }`}
-          >
+          <button onClick={() => setActiveTab("likes")} className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${activeTab === "likes" ? "text-foreground" : "text-muted-foreground"}`}>
             <Heart className="w-4 h-4" />
             Likes
-            {activeTab === "likes" && (
-              <motion.div
-                layoutId="profile-tab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"
-              />
-            )}
+            {activeTab === "likes" && <motion.div layoutId="profile-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
           </button>
         </div>
 
         {/* Grid */}
-        {postsLoading ? (
-          <div className="flex items-center justify-center py-8">
+        {postsLoading ? <div className="flex items-center justify-center py-8">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : myPosts.length === 0 ? (
-          <div className="text-center py-8">
+          </div> : myPosts.length === 0 ? <div className="text-center py-8">
             <Grid className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">No tienes publicaciones aún</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-1">
-            {myPosts.map((post, i) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05 }}
-                className="aspect-square rounded-lg overflow-hidden bg-card"
-              >
-                {post.content_url ? (
-                  <img src={post.content_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+          </div> : <div className="grid grid-cols-3 gap-1">
+            {myPosts.map((post, i) => <motion.div key={post.id} initial={{
+          opacity: 0,
+          scale: 0.9
+        }} animate={{
+          opacity: 1,
+          scale: 1
+        }} transition={{
+          delay: i * 0.05
+        }} className="aspect-square rounded-lg overflow-hidden bg-card">
+                {post.content_url ? <img src={post.content_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <Grid className="w-6 h-6" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        )}
+                  </div>}
+              </motion.div>)}
+          </div>}
       </div>
-    </div>
-  );
+    </div>;
 }
 
 // Settings View
@@ -213,25 +176,36 @@ function SettingsView({
   onBack: () => void;
   onLogout: () => void;
 }) {
-  const { profile } = useAuth();
-  
-  const settingsItems = [
-    { icon: Edit3, label: "Editar perfil", action: () => {} },
-    { icon: Shield, label: "Privacidad y seguridad", action: () => {} },
-    { icon: Bell, label: "Notificaciones", action: () => {} },
-    { icon: Lock, label: "Control parental", action: () => {} },
-    { icon: HelpCircle, label: "Ayuda", action: () => {} },
-  ];
-
-  return (
-    <div className="min-h-screen bg-background">
+  const {
+    profile
+  } = useAuth();
+  const settingsItems = [{
+    icon: Edit3,
+    label: "Editar perfil",
+    action: () => {}
+  }, {
+    icon: Shield,
+    label: "Privacidad y seguridad",
+    action: () => {}
+  }, {
+    icon: Bell,
+    label: "Notificaciones",
+    action: () => {}
+  }, {
+    icon: Lock,
+    label: "Control parental",
+    action: () => {}
+  }, {
+    icon: HelpCircle,
+    label: "Ayuda",
+    action: () => {}
+  }];
+  return <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-4">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={onBack}
-            className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <motion.button whileTap={{
+          scale: 0.9
+        }} onClick={onBack} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
             ←
           </motion.button>
           <h1 className="text-xl font-gaming font-bold">Ajustes</h1>
@@ -254,31 +228,32 @@ function SettingsView({
           </div>
         </div>
 
-        {settingsItems.map((item, i) => (
-          <motion.button
-            key={i}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 }}
-            onClick={item.action}
-            className="w-full glass-card p-4 flex items-center gap-4"
-          >
+        {settingsItems.map((item, i) => <motion.button key={i} initial={{
+        opacity: 0,
+        x: -20
+      }} animate={{
+        opacity: 1,
+        x: 0
+      }} transition={{
+        delay: i * 0.05
+      }} onClick={item.action} className="w-full glass-card p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-card flex items-center justify-center text-muted-foreground">
               <item.icon className="w-5 h-5" />
             </div>
             <span className="flex-1 text-left font-medium">{item.label}</span>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
-        ))}
+          </motion.button>)}
 
         {/* Logout */}
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          onClick={onLogout}
-          className="w-full glass-card p-4 flex items-center gap-4 mt-8"
-        >
+        <motion.button initial={{
+        opacity: 0,
+        x: -20
+      }} animate={{
+        opacity: 1,
+        x: 0
+      }} transition={{
+        delay: 0.3
+      }} onClick={onLogout} className="w-full glass-card p-4 flex items-center gap-4 mt-8">
           <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center text-destructive">
             <LogOut className="w-5 h-5" />
           </div>
@@ -291,6 +266,5 @@ function SettingsView({
           <p className="text-xs text-muted-foreground">Red social segura para menores</p>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
