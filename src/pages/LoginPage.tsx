@@ -1,34 +1,43 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Shield } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Shield, Loader2 } from "lucide-react";
 import vfcLogo from "@/assets/vfc-logo.png";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [nick, setNick] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Admin bypass for development
-    if (nick === "Admin" && password === "1234") {
-      navigate("/app");
-      return;
-    }
-
-    // TODO: Implement real login with Supabase
     if (!nick || !password) {
       setError("Por favor, completa todos los campos");
       return;
     }
 
-    // Simulate login for now
-    navigate("/app");
+    setIsLoading(true);
+    
+    try {
+      const { error: signInError } = await signIn(nick, password);
+      
+      if (signInError) {
+        setError(signInError.message);
+      } else {
+        navigate("/app");
+      }
+    } catch (err) {
+      setError("Error al iniciar sesión");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -103,6 +112,7 @@ export default function LoginPage() {
               onChange={(e) => setNick(e.target.value)}
               placeholder="@tunick"
               className="input-gaming w-full"
+              disabled={isLoading}
             />
           </div>
 
@@ -117,6 +127,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="input-gaming w-full pr-12"
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -136,13 +147,26 @@ export default function LoginPage() {
           </button>
 
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
             type="submit"
-            className="btn-gaming w-full py-4 rounded-2xl text-foreground font-gaming text-lg mt-6"
+            disabled={isLoading}
+            className="btn-gaming w-full py-4 rounded-2xl text-foreground font-gaming text-lg mt-6 disabled:opacity-70 flex items-center justify-center gap-2"
           >
-            Entrar
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Entrando...
+              </>
+            ) : (
+              "Entrar"
+            )}
           </motion.button>
+
+          {/* Dev hint */}
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Desarrollo: Admin / 1234
+          </p>
         </motion.form>
 
         {/* Footer */}
