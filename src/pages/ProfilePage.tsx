@@ -50,7 +50,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <div className="p-4 space-y-6 bg-[#3d2f6f]">
+      <div className="p-4 space-y-6 bg-[#3d2f6f] rounded-md border-solid">
         {/* Profile Card */}
         <motion.div initial={{
         opacity: 0,
@@ -58,7 +58,7 @@ export default function ProfilePage() {
       }} animate={{
         opacity: 1,
         y: 0
-      }} className="glass-card p-6 text-center border-success-foreground bg-primary-foreground">
+      }} className="glass-card p-6 text-center border-success-foreground bg-primary-foreground px-[2px] py-[20px]">
           {/* Avatar */}
           <div className="relative inline-block mb-4">
             <div className="w-28 h-28 rounded-full bg-gradient-to-r from-primary via-secondary to-accent p-1 animate-pulse-glow">
@@ -88,7 +88,7 @@ export default function ProfilePage() {
 
           {/* Badges */}
           <div className="flex items-center justify-center mb-6 gap-[10px]">
-            {["🌟", "🎮", "💪"].map((badge, i) => <div key={i} className="w-10 h-10 rounded-xl bg-card border border-border/50 flex items-center justify-center text-xl">
+            {["🌟", "🎮", "💪"].map((badge, i) => <div key={i} className="w-10 h-10 rounded-xl bg-card border border-border/50 items-center justify-center text-xl flex flex-row">
                 {badge}
               </div>)}
           </div>
@@ -125,7 +125,7 @@ export default function ProfilePage() {
         }} whileTap={{
           scale: 0.98
         }} className="py-3 px-4 rounded-xl border-2 border-border/50 text-muted-foreground hover:text-foreground transition-colors">
-            <QrCode className="w-5 h-5" />
+            <QrCode className="w-[30px] h-[30px]" />
           </motion.button>
         </div>
 
@@ -159,7 +159,7 @@ export default function ProfilePage() {
         }} transition={{
           delay: i * 0.05
         }} className="aspect-square rounded-lg overflow-hidden bg-card">
-                {post.content_url ? <img src={post.content_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                {post.content_url ? <img src={post.content_url} alt="" className="w-full h-full border-double border-primary-foreground object-contain border-0" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <Grid className="w-6 h-6" />
                   </div>}
               </motion.div>)}
