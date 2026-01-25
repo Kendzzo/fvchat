@@ -35,7 +35,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="px-4 py-[5px]">
-          <h1 className="font-gaming gradient-text font-extrabold text-5xl">VFC</h1>
+          <h1 className="font-gaming gradient-text font-extrabold text-5xl">VFC </h1>
         </div>
 
         {/* Tabs */}
