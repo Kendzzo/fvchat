@@ -34,12 +34,12 @@ export default function MainLayout() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bottom-nav safe-bottom my-0 py-px rounded-lg">
+      <nav className="bottom-nav safe-bottom my-0 rounded-lg py-[2px]">
         <div className="flex items-center justify-around px-2 py-1">
           {navItems.map(item => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
-          return <button key={item.path} onClick={() => navigate(item.path)} className={cn("nav-item relative", isActive && "active")}>
+          return <button key={item.path} onClick={() => navigate(item.path)} className={cn("nav-item relative py-px my-0", isActive && "active")}>
                 {item.isMain ? <motion.div whileTap={{
               scale: 0.9
             }} className="relative -mt-6 rounded-full p-3 bg-gradient-to-r from-primary to-secondary shadow-neon-purple">

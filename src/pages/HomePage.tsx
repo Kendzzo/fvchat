@@ -81,7 +81,7 @@ export default function HomePage() {
               </div>
               {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="avatar-frame w-16 h-16">
-                    <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
+                    <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-success-foreground">
                       {emoji}
                     </div>
                   </div>
