@@ -40,14 +40,14 @@ export default function ChatPage() {
           <motion.button whileTap={{
           scale: 0.9
         }} className="p-2 rounded-xl bg-card transition-colors text-destructive-foreground">
-            <Plus className="w-5 h-5 bg-primary text-primary" />
+            <Plus className="w-[30px] h-[30px] bg-transparent text-white" />
           </motion.button>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar chat..." className="input-gaming w-full pl-12 px-[49px] my-0" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-secondary-foreground text-white" />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input-gaming w-full pl-12 px-[49px] my-0" placeholder="Busca un chat bro.." />
         </div>
       </header>
 
