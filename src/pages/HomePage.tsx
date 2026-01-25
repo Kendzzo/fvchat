@@ -34,7 +34,7 @@ export default function HomePage() {
   return <div className="min-h-screen bg-background my-0 py-0">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30">
-        <div className="px-4 py-3">
+        <div className="px-4 py-[5px]">
           <h1 className="font-gaming gradient-text font-extrabold text-5xl">VFC</h1>
         </div>
 
@@ -45,7 +45,7 @@ export default function HomePage() {
               <ImageIcon className="w-4 h-4" />
               Publicaciones
             </span>
-            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary mx-[30px] rounded-md" />}
+            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary mx-[30px] rounded-md py-[2px] my-[5px]" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
             <span className="flex items-center justify-center gap-2 font-bold text-xl">
