@@ -53,9 +53,9 @@ export default function MainLayout() {
                     <motion.div whileTap={{
                 scale: 0.9
               }} className="nav-icon">
-                      <Icon className={cn("w-6 h-6 transition-colors", isActive ? "text-secondary" : "text-muted-foreground")} />
+                      <Icon className={cn("w-6 h-6 transition-colors text-white", isActive ? "text-secondary" : "text-muted-foreground")} />
                     </motion.div>
-                    <span className={cn("text-xs mt-1 transition-colors", isActive ? "text-secondary font-medium" : "text-muted-foreground")}>
+                    <span className={cn("text-xs mt-1 transition-colors text-white", isActive ? "text-secondary font-medium" : "text-muted-foreground")}>
                       {item.label}
                     </span>
                     {isActive && <motion.div layoutId="nav-indicator" className="absolute -bottom-1 w-1 h-1 rounded-full bg-secondary" initial={false} transition={{

@@ -226,7 +226,7 @@ function SettingsView({
         }} onClick={onBack} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
             ←
           </motion.button>
-          <h1 className="text-xl font-gaming font-bold">Ajustes</h1>
+          <h1 className="text-xl font-gaming font-bold bg-transparent border-white">Ajustes</h1>
         </div>
       </header>
 
