@@ -32,7 +32,7 @@ export default function ChatPage() {
   if (selectedChat) {
     return <ChatDetail chat={selectedChat} onBack={() => setSelectedChat(null)} />;
   }
-  return <div className="min-h-screen bg-primary-foreground py-[30px]">
+  return <div className="min-h-screen bg-primary-foreground py-[30px] my-[30px]">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center justify-between mb-4">
