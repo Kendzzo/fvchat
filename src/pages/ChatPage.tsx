@@ -39,7 +39,7 @@ export default function ChatPage() {
           <h1 className="font-gaming font-bold gradient-text text-5xl">Chat</h1>
           <motion.button whileTap={{
           scale: 0.9
-        }} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
+        }} className="p-2 rounded-xl bg-card transition-colors text-destructive-foreground">
             <Plus className="w-5 h-5 bg-primary text-primary" />
           </motion.button>
         </div>
