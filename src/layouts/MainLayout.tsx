@@ -34,7 +34,7 @@ export default function MainLayout() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bottom-nav safe-bottom">
+      <nav className="bottom-nav safe-bottom my-0 py-px rounded-lg">
         <div className="flex items-center justify-around px-2 py-1">
           {navItems.map(item => {
           const isActive = location.pathname === item.path;
