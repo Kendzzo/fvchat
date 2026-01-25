@@ -45,7 +45,7 @@ export default function HomePage() {
               <ImageIcon className="w-4 h-4" />
               Publicaciones
             </span>
-            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary mx-[30px] rounded-md py-[2px] my-[5px]" />}
+            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-md my-0 py-0 mx-[20px]" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
             <span className="flex items-center justify-center gap-2 font-bold text-xl">
@@ -70,22 +70,22 @@ export default function HomePage() {
         x: 20
       }} className="p-4 space-y-4 bg-[#e8e6ff] py-[17px] my-0">
             {/* Stories/Avatars Row */}
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide mx-0">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
-                  <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5 px-0 py-0">
+                  <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground">
                     ➕
                   </div>
                 </div>
-                <span className="text-base font-bold text-gray-800">Tu historia</span>
+                <span className="text-base font-bold text-secondary-foreground">Tu historia</span>
               </div>
-              {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
+              {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0 mx-[2px]">
                   <div className="avatar-frame w-16 h-16">
                     <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-success-foreground">
                       {emoji}
                     </div>
                   </div>
-                  <span className="text-sm text-gray-800">Amigo{i + 1}</span>
+                  <span className="text-secondary-foreground text-base">Amigo{i + 1}</span>
                 </div>)}
             </div>
 
