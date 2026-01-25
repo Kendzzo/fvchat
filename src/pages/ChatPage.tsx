@@ -36,7 +36,7 @@ export default function ChatPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 opacity-100 border-transparent bg-[#1b0637] py-[11px]">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-gaming font-bold gradient-text text-5xl">Chat</h1>
+          <h1 className="font-gaming font-bold gradient-text text-3xl">Chat</h1>
           <motion.button whileTap={{
           scale: 0.9
         }} className="p-2 rounded-xl bg-card transition-colors text-destructive-foreground">
