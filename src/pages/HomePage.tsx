@@ -41,14 +41,14 @@ export default function HomePage() {
         {/* Tabs */}
         <div className="flex border-b border-border/30">
           <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2 text-base">
+            <span className="flex items-center justify-center gap-2 font-bold text-xl">
               <ImageIcon className="w-4 h-4" />
               Publicaciones
             </span>
-            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary mx-[150px]" />}
+            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary mx-[30px] rounded-md" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2 text-base">
+            <span className="flex items-center justify-center gap-2 font-bold text-xl">
               <Trophy className="w-4 h-4" />
               Desafíos
             </span>
@@ -68,7 +68,7 @@ export default function HomePage() {
       }} exit={{
         opacity: 0,
         x: 20
-      }} className="p-4 space-y-4 bg-[#e8e6ff] py-[17px]">
+      }} className="p-4 space-y-4 bg-[#e8e6ff] py-[17px] my-0">
             {/* Stories/Avatars Row */}
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
