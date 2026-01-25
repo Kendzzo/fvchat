@@ -32,22 +32,22 @@ export default function ChatPage() {
   if (selectedChat) {
     return <ChatDetail chat={selectedChat} onBack={() => setSelectedChat(null)} />;
   }
-  return <div className="min-h-screen bg-primary-foreground py-[30px] my-[30px]">
+  return <div className="min-h-screen bg-primary-foreground my-0 py-0">
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 py-3 opacity-100 border-transparent bg-[#1b0637]">
+      <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 opacity-100 border-transparent bg-[#1b0637] py-[11px]">
         <div className="flex items-center justify-between mb-4">
           <h1 className="font-gaming font-bold gradient-text text-5xl">Chat</h1>
           <motion.button whileTap={{
           scale: 0.9
         }} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 bg-primary text-primary" />
           </motion.button>
         </div>
 
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar chat..." className="input-gaming w-full pl-12" />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar chat..." className="input-gaming w-full pl-12 px-[49px] my-0" />
         </div>
       </header>
 
@@ -55,7 +55,7 @@ export default function ChatPage() {
       <div className="p-4 space-y-2">
         {isLoading ? <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div> : filteredChats.length === 0 ? <div className="text-center py-12">
+          </div> : filteredChats.length === 0 ? <div className="text-center py-[4px]">
             <p className="text-muted-foreground">
               {searchQuery ? "No se encontraron chats" : "No tienes chats aún"}
             </p>
