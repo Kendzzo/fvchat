@@ -60,11 +60,11 @@ export default function ProfilePage() {
       }} animate={{
         opacity: 1,
         y: 0
-      }} className="glass-card p-6 text-center border-success-foreground bg-primary-foreground px-[2px] py-[20px]">
+      }} className="glass-card p-6 text-center border-success-foreground px-[2px] py-[20px] bg-white">
           {/* Avatar */}
           <div className="relative inline-block mb-4">
             <div className="w-28 h-28 rounded-full bg-gradient-to-r from-primary via-secondary to-accent p-1 animate-pulse-glow">
-              <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-5xl">
+              <div className="w-full h-full rounded-full bg-card text-5xl items-center justify-center flex flex-col">
                 {(profile?.avatar_data as any)?.emoji || "🎮"}
               </div>
             </div>
@@ -105,11 +105,11 @@ export default function ProfilePage() {
           <div className="grid grid-cols-3 gap-4">
             <div className="p-3 rounded-xl bg-primary-foreground">
               <p className="font-gaming font-bold gradient-text text-4xl">{myPosts.length}</p>
-              <p className="text-muted-foreground font-bold text-lg">Posts</p>
+              <p className="font-bold text-lg text-secondary-foreground">Posts</p>
             </div>
             <div className="p-3 rounded-xl bg-primary-foreground">
               <p className="font-gaming font-bold gradient-text text-4xl">{friends.length}</p>
-              <p className="text-muted-foreground font-bold text-lg">Amigos</p>
+              <p className="font-bold text-lg text-secondary-foreground">Amigos</p>
             </div>
             <div className="p-3 rounded-xl bg-primary-foreground">
               <p className="font-gaming font-bold text-destructive text-4xl">{totalLikes}</p>
