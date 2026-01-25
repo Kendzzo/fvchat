@@ -1,16 +1,18 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2 } from "lucide-react";
+import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useFriendships } from "@/hooks/useFriendships";
+import { Badge } from "@/components/ui/badge";
 export default function ProfilePage() {
   const navigate = useNavigate();
   const {
     profile,
     signOut,
-    isLoading: authLoading
+    isLoading: authLoading,
+    isAdmin
   } = useAuth();
   const {
     posts,
@@ -82,11 +84,21 @@ export default function ProfilePage() {
           <h2 className="text-2xl font-gaming font-bold gradient-text mb-1">
             @{profile?.nick || "Usuario"}
           </h2>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground mb-2">
             Grupo de edad: {profile?.age_group || "13-16"}
           </p>
 
-          {/* Badges */}
+          {/* Parental Approval Status */}
+          {profile?.parent_approved ? (
+            <Badge className="bg-success/20 text-success mb-4">
+              ✓ Cuenta aprobada
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="bg-warning/20 text-warning mb-4">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              Pendiente de aprobación
+            </Badge>
+          )}
           <div className="flex items-center justify-center mb-6 gap-[10px]">
             {["🌟", "🎮", "💪"].map((badge, i) => <div key={i} className="w-10 h-10 rounded-xl bg-card border border-border/50 items-center justify-center text-xl flex flex-row">
                 {badge}
@@ -109,6 +121,19 @@ export default function ProfilePage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Admin Button */}
+        {isAdmin && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/admin')}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-warning to-destructive text-foreground font-medium flex items-center justify-center gap-2"
+          >
+            <Shield className="w-5 h-5" />
+            Panel de Administración
+          </motion.button>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3">

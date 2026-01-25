@@ -305,6 +305,7 @@ export type Database = {
           id: string
           language_infractions_count: number
           nick: string
+          parent_approved: boolean
           tutor_email: string
           updated_at: string
         }
@@ -317,6 +318,7 @@ export type Database = {
           id: string
           language_infractions_count?: number
           nick: string
+          parent_approved?: boolean
           tutor_email: string
           updated_at?: string
         }
@@ -329,6 +331,7 @@ export type Database = {
           id?: string
           language_infractions_count?: number
           nick?: string
+          parent_approved?: boolean
           tutor_email?: string
           updated_at?: string
         }

@@ -11,6 +11,7 @@ interface Profile {
   tutor_email: string;
   account_status: string;
   language_infractions_count: number;
+  parent_approved: boolean;
   created_at: string;
   updated_at: string;
 }

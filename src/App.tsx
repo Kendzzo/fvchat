@@ -13,6 +13,7 @@ import ChatPage from "./pages/ChatPage";
 import PublishPage from "./pages/PublishPage";
 import ChallengesPage from "./pages/ChallengesPage";
 import ProfilePage from "./pages/ProfilePage";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,9 @@ function AppRoutes() {
         <Route path="challenges" element={<ChallengesPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
+      
+      {/* Admin Route */}
+      <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       
       {/* Catch-all */}
       <Route path="*" element={<NotFound />} />
