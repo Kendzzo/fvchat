@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Play, Image as ImageIcon, Sparkles, Trophy, Loader2 } from "lucide-react";
+import { Heart, Share2, MoreHorizontal, Play, Image as ImageIcon, Sparkles, Trophy, Loader2 } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
 import { useChallenges } from "@/hooks/useChallenges";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { CommentSection } from "@/components/CommentSection";
 
 export default function HomePage() {
   const { profile } = useAuth();
@@ -175,13 +176,12 @@ export default function HomePage() {
                       </span>
                     </motion.button>
                     <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      <MessageCircle className="w-6 h-6" />
-                      <span>{post.comments_count || 0}</span>
-                    </button>
-                    <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                       <Share2 className="w-6 h-6" />
                     </button>
                   </div>
+
+                  {/* Comments Section */}
+                  <CommentSection postId={post.id} postAuthorId={post.author_id} />
                 </motion.div>
               ))
             )}
