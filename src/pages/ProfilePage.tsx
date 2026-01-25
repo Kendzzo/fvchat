@@ -40,13 +40,13 @@ export default function ProfilePage() {
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between text-white">
           <h1 className="text-xl font-gaming font-bold">@{profile?.nick || "Usuario"}</h1>
           <div className="flex items-center gap-2">
             <motion.button whileTap={{
             scale: 0.9
           }} onClick={() => setShowSettings(true)} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5 text-white" />
             </motion.button>
           </div>
         </div>
@@ -89,16 +89,12 @@ export default function ProfilePage() {
           </p>
 
           {/* Parental Approval Status */}
-          {profile?.parent_approved ? (
-            <Badge className="bg-success/20 text-success mb-4">
+          {profile?.parent_approved ? <Badge className="bg-success/20 text-success mb-4">
               ✓ Cuenta aprobada
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="bg-warning/20 text-warning mb-4">
+            </Badge> : <Badge variant="secondary" className="bg-warning/20 text-warning mb-4">
               <AlertCircle className="w-3 h-3 mr-1" />
               Pendiente de aprobación
-            </Badge>
-          )}
+            </Badge>}
           <div className="flex items-center justify-center mb-6 gap-[10px]">
             {["🌟", "🎮", "💪"].map((badge, i) => <div key={i} className="w-10 h-10 rounded-xl bg-card border border-border/50 items-center justify-center text-xl flex flex-row">
                 {badge}
@@ -123,17 +119,14 @@ export default function ProfilePage() {
         </motion.div>
 
         {/* Admin Button */}
-        {isAdmin && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate('/admin')}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-warning to-destructive text-foreground font-medium flex items-center justify-center gap-2"
-          >
+        {isAdmin && <motion.button whileHover={{
+        scale: 1.02
+      }} whileTap={{
+        scale: 0.98
+      }} onClick={() => navigate('/admin')} className="w-full py-3 rounded-xl bg-gradient-to-r from-warning to-destructive font-medium flex items-center justify-center gap-2 text-white">
             <Shield className="w-5 h-5" />
             Panel de Administración
-          </motion.button>
-        )}
+          </motion.button>}
 
         {/* Actions */}
         <div className="flex gap-3">
@@ -141,7 +134,7 @@ export default function ProfilePage() {
           scale: 1.02
         }} whileTap={{
           scale: 0.98
-        }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground font-medium flex items-center justify-center gap-2">
+        }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white">
             <UserPlus className="w-5 h-5" />
             Añadir amigos
           </motion.button>
@@ -150,7 +143,7 @@ export default function ProfilePage() {
         }} whileTap={{
           scale: 0.98
         }} className="py-3 px-4 rounded-xl border-2 border-border/50 text-muted-foreground hover:text-foreground transition-colors">
-            <QrCode className="w-[30px] h-[30px]" />
+            <QrCode className="w-[30px] h-[30px] bg-white" />
           </motion.button>
         </div>
 
@@ -174,7 +167,7 @@ export default function ProfilePage() {
           </div> : myPosts.length === 0 ? <div className="text-center py-8">
             <Grid className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">No tienes publicaciones aún</p>
-          </div> : <div className="grid grid-cols-3 gap-1">
+          </div> : <div className="grid grid-cols-3 gap-1 border-transparent text-white">
             {myPosts.map((post, i) => <motion.div key={post.id} initial={{
           opacity: 0,
           scale: 0.9
@@ -184,7 +177,7 @@ export default function ProfilePage() {
         }} transition={{
           delay: i * 0.05
         }} className="aspect-square rounded-lg overflow-hidden bg-card">
-                {post.content_url ? <img src={post.content_url} alt="" className="w-full h-full border-double border-primary-foreground object-contain border-0" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                {post.content_url ? <img src={post.content_url} alt="" className="w-full h-full border-double border-primary-foreground object-contain border" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <Grid className="w-6 h-6" />
                   </div>}
               </motion.div>)}
