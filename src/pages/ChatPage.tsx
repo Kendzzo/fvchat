@@ -32,9 +32,9 @@ export default function ChatPage() {
   if (selectedChat) {
     return <ChatDetail chat={selectedChat} onBack={() => setSelectedChat(null)} />;
   }
-  return <div className="min-h-screen bg-primary-foreground py-[30px] my-[30px]">
+  return <div className="min-h-screen bg-primary-foreground my-[30px] py-0">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-[13px]">
         <div className="flex items-center justify-between mb-4">
           <h1 className="font-gaming font-bold gradient-text text-5xl">Chat</h1>
           <motion.button whileTap={{
