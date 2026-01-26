@@ -45,12 +45,10 @@ export default function ChatPage() {
         {isLoading ? <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div> : filteredChats.length === 0 ? <div className="text-center py-[4px]">
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-xl">
               {searchQuery ? "No se encontraron chats" : "No tienes chats aún"}
             </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              ¡Añade amigos para empezar a chatear!
-            </p>
+            <p className="text-sm text-muted-foreground mt-2">¡Añade amigos desde tu perfil para empezar a chatear!</p>
           </div> : filteredChats.map((chat, index) => <motion.button key={chat.id} initial={{
         opacity: 0,
         x: -20
