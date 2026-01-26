@@ -42,14 +42,14 @@ export default function HomePage() {
         {/* Tabs */}
         <div className="flex border-b border-border/30">
           <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2 font-bold text-xl py-0 mb-0">
+            <span className="flex items-center justify-center gap-2 font-bold text-xl py-0 mb-0 ml-[10px]">
               <ImageIcon className="w-4 h-4" />
               Publicaciones
             </span>
-            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-md my-0 py-0 mx-[20px] mt-px mb-[5px]" />}
+            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-md my-0 py-0 mx-[20px] mb-0 mt-0" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2 font-bold text-xl">
+            <span className="flex items-center justify-center gap-2 font-bold text-xl mr-[10px]">
               <Trophy className="w-4 h-4" />
               Desafíos
             </span>
@@ -108,7 +108,7 @@ export default function HomePage() {
           y: 0
         }} transition={{
           delay: index * 0.1
-        }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px] mt-0">
+        }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px] mt-0 mb-[10px]">
                   {/* Post Header */}
                   <div className="flex items-center justify-between px-[20px] mt-[10px] my-[5px] mb-[20px]">
                     <div className="flex items-center gap-3 ml-[10px]">
