@@ -69,7 +69,7 @@ export function CommentSection({
                   {comment.author?.nick?.charAt(0).toUpperCase() || '?'}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 px-2 py-1 bg-zinc-100 rounded mx-[10px] ml-[10px] mr-[60px]">
+              <div className="flex-1 px-2 py-1 bg-zinc-100 rounded mx-[10px] mr-[60px] ml-[30px]">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium ml-[2px]">{comment.author?.nick}</span>
                   <span className="text-xs text-muted-foreground">
