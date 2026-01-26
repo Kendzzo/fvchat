@@ -3,7 +3,7 @@ import { useComments } from '@/hooks/useComments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, MessageCircle, Trash2, Lock } from 'lucide-react';
+import { Send, MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -14,7 +14,7 @@ interface CommentSectionProps {
 
 export function CommentSection({ postId, postAuthorId }: CommentSectionProps) {
   const { user, profile } = useAuth();
-  const { comments, isLoading, canComment, addComment, deleteComment } = useComments(postId);
+  const { comments, isLoading, addComment, deleteComment } = useComments(postId);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -102,31 +102,24 @@ export function CommentSection({ postId, postAuthorId }: CommentSectionProps) {
         )}
       </div>
 
-      {/* Add Comment Form */}
-      {canComment ? (
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Escribe un comentario..."
-            className="flex-1 h-8 text-sm"
-            maxLength={200}
-          />
-          <Button 
-            type="submit" 
-            size="sm" 
-            disabled={!newComment.trim() || isSubmitting}
-            className="h-8 w-8 p-0"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
-      ) : (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-2">
-          <Lock className="w-4 h-4" />
-          <span>Necesitas aprobación parental para comentar</span>
-        </div>
-      )}
+      {/* Add Comment Form - MVP: Always enabled */}
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Escribe un comentario..."
+          className="flex-1 h-8 text-sm"
+          maxLength={200}
+        />
+        <Button 
+          type="submit" 
+          size="sm" 
+          disabled={!newComment.trim() || isSubmitting}
+          className="h-8 w-8 p-0"
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </form>
     </div>
   );
 }

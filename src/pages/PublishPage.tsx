@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Camera, Video, Image, X, Sparkles, Users, Lock, AlertCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
-import { ParentalGate } from "@/components/ParentalGate";
+// ParentalGate removed for MVP - free registration
 
 // Emojis para stickers
 const stickers = ["😀", "😂", "🥳", "🔥", "💯", "🎮", "🎨", "🎵", "⭐", "💪", "🏆", "❤️"];
@@ -19,7 +19,6 @@ export default function PublishPage() {
   const {
     createPost
   } = usePosts();
-  const isApproved = profile?.parent_approved === true;
   const [step, setStep] = useState<"select" | "edit" | "publish">("select");
   const [mediaType, setMediaType] = useState<"photo" | "video" | null>(null);
   const [caption, setCaption] = useState("");
@@ -75,15 +74,6 @@ export default function PublishPage() {
   // Mock image for demo
   const mockImage = "https://images.unsplash.com/photo-1493711662062-fa541f7f2b3e?w=600&h=600&fit=crop";
 
-  // Show parental gate if not approved
-  if (!isApproved) {
-    return <div className="min-h-screen bg-background p-4">
-        <header className="mb-6">
-          <h1 className="text-xl font-gaming font-bold gradient-text">Publicar</h1>
-        </header>
-        <ParentalGate tutorEmail={profile?.tutor_email} feature="publicar contenido" />
-      </div>;
-  }
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
