@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle } from "lucide-react";
+import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useFriendships } from "@/hooks/useFriendships";
 import { Badge } from "@/components/ui/badge";
+import { UserSearch } from "@/components/UserSearch";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 export default function ProfilePage() {
   const navigate = useNavigate();
   const {
@@ -130,14 +132,29 @@ export default function ProfilePage() {
 
         {/* Actions */}
         <div className="flex gap-3">
-          <motion.button whileHover={{
-          scale: 1.02
-        }} whileTap={{
-          scale: 0.98
-        }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white">
-            <UserPlus className="w-5 h-5" />
-            Añadir amigos
-          </motion.button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <motion.button whileHover={{
+                scale: 1.02
+              }} whileTap={{
+                scale: 0.98
+              }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white">
+                <UserPlus className="w-5 h-5" />
+                Añadir amigos
+              </motion.button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Buscar amigos
+                </SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">
+                <UserSearch />
+              </div>
+            </SheetContent>
+          </Sheet>
           <motion.button whileHover={{
           scale: 1.02
         }} whileTap={{
