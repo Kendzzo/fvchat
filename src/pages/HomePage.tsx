@@ -227,7 +227,7 @@ export default function HomePage() {
               </div>}
 
             {/* Past challenges placeholder */}
-            <div className="glass-card p-6 text-center">
+            <div className="glass-card p-6 text-center my-[30px]">
               <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
               <h3 className="font-gaming font-bold mb-2">Más desafíos</h3>
               <p className="text-sm text-muted-foreground">
