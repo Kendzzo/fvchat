@@ -194,7 +194,7 @@ export default function ProfilePage() {
         }} transition={{
           delay: i * 0.05
         }} className="aspect-square rounded-lg overflow-hidden bg-card">
-                {post.content_url ? <img src={post.content_url} alt="" className="w-full h-full border-double border-primary-foreground object-contain border" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                {post.content_url ? <img src={post.content_url} alt="" className="w-full h-full object-contain border-0 border-none border-white" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <Grid className="w-6 h-6" />
                   </div>}
               </motion.div>)}
