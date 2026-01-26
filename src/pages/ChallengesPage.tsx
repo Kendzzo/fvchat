@@ -35,7 +35,7 @@ export default function ChallengesPage() {
     const minutes = Math.floor(diff % (1000 * 60 * 60) / (1000 * 60));
     return `${hours}h ${minutes}min`;
   };
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-[#e8e6ff]">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center justify-between">
