@@ -118,7 +118,7 @@ export default function HomePage() {
                         </div>
                       </div>
                       <div>
-                        <p className="font-semibold text-sm text-gray-800">@{post.author?.nick || "Usuario"}</p>
+                        <p className="font-semibold text-secondary-foreground text-lg">@{post.author?.nick || "Usuario"}</p>
                         <p className="text-xs text-gray-500">{formatTime(post.created_at)}</p>
                       </div>
                     </div>
