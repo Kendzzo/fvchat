@@ -166,10 +166,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             birth_year: birthYear,
             tutor_email: tutorEmail,
             age_group: calculateAgeGroup(birthYear),
-            account_status: 'active' // For development - in production would be 'pending_approval'
+            account_status: 'active',
+            parent_approved: true // MVP: Free registration without parental approval
           });
 
         if (profileError) {
+          // If nick already exists, show clear error
+          if (profileError.code === '23505') {
+            return { error: new Error('Nick ya usado. Elige otro.') };
+          }
           console.error('Error creating profile:', profileError);
           return { error: new Error(profileError.message) };
         }

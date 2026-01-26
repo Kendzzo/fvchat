@@ -5,7 +5,7 @@ import { useChats, useMessages, Chat } from "@/hooks/useChats";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { ParentalGate } from "@/components/ParentalGate";
+// ParentalGate removed for MVP - free registration
 export default function ChatPage() {
   const {
     user,
@@ -17,18 +17,7 @@ export default function ChatPage() {
   } = useChats();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const isApproved = profile?.parent_approved === true;
   const filteredChats = chats.filter(chat => (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase()));
-
-  // Show parental gate if not approved
-  if (!isApproved) {
-    return <div className="min-h-screen bg-background p-4">
-        <header className="mb-6">
-          <h1 className="text-xl font-gaming font-bold gradient-text">Chat</h1>
-        </header>
-        <ParentalGate tutorEmail={profile?.tutor_email} feature="el chat" />
-      </div>;
-  }
   if (selectedChat) {
     return <ChatDetail chat={selectedChat} onBack={() => setSelectedChat(null)} />;
   }
