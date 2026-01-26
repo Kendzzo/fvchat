@@ -50,7 +50,7 @@ export function CommentSection({
     }
   };
   if (!isExpanded) {
-    return <button onClick={() => setIsExpanded(true)} className="text-muted-foreground hover:text-foreground transition-colors gap-0 text-base items-start justify-center flex flex-row ml-[10px]">
+    return <button onClick={() => setIsExpanded(true)} className="text-muted-foreground hover:text-foreground transition-colors gap-0 text-base items-start justify-center flex flex-row ml-[10px] py-0 mt-[2px]">
         <MessageCircle className="mx-[20px] w-[25px] h-[25px] mr-[9px]" />
         <span>{comments.length} comentarios</span>
       </button>;
