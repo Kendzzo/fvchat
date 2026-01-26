@@ -31,7 +31,7 @@ export default function HomePage() {
       return 'hace un momento';
     }
   };
-  return <div className="min-h-screen bg-background my-0 py-0">
+  return <div className="min-h-screen my-0 py-0 bg-[#e8e6ff]">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="px-4 py-[5px]">
