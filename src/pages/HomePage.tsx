@@ -73,7 +73,7 @@ export default function HomePage() {
             <div className="gap-3 overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 mb-0 mt-0 px-0 py-0 items-start justify-start flex flex-row">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5 px-0 py-0">
-                  <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground mx-0 px-[30px] py-[30px]">
+                  <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground mx-0 px-[30px] py-[30px] text-black/[0.97]">
                     ➕
                   </div>
                 </div>
