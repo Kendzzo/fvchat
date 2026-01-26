@@ -109,7 +109,7 @@ export default function HomePage() {
           delay: index * 0.1
         }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 mx-px my-0">
                   {/* Post Header */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between px-[20px]">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                         <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-lg">
@@ -122,7 +122,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <MoreHorizontal className="w-5 h-5" />
+                      <MoreHorizontal className="w-5 h-5 text-black" />
                     </button>
                   </div>
 
