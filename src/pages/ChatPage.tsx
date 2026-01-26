@@ -24,7 +24,7 @@ export default function ChatPage() {
   return <div className="min-h-screen bg-primary-foreground my-0 py-0">
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 opacity-100 border-transparent bg-[#1b0637] py-[11px]">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 py-0 my-[6px]">
           <h1 className="font-gaming font-bold gradient-text text-3xl">Chat</h1>
           <motion.button whileTap={{
           scale: 0.9
@@ -36,7 +36,7 @@ export default function ChatPage() {
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-secondary-foreground text-white" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input-gaming w-full pl-12 px-[49px] my-0" placeholder="Busca un chat bro.." />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input-gaming w-full pl-12 px-[49px] my-0 py-[6px]" placeholder="Busca un chat bro.." />
         </div>
       </header>
 
