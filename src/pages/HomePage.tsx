@@ -108,7 +108,7 @@ export default function HomePage() {
           y: 0
         }} transition={{
           delay: index * 0.1
-        }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px] mt-px">
+        }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px] mt-0">
                   {/* Post Header */}
                   <div className="flex items-center justify-between px-[20px]">
                     <div className="flex items-center gap-3">
