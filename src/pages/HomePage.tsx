@@ -70,7 +70,7 @@ export default function HomePage() {
         x: 20
       }} className="p-4 space-y-4 bg-[#e8e6ff] py-0 my-px px-[5px]">
             {/* Stories/Avatars Row */}
-            <div className="overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 mb-0 mt-0 px-0 py-0 items-start justify-start flex flex-row gap-[15px]">
+            <div className="overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 px-0 py-0 items-start justify-start flex flex-row gap-[15px] mt-[10px] mb-px">
               <div className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px]">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5 px-0 py-0">
                   <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground mx-0 px-[30px] py-[30px] text-black/[0.97]">
@@ -107,7 +107,7 @@ export default function HomePage() {
           y: 0
         }} transition={{
           delay: index * 0.1
-        }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px]">
+        }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px] mt-[2px]">
                   {/* Post Header */}
                   <div className="flex items-center justify-between px-[20px]">
                     <div className="flex items-center gap-3">
