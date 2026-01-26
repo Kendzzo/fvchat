@@ -137,10 +137,10 @@ export default function HomePage() {
                     </div>}
 
                   {/* Post Text */}
-                  {post.text && <p className="text-sm">{post.text}</p>}
+                  {post.text && <p className="text-sm mx-[20px]">{post.text}</p>}
 
                   {/* Post Actions */}
-                  <div className="flex items-center gap-6 pt-2">
+                  <div className="flex items-center gap-6 pt-2 mx-[20px]">
                     <motion.button whileTap={{
               scale: 0.9
             }} onClick={() => toggleLike(post.id)} className="flex items-center gap-2 text-sm">

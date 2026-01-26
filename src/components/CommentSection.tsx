@@ -6,72 +6,64 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-
 interface CommentSectionProps {
   postId: string;
   postAuthorId: string;
 }
-
-export function CommentSection({ postId, postAuthorId }: CommentSectionProps) {
-  const { user, profile } = useAuth();
-  const { comments, isLoading, addComment, deleteComment } = useComments(postId);
+export function CommentSection({
+  postId,
+  postAuthorId
+}: CommentSectionProps) {
+  const {
+    user,
+    profile
+  } = useAuth();
+  const {
+    comments,
+    isLoading,
+    addComment,
+    deleteComment
+  } = useComments(postId);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || isSubmitting) return;
-
     setIsSubmitting(true);
-    const { error } = await addComment(newComment);
+    const {
+      error
+    } = await addComment(newComment);
     setIsSubmitting(false);
-
     if (error) {
       toast.error(error.message);
     } else {
       setNewComment('');
     }
   };
-
   const handleDelete = async (commentId: string) => {
-    const { error } = await deleteComment(commentId);
+    const {
+      error
+    } = await deleteComment(commentId);
     if (error) {
       toast.error(error.message);
     }
   };
-
   if (!isExpanded) {
-    return (
-      <button
-        onClick={() => setIsExpanded(true)}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <MessageCircle className="w-4 h-4" />
+    return <button onClick={() => setIsExpanded(true)} className="text-muted-foreground hover:text-foreground transition-colors flex-row flex items-start justify-center gap-0 text-base">
+        <MessageCircle className="mx-[20px] w-[25px] h-[25px]" />
         <span>{comments.length} comentarios</span>
-      </button>
-    );
+      </button>;
   }
-
-  return (
-    <div className="border-t pt-3 mt-3 space-y-3">
-      <button
-        onClick={() => setIsExpanded(false)}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
+  return <div className="border-t pt-3 mt-3 space-y-3">
+      <button onClick={() => setIsExpanded(false)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <MessageCircle className="w-4 h-4" />
         <span>{comments.length} comentarios</span>
       </button>
 
       {/* Comments List */}
       <div className="space-y-2 max-h-48 overflow-y-auto">
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground">Cargando...</p>
-        ) : comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hay comentarios</p>
-        ) : (
-          comments.map((comment) => (
-            <div key={comment.id} className="flex gap-2 group">
+        {isLoading ? <p className="text-sm text-muted-foreground">Cargando...</p> : comments.length === 0 ? <p className="text-sm text-muted-foreground">No hay comentarios</p> : comments.map(comment => <div key={comment.id} className="flex gap-2 group">
               <Avatar className="w-6 h-6">
                 <AvatarFallback className="text-xs">
                   {comment.author?.nick?.charAt(0).toUpperCase() || '?'}
@@ -81,45 +73,26 @@ export function CommentSection({ postId, postAuthorId }: CommentSectionProps) {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium">{comment.author?.nick}</span>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(comment.created_at).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
+                    {new Date(comment.created_at).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
                   </span>
-                  {user?.id === comment.author_id && (
-                    <button
-                      onClick={() => handleDelete(comment.id)}
-                      className="opacity-0 group-hover:opacity-100 text-destructive"
-                    >
+                  {user?.id === comment.author_id && <button onClick={() => handleDelete(comment.id)} className="opacity-0 group-hover:opacity-100 text-destructive">
                       <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
+                    </button>}
                 </div>
                 <p className="text-sm">{comment.text}</p>
               </div>
-            </div>
-          ))
-        )}
+            </div>)}
       </div>
 
       {/* Add Comment Form - MVP: Always enabled */}
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <Input
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Escribe un comentario..."
-          className="flex-1 h-8 text-sm"
-          maxLength={200}
-        />
-        <Button 
-          type="submit" 
-          size="sm" 
-          disabled={!newComment.trim() || isSubmitting}
-          className="h-8 w-8 p-0"
-        >
+        <Input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Escribe un comentario..." className="flex-1 h-8 text-sm" maxLength={200} />
+        <Button type="submit" size="sm" disabled={!newComment.trim() || isSubmitting} className="h-8 w-8 p-0">
           <Send className="w-4 h-4" />
         </Button>
       </form>
-    </div>
-  );
+    </div>;
 }
