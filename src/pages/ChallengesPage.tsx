@@ -199,7 +199,7 @@ export default function ChallengesPage() {
             delay: 0.3 + index * 0.1
           }} className="text-center p-4 rounded-xl border border-border/50 bg-white">
                 <div className="text-4xl mb-2 px-[10px] py-[10px]">{reward.emoji}</div>
-                <p className="font-medium truncate text-secondary-foreground text-xl">{reward.name}</p>
+                <p className="font-medium truncate text-secondary-foreground text-base">{reward.name}</p>
                 <p className={`text-[10px] mt-1 ${reward.rarity === "Legendario" ? "text-warning" : reward.rarity === "Épico" ? "text-primary" : "text-secondary"}`}>
                   {reward.rarity}
                 </p>
