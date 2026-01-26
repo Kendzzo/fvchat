@@ -35,17 +35,18 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="px-4 py-[5px]">
-          <h1 className="font-gaming gradient-text font-extrabold text-5xl">VFC </h1>
+          <h1 className="font-gaming gradient-text font-extrabold text-xs my-0">
+        </h1>
         </div>
 
         {/* Tabs */}
         <div className="flex border-b border-border/30">
           <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
-            <span className="flex items-center justify-center gap-2 font-bold text-xl">
+            <span className="flex items-center justify-center gap-2 font-bold text-xl py-0 mb-0">
               <ImageIcon className="w-4 h-4" />
               Publicaciones
             </span>
-            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-md my-0 py-0 mx-[20px]" />}
+            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-md my-0 py-0 mx-[20px] mt-px mb-[5px]" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
             <span className="flex items-center justify-center gap-2 font-bold text-xl">
@@ -70,7 +71,7 @@ export default function HomePage() {
         x: 20
       }} className="p-4 space-y-4 bg-[#e8e6ff] py-0 my-px px-[5px]">
             {/* Stories/Avatars Row */}
-            <div className="overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 px-0 py-0 items-start justify-start flex flex-row gap-[15px] mt-[10px] mb-px">
+            <div className="overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 px-0 py-0 items-start justify-start flex flex-row gap-[15px] mt-[11px] mb-0">
               <div className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px]">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5 px-0 py-0">
                   <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground mx-0 px-[30px] py-[30px] text-black/[0.97]">
