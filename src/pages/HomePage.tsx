@@ -110,8 +110,8 @@ export default function HomePage() {
           delay: index * 0.1
         }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px] mt-0">
                   {/* Post Header */}
-                  <div className="flex items-center justify-between px-[20px]">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between px-[20px] mt-[10px] my-[5px] mb-[20px]">
+                    <div className="flex items-center gap-3 ml-[20px]">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                         <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-lg">
                           {(post.author?.avatar_data as any)?.emoji || "👤"}
@@ -138,10 +138,10 @@ export default function HomePage() {
                     </div>}
 
                   {/* Post Text */}
-                  {post.text && <p className="mx-[20px] text-base">{post.text}</p>}
+                  {post.text && <p className="mx-[20px] text-base ml-[60px]">{post.text}</p>}
 
                   {/* Post Actions */}
-                  <div className="flex items-center gap-6 pt-2 mx-[20px]">
+                  <div className="flex items-center gap-6 pt-2 mx-[20px] ml-[60px]">
                     <motion.button whileTap={{
               scale: 0.9
             }} onClick={() => toggleLike(post.id)} className="flex items-center gap-2 text-sm">
