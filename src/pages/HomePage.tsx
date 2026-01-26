@@ -68,20 +68,20 @@ export default function HomePage() {
       }} exit={{
         opacity: 0,
         x: 20
-      }} className="p-4 space-y-4 bg-[#e8e6ff] py-[17px] my-0">
+      }} className="p-4 space-y-4 bg-[#e8e6ff] py-0 px-[10px] my-[10px]">
             {/* Stories/Avatars Row */}
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide mx-0">
+            <div className="gap-3 overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 mb-0 mt-0 px-0 py-0 items-start justify-start flex flex-row">
               <div className="flex flex-col items-center gap-1 flex-shrink-0">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5 px-0 py-0">
-                  <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground">
+                  <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground mx-0 px-[30px] py-[30px]">
                     ➕
                   </div>
                 </div>
                 <span className="text-base font-bold text-secondary-foreground">Tu historia</span>
               </div>
               {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0 mx-[2px]">
-                  <div className="avatar-frame w-16 h-16">
-                    <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-success-foreground">
+                  <div className="avatar-frame w-16 h-16 px-0 py-0">
+                    <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-success-foreground px-[30px] py-[30px]">
                       {emoji}
                     </div>
                   </div>
@@ -107,7 +107,7 @@ export default function HomePage() {
           y: 0
         }} transition={{
           delay: index * 0.1
-        }} className="post-card border-success-foreground mx-0 text-gray-500 bg-success-foreground">
+        }} className="post-card border-success-foreground mx-0 text-gray-500 bg-success-foreground my-px">
                   {/* Post Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
