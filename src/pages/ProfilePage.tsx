@@ -105,15 +105,15 @@ export default function ProfilePage() {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="p-3 rounded-xl bg-primary-foreground">
+            <div className="p-3 rounded-xl mx-[20px] border bg-transparent border-transparent">
               <p className="font-gaming font-bold gradient-text text-4xl">{myPosts.length}</p>
               <p className="font-bold text-lg text-secondary-foreground">Posts</p>
             </div>
-            <div className="p-3 rounded-xl bg-primary-foreground">
+            <div className="p-3 rounded-xl mx-[20px] bg-transparent">
               <p className="font-gaming font-bold gradient-text text-4xl">{friends.length}</p>
               <p className="font-bold text-lg text-secondary-foreground">Amigos</p>
             </div>
-            <div className="p-3 rounded-xl bg-primary-foreground">
+            <div className="p-3 rounded-xl mx-[20px] bg-transparent">
               <p className="font-gaming font-bold text-destructive text-4xl">{totalLikes}</p>
               <p className="text-muted-foreground text-lg font-bold">Likes</p>
             </div>
@@ -135,10 +135,10 @@ export default function ProfilePage() {
           <Sheet>
             <SheetTrigger asChild>
               <motion.button whileHover={{
-                scale: 1.02
-              }} whileTap={{
-                scale: 0.98
-              }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white">
+              scale: 1.02
+            }} whileTap={{
+              scale: 0.98
+            }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white">
                 <UserPlus className="w-5 h-5" />
                 Añadir amigos
               </motion.button>
