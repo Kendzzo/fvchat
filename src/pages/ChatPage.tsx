@@ -36,7 +36,7 @@ export default function ChatPage() {
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-secondary-foreground text-white" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input-gaming w-full pl-12 px-[49px] my-0 py-[6px]" placeholder="Busca un chat bro.." />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input-gaming w-full pl-12 px-[49px] my-0 py-[6px]" placeholder="Busca un chat .." />
         </div>
       </header>
 
