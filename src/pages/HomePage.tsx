@@ -43,14 +43,14 @@ export default function HomePage() {
         <div className="flex border-b border-border/30">
           <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
             <span className="flex items-center justify-center gap-2 font-bold text-xl py-0 mb-0 ml-[10px]">
-              <ImageIcon className="w-4 h-4" />
+              <ImageIcon className="w-[20px] h-[20px]" />
               Publicaciones
             </span>
             {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-md my-0 py-0 mx-[20px] mb-0 mt-0" />}
           </button>
           <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
             <span className="flex items-center justify-center gap-2 font-bold text-xl mr-[10px]">
-              <Trophy className="w-4 h-4" />
+              <Trophy className="w-[20px] h-[20px]" />
               Desafíos
             </span>
             {activeTab === "challenges" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
