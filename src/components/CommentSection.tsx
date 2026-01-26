@@ -69,7 +69,7 @@ export function CommentSection({
                   {comment.author?.nick?.charAt(0).toUpperCase() || '?'}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 bg-muted/50 rounded-lg px-2 py-1">
+              <div className="flex-1 px-2 py-1 bg-zinc-100 rounded mr-[44px]">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium">{comment.author?.nick}</span>
                   <span className="text-xs text-muted-foreground">
@@ -82,13 +82,13 @@ export function CommentSection({
                       <Trash2 className="w-3 h-3" />
                     </button>}
                 </div>
-                <p className="text-sm">{comment.text}</p>
+                <p className="text-secondary-foreground mr-0 text-base">{comment.text}</p>
               </div>
             </div>)}
       </div>
 
       {/* Add Comment Form - MVP: Always enabled */}
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="gap-2 flex-row flex items-start justify-center mr-[35px]">
         <Input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Escribe un comentario..." className="flex-1 h-8 text-sm" maxLength={200} />
         <Button type="submit" size="sm" disabled={!newComment.trim() || isSubmitting} className="h-8 w-8 p-0">
           <Send className="w-4 h-4" />

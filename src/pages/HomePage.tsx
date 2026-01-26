@@ -138,7 +138,7 @@ export default function HomePage() {
                     </div>}
 
                   {/* Post Text */}
-                  {post.text && <p className="text-sm mx-[20px]">{post.text}</p>}
+                  {post.text && <p className="mx-[20px] text-base">{post.text}</p>}
 
                   {/* Post Actions */}
                   <div className="flex items-center gap-6 pt-2 mx-[20px]">
