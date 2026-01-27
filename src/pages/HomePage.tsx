@@ -132,7 +132,7 @@ export default function HomePage() {
                   {/* Post Content */}
                   {post.content_url && <div className="relative rounded-xl overflow-hidden -mx-4 aspect-square">
                       <img src={post.content_url} alt="" className="w-full h-full object-contain" />
-                      {post.type === "video" && <div className="absolute inset-0 flex items-center justify-center bg-background/20">
+                      {post.type === "video" && <div className="absolute inset-0 flex items-center justify-center bg-background/20 py-0 px-0 mx-[12px]">
                           <div className="w-16 h-16 rounded-full bg-background/80 flex items-center justify-center">
                             <Play className="w-8 h-8 text-foreground ml-1" />
                           </div>
