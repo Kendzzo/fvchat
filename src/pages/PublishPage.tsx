@@ -136,7 +136,7 @@ export default function PublishPage() {
       setStep("edit");
     }
   };
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-purple-50">
       {/* Hidden file inputs */}
       <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={e => handleFileSelect(e, 'photo')} className="hidden" />
       <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={e => handleFileSelect(e, 'video')} className="hidden text-white" />
@@ -170,7 +170,7 @@ export default function PublishPage() {
       </header>
 
       {/* Content */}
-      {step === "select" && <div className="p-6 space-y-6 bg-[#e8e6ff]">
+      {step === "select" && <div className="p-6 space-y-6 bg-purple-50 mt-0">
           <div className="text-center mb-8">
             <h2 className="font-gaming font-bold gradient-text mb-2 text-3xl">
               ¿Qué compartimos hoy?
