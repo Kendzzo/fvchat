@@ -254,19 +254,19 @@ function SettingsView({
     label: "Ayuda",
     action: () => {}
   }];
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-purple-50">
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-4">
           <motion.button whileTap={{
           scale: 0.9
-        }} onClick={onBack} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
+        }} onClick={onBack} className="p-2 rounded-xl bg-card transition-colors text-white text-2xl">
             ←
           </motion.button>
           <h1 className="text-xl font-gaming font-bold bg-transparent border-white">Ajustes</h1>
         </div>
       </header>
 
-      <div className="p-4 space-y-2">
+      <div className="p-4 space-y-2 bg-purple-50">
         {/* User info */}
         <div className="glass-card p-4 mb-4">
           <div className="flex items-center gap-4">
@@ -291,11 +291,11 @@ function SettingsView({
       }} transition={{
         delay: i * 0.05
       }} onClick={item.action} className="w-full glass-card p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-card flex items-center justify-center text-muted-foreground">
-              <item.icon className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground bg-transparent">
+              <item.icon className="w-5 h-5 text-white" />
             </div>
-            <span className="flex-1 text-left font-medium">{item.label}</span>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            <span className="flex-1 text-left font-medium mr-0 ml-0 text-lg">{item.label}</span>
+            <ChevronRight className="w-5 h-5 text-white" />
           </motion.button>)}
 
         {/* Logout */}
@@ -311,7 +311,7 @@ function SettingsView({
           <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center text-destructive">
             <LogOut className="w-5 h-5" />
           </div>
-          <span className="flex-1 text-left font-medium text-destructive">Cerrar sesión</span>
+          <span className="flex-1 text-left font-medium text-destructive text-lg">Cerrar sesión</span>
         </motion.button>
 
         {/* Footer */}
