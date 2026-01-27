@@ -175,7 +175,7 @@ export default function PublishPage() {
             <h2 className="font-gaming font-bold gradient-text mb-2 text-3xl">
               ¿Qué compartimos hoy?
             </h2>
-            <p className="text-sm text-secondary-foreground">
+            <p className="text-secondary-foreground text-base">
               Elige el tipo de contenido
             </p>
           </div>
