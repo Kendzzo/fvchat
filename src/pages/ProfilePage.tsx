@@ -65,9 +65,9 @@ export default function ProfilePage() {
       }} animate={{
         opacity: 1,
         y: 0
-      }} className="glass-card p-6 text-center border-success-foreground px-[2px] py-[20px] bg-white">
+      }} className="glass-card p-6 text-center border-success-foreground bg-white py-0 px-[22px]">
           {/* Avatar */}
-          <div className="relative inline-block mb-4">
+          <div className="relative inline-block mb-4 mt-[20px]">
             <div className="w-28 h-28 rounded-full bg-gradient-to-r from-primary via-secondary to-accent p-1 animate-pulse-glow">
               <div className="w-full h-full rounded-full bg-card text-5xl items-center justify-center flex flex-col">
                 {(profile?.avatar_data as any)?.emoji || "🎮"}
