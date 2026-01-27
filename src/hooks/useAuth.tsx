@@ -22,7 +22,8 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   isAdmin: boolean;
-  signUp: (email: string, password: string, nick: string, birthYear: number, tutorEmail: string) => Promise<{ error: Error | null }>;
+  canInteract: boolean; // New: determines if user can chat, comment, add friends
+  signUp: (nick: string, password: string, birthYear: number, tutorEmail: string) => Promise<{ error: Error | null }>;
   signIn: (nick: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -30,12 +31,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Normalize nick for consistent lookups
+function normalizeNick(nick: string): string {
+  return nick
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, ''); // Remove @ prefix if present
+}
+
+// Create deterministic technical email from nick
+function createTechnicalEmail(nick: string): string {
+  return `${normalizeNick(nick)}@vfc.app`;
+}
+
+function calculateAgeGroup(birthYear: number): '6-8' | '9-12' | '13-16' {
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - birthYear;
+  
+  if (age >= 6 && age <= 8) return '6-8';
+  if (age >= 9 && age <= 12) return '9-12';
+  return '13-16';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // User can interact if parent_approved = true and account_status = 'active'
+  const canInteract = profile?.parent_approved === true && profile?.account_status === 'active';
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -130,22 +156,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (
-    email: string, 
-    password: string, 
     nick: string, 
+    password: string, 
     birthYear: number, 
     tutorEmail: string
   ): Promise<{ error: Error | null }> => {
     try {
+      const normalizedNick = normalizeNick(nick);
+      const technicalEmail = createTechnicalEmail(nick);
       const redirectUrl = `${window.location.origin}/`;
       
+      // Create user in Supabase Auth with technical email
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: technicalEmail,
         password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            nick,
+            nick: normalizedNick,
             birth_year: birthYear,
             tutor_email: tutorEmail
           }
@@ -153,25 +181,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (signUpError) {
+        // Handle "already registered" error
+        if (signUpError.message.includes('already registered')) {
+          return { error: new Error('Nick ya usado. Elige otro.') };
+        }
         return { error: signUpError };
       }
 
       if (data.user) {
-        // Create profile
+        // Create profile with pending approval
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: data.user.id,
-            nick,
+            nick: normalizedNick,
             birth_year: birthYear,
             tutor_email: tutorEmail,
             age_group: calculateAgeGroup(birthYear),
-            account_status: 'active',
-            parent_approved: true // MVP: Free registration without parental approval
+            account_status: 'pending_approval', // Pending parental approval
+            parent_approved: false // Requires parental approval
           });
 
         if (profileError) {
-          // If nick already exists, show clear error
+          // If nick already exists (unique constraint), show clear error
           if (profileError.code === '23505') {
             return { error: new Error('Nick ya usado. Elige otro.') };
           }
@@ -190,6 +222,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (roleError) {
           console.error('Error creating user role:', roleError);
         }
+
+        // Fetch the created profile
+        const profileData = await fetchProfile(data.user.id);
+        setProfile(profileData);
       }
 
       return { error: null };
@@ -202,30 +238,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Admin bypass for development
       if (nick === 'Admin' && password === '1234') {
-        // For admin, sign in with a special admin email
+        const adminEmail = 'admin@vfc.local';
+        const adminPassword = 'admin1234';
+        
+        // Try to sign in first
         const { error } = await supabase.auth.signInWithPassword({
-          email: 'admin@vfc.local',
-          password: 'admin1234'
+          email: adminEmail,
+          password: adminPassword
         });
         
         if (error) {
           // If admin doesn't exist, create it
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: 'admin@vfc.local',
-            password: 'admin1234'
+            email: adminEmail,
+            password: adminPassword
           });
           
           if (signUpError) {
             console.error('Could not create admin:', signUpError);
-          } else if (signUpData.user) {
+            return { error: new Error('Error de administrador') };
+          }
+          
+          if (signUpData.user) {
             // Create admin profile and role
             await supabase.from('profiles').insert({
               id: signUpData.user.id,
-              nick: 'Admin',
+              nick: 'admin',
               birth_year: 2010,
               tutor_email: 'admin@vfc.local',
               age_group: '13-16',
-              account_status: 'active'
+              account_status: 'active',
+              parent_approved: true
             });
             
             await supabase.from('user_roles').insert({
@@ -242,29 +285,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: null };
       }
 
-      // Regular login - find user by nick first
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('nick', nick)
-        .maybeSingle();
-
-      if (profileError || !profileData) {
-        return { error: new Error('Usuario no encontrado') };
-      }
-
-      // Get user email from auth
-      const { data: userData } = await supabase.auth.admin?.getUserById(profileData.id) ?? { data: null };
+      // Regular login using technical email derived from nick
+      const technicalEmail = createTechnicalEmail(nick);
       
-      // Since we can't get email from admin API in client, use nick as email for now
-      // In production, you'd store email separately or use a different approach
       const { error } = await supabase.auth.signInWithPassword({
-        email: `${nick.toLowerCase()}@vfc.app`,
+        email: technicalEmail,
         password
       });
 
       if (error) {
-        return { error: new Error('Contraseña incorrecta') };
+        // Provide user-friendly error messages
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: new Error('Usuario o contraseña incorrectos') };
+        }
+        return { error: new Error('Error al iniciar sesión') };
       }
 
       return { error: null };
@@ -286,6 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       isLoading,
       isAdmin,
+      canInteract,
       signUp,
       signIn,
       signOut,
@@ -302,13 +337,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
-
-function calculateAgeGroup(birthYear: number): '6-8' | '9-12' | '13-16' {
-  const currentYear = new Date().getFullYear();
-  const age = currentYear - birthYear;
-  
-  if (age >= 6 && age <= 8) return '6-8';
-  if (age >= 9 && age <= 12) return '9-12';
-  return '13-16';
 }

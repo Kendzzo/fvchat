@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, X } from "lucide-react";
+import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, X, UserCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useFriendships } from "@/hooks/useFriendships";
 import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/UserSearch";
+import { FriendRequestsList } from "@/components/FriendRequestsList";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -14,14 +15,16 @@ export default function ProfilePage() {
     profile,
     signOut,
     isLoading: authLoading,
-    isAdmin
+    isAdmin,
+    canInteract
   } = useAuth();
   const {
     posts,
     isLoading: postsLoading
   } = usePosts();
   const {
-    friends
+    friends,
+    pendingRequests
   } = useFriendships();
   const [activeTab, setActiveTab] = useState<"posts" | "likes">("posts");
   const [showSettings, setShowSettings] = useState(false);
@@ -130,6 +133,13 @@ export default function ProfilePage() {
             Panel de Administración
           </motion.button>}
 
+        {/* Friend Requests Section */}
+        {pendingRequests.length > 0 && (
+          <div className="glass-card p-4">
+            <FriendRequestsList />
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-3">
           <Sheet>
@@ -138,9 +148,14 @@ export default function ProfilePage() {
               scale: 1.02
             }} whileTap={{
               scale: 0.98
-            }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white">
+            }} className={`flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white ${!canInteract ? 'opacity-50' : ''}`}>
                 <UserPlus className="w-5 h-5" />
                 Añadir amigos
+                {pendingRequests.length > 0 && (
+                  <Badge className="ml-1 bg-destructive text-white text-xs">
+                    {pendingRequests.length}
+                  </Badge>
+                )}
               </motion.button>
             </SheetTrigger>
             <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl">
@@ -150,8 +165,22 @@ export default function ProfilePage() {
                   Buscar amigos
                 </SheetTitle>
               </SheetHeader>
-              <div className="mt-4">
-                <UserSearch />
+              <div className="mt-4 space-y-6">
+                {/* Pending Requests */}
+                {pendingRequests.length > 0 && (
+                  <FriendRequestsList />
+                )}
+                
+                {/* Search */}
+                {canInteract ? (
+                  <UserSearch />
+                ) : (
+                  <div className="text-center py-6">
+                    <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
+                    <p className="text-muted-foreground">Cuenta pendiente de aprobación parental</p>
+                    <p className="text-sm text-muted-foreground mt-2">No puedes buscar amigos hasta que tu tutor apruebe tu cuenta.</p>
+                  </div>
+                )}
               </div>
             </SheetContent>
           </Sheet>

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useFriendships } from '@/hooks/useFriendships';
 import { FriendRequestButton } from '@/components/FriendRequestButton';
 import { Input } from '@/components/ui/input';
-import { Search, Users } from 'lucide-react';
+import { Search, Users, Loader2 } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
 
 interface SearchResult {
@@ -17,22 +17,48 @@ export function UserSearch() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const searchRequestId = useRef(0);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const doSearch = useCallback(async (q: string) => {
-    if (q.length >= 2) {
-      setIsSearching(true);
-      const users = await searchUsers(q);
-      setResults(users as SearchResult[]);
-      setIsSearching(false);
-    } else {
-      setResults([]);
+  const handleQueryChange = useCallback((newQuery: string) => {
+    setQuery(newQuery);
+    
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
-  }, [searchUsers]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => doSearch(query), 300);
-    return () => clearTimeout(timer);
-  }, [query, searchUsers]);
+    if (newQuery.length < 2) {
+      setResults([]);
+      setIsSearching(false);
+      setHasSearched(false);
+      return;
+    }
+
+    setIsSearching(true);
+    
+    // Debounce search by 400ms
+    debounceTimer.current = setTimeout(async () => {
+      const currentRequestId = ++searchRequestId.current;
+      
+      try {
+        const users = await searchUsers(newQuery);
+        
+        // Only update if this is still the latest request
+        if (currentRequestId === searchRequestId.current) {
+          setResults(users as SearchResult[]);
+          setHasSearched(true);
+          setIsSearching(false);
+        }
+      } catch (err) {
+        if (currentRequestId === searchRequestId.current) {
+          setResults([]);
+          setIsSearching(false);
+        }
+      }
+    }, 400);
+  }, [searchUsers]);
 
   return (
     <div className="space-y-4">
@@ -42,9 +68,12 @@ export function UserSearch() {
           type="text"
           placeholder="Buscar usuarios por nick..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleQueryChange(e.target.value)}
           className="pl-10"
         />
+        {isSearching && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-primary" />
+        )}
       </div>
 
       {query.length > 0 && query.length < 2 && (
@@ -53,13 +82,7 @@ export function UserSearch() {
         </p>
       )}
 
-      {isSearching && (
-        <p className="text-sm text-muted-foreground text-center">
-          Buscando...
-        </p>
-      )}
-
-      {!isSearching && query.length >= 2 && results.length === 0 && (
+      {!isSearching && hasSearched && results.length === 0 && (
         <div className="text-center py-6">
           <Users className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
