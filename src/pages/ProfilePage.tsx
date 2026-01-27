@@ -51,7 +51,7 @@ export default function ProfilePage() {
             <motion.button whileTap={{
             scale: 0.9
           }} onClick={() => setShowSettings(true)} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
-              <Settings className="w-5 h-5 text-white" />
+              <Settings className="text-white w-[25px] h-[25px]" />
             </motion.button>
           </div>
         </div>
@@ -109,15 +109,15 @@ export default function ProfilePage() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
             <div className="p-3 rounded-xl mx-[20px] border bg-transparent border-transparent">
-              <p className="font-gaming font-bold gradient-text text-4xl">{myPosts.length}</p>
+              <p className="font-gaming font-bold gradient-text text-5xl">{myPosts.length}</p>
               <p className="font-bold text-lg text-secondary-foreground">Posts</p>
             </div>
             <div className="p-3 rounded-xl mx-[20px] bg-transparent">
-              <p className="font-gaming font-bold gradient-text text-4xl">{friends.length}</p>
+              <p className="font-gaming font-bold gradient-text text-5xl">{friends.length}</p>
               <p className="font-bold text-lg text-secondary-foreground">Amigos</p>
             </div>
             <div className="p-3 rounded-xl mx-[20px] bg-transparent">
-              <p className="font-gaming font-bold text-destructive text-4xl">{totalLikes}</p>
+              <p className="font-gaming font-bold text-destructive text-5xl">{totalLikes}</p>
               <p className="text-muted-foreground text-lg font-bold">Likes</p>
             </div>
           </div>
@@ -134,11 +134,9 @@ export default function ProfilePage() {
           </motion.button>}
 
         {/* Friend Requests Section */}
-        {pendingRequests.length > 0 && (
-          <div className="glass-card p-4">
+        {pendingRequests.length > 0 && <div className="glass-card p-4">
             <FriendRequestsList />
-          </div>
-        )}
+          </div>}
 
         {/* Actions */}
         <div className="flex gap-3">
@@ -151,11 +149,9 @@ export default function ProfilePage() {
             }} className={`flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white ${!canInteract ? 'opacity-50' : ''}`}>
                 <UserPlus className="w-5 h-5" />
                 Añadir amigos
-                {pendingRequests.length > 0 && (
-                  <Badge className="ml-1 bg-destructive text-white text-xs">
+                {pendingRequests.length > 0 && <Badge className="ml-1 bg-destructive text-white text-xs">
                     {pendingRequests.length}
-                  </Badge>
-                )}
+                  </Badge>}
               </motion.button>
             </SheetTrigger>
             <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl">
@@ -167,20 +163,14 @@ export default function ProfilePage() {
               </SheetHeader>
               <div className="mt-4 space-y-6">
                 {/* Pending Requests */}
-                {pendingRequests.length > 0 && (
-                  <FriendRequestsList />
-                )}
+                {pendingRequests.length > 0 && <FriendRequestsList />}
                 
                 {/* Search */}
-                {canInteract ? (
-                  <UserSearch />
-                ) : (
-                  <div className="text-center py-6">
+                {canInteract ? <UserSearch /> : <div className="text-center py-6">
                     <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
                     <p className="text-muted-foreground">Cuenta pendiente de aprobación parental</p>
                     <p className="text-sm text-muted-foreground mt-2">No puedes buscar amigos hasta que tu tutor apruebe tu cuenta.</p>
-                  </div>
-                )}
+                  </div>}
               </div>
             </SheetContent>
           </Sheet>
