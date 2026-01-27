@@ -183,7 +183,7 @@ export default function ChallengesPage() {
       }} transition={{
         delay: 0.2
       }} className="glass-card p-6 border-success-foreground">
-          <h3 className="font-gaming font-bold mb-4 flex items-center gap-2">
+          <h3 className="font-gaming font-bold mb-4 flex items-center gap-2 text-lg">
             <Sparkles className="w-5 h-5 text-secondary" />
             Recompensas de hoy
           </h3>
