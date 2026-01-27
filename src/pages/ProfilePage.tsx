@@ -118,7 +118,7 @@ export default function ProfilePage() {
             </div>
             <div className="p-3 rounded-xl mx-[20px] bg-transparent">
               <p className="font-gaming font-bold text-destructive text-5xl">{totalLikes}</p>
-              <p className="text-muted-foreground text-lg font-bold">Likes</p>
+              <p className="text-lg font-bold text-[#ee2f2f]">Likes</p>
             </div>
           </div>
         </motion.div>
