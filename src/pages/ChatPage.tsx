@@ -156,7 +156,7 @@ function ChatDetail({
         <div className="flex items-center gap-4">
           <motion.button whileTap={{
           scale: 0.9
-        }} onClick={onBack} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
+        }} onClick={onBack} className="p-2 rounded-xl bg-card transition-colors text-white text-xl">
             ←
           </motion.button>
 
