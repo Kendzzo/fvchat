@@ -7,7 +7,6 @@ import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { NewChatModal } from "@/components/NewChatModal";
 import { toast } from "sonner";
-
 export default function ChatPage() {
   const {
     user,
@@ -21,9 +20,7 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  
   const filteredChats = chats.filter(chat => (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase()));
-
   const handleNewChatClick = () => {
     if (!canInteract) {
       toast.error("Cuenta pendiente de aprobación parental");
@@ -31,46 +28,35 @@ export default function ChatPage() {
     }
     setShowNewChatModal(true);
   };
-
   const handleChatCreated = (chatId: string) => {
     const chat = chats.find(c => c.id === chatId);
     if (chat) {
       setSelectedChat(chat);
     }
   };
-
   if (selectedChat) {
     return <ChatDetail chat={selectedChat} onBack={() => setSelectedChat(null)} />;
   }
-
   return <div className="min-h-screen bg-primary-foreground my-0 py-0">
       {/* New Chat Modal */}
-      <NewChatModal 
-        open={showNewChatModal} 
-        onOpenChange={setShowNewChatModal}
-        onChatCreated={handleChatCreated}
-      />
+      <NewChatModal open={showNewChatModal} onOpenChange={setShowNewChatModal} onChatCreated={handleChatCreated} />
       
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 opacity-100 border-transparent bg-[#1b0637] py-[11px]">
         <div className="flex items-center justify-between mb-4 py-0 my-[6px]">
           <h1 className="font-gaming font-bold gradient-text text-3xl">Chat</h1>
-          <motion.button 
-            whileTap={{ scale: 0.9 }} 
-            onClick={handleNewChatClick}
-            className={`p-2 rounded-xl bg-card transition-colors text-destructive-foreground ${!canInteract ? 'opacity-50' : ''}`}
-          >
+          <motion.button whileTap={{
+          scale: 0.9
+        }} onClick={handleNewChatClick} className={`p-2 rounded-xl bg-card transition-colors text-destructive-foreground ${!canInteract ? 'opacity-50' : ''}`}>
             <Plus className="w-[30px] h-[30px] bg-transparent text-white" />
           </motion.button>
         </div>
         
         {/* Pending approval notice */}
-        {!canInteract && (
-          <div className="mb-3 p-2 rounded-lg bg-warning/20 flex items-center gap-2 text-warning text-sm">
+        {!canInteract && <div className="mb-3 p-2 rounded-lg bg-warning/20 flex items-center gap-2 text-warning text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>Cuenta pendiente de aprobación parental</span>
-          </div>
-        )}
+          </div>}
 
         {/* Search */}
         <div className="relative">
@@ -193,7 +179,7 @@ function ChatDetail({
           </div>
 
           <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-            <MoreVertical className="w-5 h-5" />
+            <MoreVertical className="w-5 h-5 text-white" />
           </button>
         </div>
       </header>
@@ -228,18 +214,18 @@ function ChatDetail({
       </div>
 
       {/* Input */}
-      <div className="sticky bottom-0 p-4 bg-background/80 backdrop-blur-xl border-t border-border/30 safe-bottom">
+      <div className="sticky bottom-0 p-4 backdrop-blur-xl border-t border-border/30 safe-bottom bg-success-foreground">
         <div className="flex items-center gap-3">
-          <button className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
-            <Image className="w-5 h-5" />
+          <button className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors px-[14px] py-[14px]">
+            <Image className="w-5 h-5 text-white" />
           </button>
-          <button className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
-            <Mic className="w-5 h-5" />
+          <button className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors px-[14px] py-[14px]">
+            <Mic className="w-5 h-5 text-white" />
           </button>
-          <input type="text" value={messageText} onChange={e => setMessageText(e.target.value)} onKeyPress={handleKeyPress} placeholder="Escribe un mensaje..." className="input-gaming flex-1" disabled={isSending} />
+          <input type="text" value={messageText} onChange={e => setMessageText(e.target.value)} onKeyPress={handleKeyPress} placeholder="Escribe un mensaje..." className="input-gaming flex-1 mb-[5px] mt-0 py-[9px]" disabled={isSending} />
           <motion.button whileTap={{
           scale: 0.9
-        }} onClick={handleSend} disabled={!messageText.trim() || isSending} className="p-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground disabled:opacity-50">
+        }} onClick={handleSend} disabled={!messageText.trim() || isSending} className="p-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground px-[14px] py-[14px] mb-[5px] opacity-100">
             {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </motion.button>
         </div>
