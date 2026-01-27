@@ -44,8 +44,8 @@ export default function ProfilePage() {
   }
   return <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
-        <div className="flex items-center justify-between text-white">
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 py-3 px-px my-0">
+        <div className="text-white px-[16px] py-0 flex items-center justify-between">
           <h1 className="text-xl font-gaming font-bold">@{profile?.nick || "Usuario"}</h1>
           <div className="flex items-center gap-2">
             <motion.button whileTap={{
