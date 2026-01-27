@@ -317,7 +317,7 @@ function SettingsView({
         {/* Footer */}
         <div className="text-center pt-8 pb-4">
           <p className="text-xs text-muted-foreground">VFC v1.0.0</p>
-          <p className="text-xs text-muted-foreground">Red social segura para menores</p>
+          <p className="text-muted-foreground text-base">Red social segura para menores</p>
         </div>
       </div>
     </div>;
