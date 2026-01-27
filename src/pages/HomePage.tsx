@@ -8,7 +8,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { CommentSection } from "@/components/CommentSection";
-
 export default function HomePage() {
   const navigate = useNavigate();
   const {
@@ -75,10 +74,7 @@ export default function HomePage() {
       }} className="p-4 space-y-4 bg-[#e8e6ff] py-0 my-px px-[5px]">
             {/* Stories/Avatars Row */}
             <div className="overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 px-0 py-0 items-start justify-start flex flex-row gap-[15px] mt-[11px] mb-0">
-              <div 
-                className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px] cursor-pointer"
-                onClick={() => navigate('/app/publish')}
-              >
+              <div className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px] cursor-pointer" onClick={() => navigate('/app/publish')}>
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5 px-0 py-0 hover:scale-105 transition-transform">
                   <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground mx-0 px-[30px] py-[30px] text-black/[0.97]">
                     ➕
@@ -129,7 +125,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <MoreHorizontal className="w-5 h-5 text-black" />
+                      <MoreHorizontal className="text-black w-[25px] h-[25px] mr-[10px]" />
                     </button>
                   </div>
 
