@@ -1,15 +1,18 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Search, Plus, MoreVertical, Image, Mic, Send, Loader2 } from "lucide-react";
+import { Search, Plus, MoreVertical, Image, Mic, Send, Loader2, AlertCircle } from "lucide-react";
 import { useChats, useMessages, Chat } from "@/hooks/useChats";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-// ParentalGate removed for MVP - free registration
+import { NewChatModal } from "@/components/NewChatModal";
+import { toast } from "sonner";
+
 export default function ChatPage() {
   const {
     user,
-    profile
+    profile,
+    canInteract
   } = useAuth();
   const {
     chats,
@@ -17,21 +20,57 @@ export default function ChatPage() {
   } = useChats();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  
   const filteredChats = chats.filter(chat => (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const handleNewChatClick = () => {
+    if (!canInteract) {
+      toast.error("Cuenta pendiente de aprobación parental");
+      return;
+    }
+    setShowNewChatModal(true);
+  };
+
+  const handleChatCreated = (chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (chat) {
+      setSelectedChat(chat);
+    }
+  };
+
   if (selectedChat) {
     return <ChatDetail chat={selectedChat} onBack={() => setSelectedChat(null)} />;
   }
+
   return <div className="min-h-screen bg-primary-foreground my-0 py-0">
+      {/* New Chat Modal */}
+      <NewChatModal 
+        open={showNewChatModal} 
+        onOpenChange={setShowNewChatModal}
+        onChatCreated={handleChatCreated}
+      />
+      
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 opacity-100 border-transparent bg-[#1b0637] py-[11px]">
         <div className="flex items-center justify-between mb-4 py-0 my-[6px]">
           <h1 className="font-gaming font-bold gradient-text text-3xl">Chat</h1>
-          <motion.button whileTap={{
-          scale: 0.9
-        }} className="p-2 rounded-xl bg-card transition-colors text-destructive-foreground">
+          <motion.button 
+            whileTap={{ scale: 0.9 }} 
+            onClick={handleNewChatClick}
+            className={`p-2 rounded-xl bg-card transition-colors text-destructive-foreground ${!canInteract ? 'opacity-50' : ''}`}
+          >
             <Plus className="w-[30px] h-[30px] bg-transparent text-white" />
           </motion.button>
         </div>
+        
+        {/* Pending approval notice */}
+        {!canInteract && (
+          <div className="mb-3 p-2 rounded-lg bg-warning/20 flex items-center gap-2 text-warning text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>Cuenta pendiente de aprobación parental</span>
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative">

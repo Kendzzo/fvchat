@@ -18,7 +18,7 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 const MAX_VIDEO_DURATION = 10; // seconds
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp', 'video/mov'];
 
 export function useMediaUpload() {
   const { user } = useAuth();

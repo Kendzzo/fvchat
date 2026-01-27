@@ -104,13 +104,9 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // Create email from nick for auth
-      const email = `${nick.toLowerCase()}@vfc.app`;
-      
       const { error: signUpError } = await signUp(
-        email,
-        password,
         nick,
+        password,
         parseInt(birthYear),
         tutorEmail
       );
