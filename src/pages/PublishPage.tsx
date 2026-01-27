@@ -147,7 +147,7 @@ export default function PublishPage() {
           <motion.button whileTap={{
           scale: 0.9
         }} onClick={handleBack} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-white" />
           </motion.button>
           <h1 className="font-gaming font-bold text-2xl">
             {step === "select" ? "Nueva publicación" : step === "edit" ? "Editar" : "Publicar"}
