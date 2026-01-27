@@ -185,7 +185,7 @@ function ChatDetail({
       </header>
 
       {/* Messages */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-primary-foreground">
+      <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-white">
         {isLoading ? <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div> : messages.length === 0 ? <div className="text-center py-12">
