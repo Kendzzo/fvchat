@@ -114,7 +114,7 @@ export default function ProfilePage() {
             </div>
             <div className="p-3 rounded-xl mx-[20px] bg-transparent">
               <p className="font-gaming font-bold gradient-text text-5xl">{friends.length}</p>
-              <p className="font-bold text-lg text-secondary-foreground">Amigos</p>
+              <p className="font-bold text-lg text-secondary-foreground text-center">Amigos</p>
             </div>
             <div className="p-3 rounded-xl mx-[20px] bg-transparent">
               <p className="font-gaming font-bold text-destructive text-5xl">{totalLikes}</p>
