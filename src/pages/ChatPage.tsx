@@ -4,11 +4,14 @@ import { Search, Plus, Send, Loader2, AlertCircle } from "lucide-react";
 import { useChats, useMessages, Chat } from "@/hooks/useChats";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useModeration } from "@/hooks/useModeration";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { NewChatModal } from "@/components/NewChatModal";
 import { ChatOptionsMenu } from "@/components/ChatOptionsMenu";
 import { ChatMediaUpload } from "@/components/ChatMediaUpload";
+import { ModerationWarning } from "@/components/ModerationWarning";
+import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { formatLastSeen, isOnline } from "@/hooks/usePresence";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -168,9 +171,11 @@ function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
   const { user } = useAuth();
   const { messages, isLoading, sendMessage } = useMessages(chat.id);
   const { markChatAsRead } = useUnreadMessages();
+  const { checkContent, isChecking, suspensionInfo, formatSuspensionTime, checkSuspension } = useModeration();
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [pendingMedia, setPendingMedia] = useState<{ url: string; type: 'image' | 'video' | 'audio' } | null>(null);
+  const [moderationError, setModerationError] = useState<{ reason: string; strikes?: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null);
@@ -179,6 +184,11 @@ function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
   const otherUserId = !chat.is_group 
     ? chat.participant_ids.find(id => id !== user?.id) || null
     : null;
+
+  // Check suspension on mount
+  useEffect(() => {
+    checkSuspension();
+  }, [checkSuspension]);
 
   // Fetch other user's last_seen_at
   useEffect(() => {
@@ -215,8 +225,27 @@ function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
     markChatAsRead(chat.id);
   }, [chat.id, markChatAsRead]);
 
+  const isSuspended = suspensionInfo.suspended && suspensionInfo.until && suspensionInfo.until > new Date();
+
   const handleSend = async () => {
-    if ((!messageText.trim() && !pendingMedia) || isSending) return;
+    if ((!messageText.trim() && !pendingMedia) || isSending || isChecking) return;
+    
+    // Check suspension first
+    if (isSuspended) {
+      return;
+    }
+
+    setModerationError(null);
+    
+    // Check text content with moderation (if there's text)
+    if (messageText.trim()) {
+      const result = await checkContent(messageText, 'chat');
+      
+      if (!result.allowed) {
+        setModerationError({ reason: result.reason || 'Contenido no permitido', strikes: result.strikes });
+        return;
+      }
+    }
     
     setIsSending(true);
     
@@ -357,6 +386,24 @@ function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Suspension Banner */}
+      {isSuspended && suspensionInfo.until && (
+        <div className="absolute bottom-24 left-4 right-4">
+          <SuspensionBanner until={suspensionInfo.until} formatTime={formatSuspensionTime} />
+        </div>
+      )}
+
+      {/* Moderation Warning */}
+      {moderationError && (
+        <div className="absolute bottom-24 left-4 right-4">
+          <ModerationWarning 
+            reason={moderationError.reason} 
+            strikes={moderationError.strikes}
+            onDismiss={() => setModerationError(null)}
+          />
+        </div>
+      )}
+
       {/* Pending media preview */}
       {pendingMedia && (
         <div className="absolute bottom-20 left-4 right-4 bg-card rounded-xl p-3 flex items-center gap-3 shadow-lg">
@@ -385,26 +432,29 @@ function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
         <div className="flex items-center gap-3">
           <ChatMediaUpload 
             onMediaReady={handleMediaReady} 
-            disabled={isSending}
+            disabled={isSending || isSuspended}
           />
           
           <input 
             type="text" 
             value={messageText} 
-            onChange={e => setMessageText(e.target.value)} 
+            onChange={e => {
+              setMessageText(e.target.value);
+              setModerationError(null);
+            }} 
             onKeyPress={handleKeyPress} 
-            placeholder="Escribe un mensaje..." 
+            placeholder={isSuspended ? "Cuenta bloqueada temporalmente" : "Escribe un mensaje..."} 
             className="input-gaming flex-1 mb-[5px] mt-0 py-[9px]" 
-            disabled={isSending} 
+            disabled={isSending || isSuspended} 
           />
           
           <motion.button 
             whileTap={{ scale: 0.9 }} 
             onClick={handleSend} 
-            disabled={(!messageText.trim() && !pendingMedia) || isSending} 
+            disabled={(!messageText.trim() && !pendingMedia) || isSending || isChecking || isSuspended} 
             className="p-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground px-[14px] py-[14px] mb-[5px] opacity-100 disabled:opacity-50"
           >
-            {isSending ? (
+            {isSending || isChecking ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Send className="w-5 h-5" />
