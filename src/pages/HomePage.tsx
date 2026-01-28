@@ -86,7 +86,7 @@ export default function HomePage() {
     if (diffDays === 1) return 'ayer';
     return `hace ${diffDays} días`;
   };
-  return <div className="min-h-screen bg-[#1a0a2e] pb-20">
+  return <div className="min-h-screen pb-20 bg-purple-50">
       {/* Header - Dark purple with logo and title */}
       <div className="sticky top-0 z-40">
         {/* Main header bar */}
@@ -106,7 +106,7 @@ export default function HomePage() {
       </div>
 
       {/* Stories Row - Light purple background #e8e6ff */}
-      <div className="px-4 py-4 overflow-x-auto" style={{
+      <div className="px-4 py-4 overflow-x-auto bg-purple-50" style={{
       backgroundColor: '#e8e6ff'
     }}>
         <div className="flex gap-5 min-w-max">
@@ -164,7 +164,7 @@ export default function HomePage() {
         </div>}
 
       {/* Feed */}
-      <div className="space-y-4 p-4 bg-purple-100/50 min-h-[60vh]">
+      <div className="space-y-4 p-4 min-h-[60vh] bg-purple-50">
         {postsLoading ? <>
             {[1, 2, 3].map(i => <div key={i} className="bg-white rounded-3xl p-4 space-y-3 shadow-sm">
                 <div className="flex items-center gap-3">
