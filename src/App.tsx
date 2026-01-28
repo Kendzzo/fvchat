@@ -14,8 +14,7 @@ import PublishPage from "./pages/PublishPage";
 import ChallengesPage from "./pages/ChallengesPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
-import CreateAvatarPage from "./pages/CreateAvatarPage";
-import EditAvatarPage from "./pages/EditAvatarPage";
+// Avatar pages removed - using profile photos now
 import PublicProfilePage from "./pages/PublicProfilePage";
 import NotFound from "./pages/NotFound";
 
@@ -40,10 +39,7 @@ function ProtectedRoute({ children, requireAvatar = true }: { children: React.Re
     return <Navigate to="/login" replace />;
   }
 
-  // Check if user needs to create avatar (only for main app routes)
-  if (requireAvatar && profile && !profile.avatar_snapshot_url) {
-    return <Navigate to="/create-avatar" replace />;
-  }
+  // Profile photo is optional - no forced redirect
   
   return <>{children}</>;
 }
@@ -75,9 +71,7 @@ function AppRoutes() {
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
       
-      {/* Avatar Creation - protected but doesn't require avatar */}
-      <Route path="/create-avatar" element={<ProtectedRoute requireAvatar={false}><CreateAvatarPage /></ProtectedRoute>} />
-      <Route path="/edit-avatar" element={<ProtectedRoute requireAvatar={false}><EditAvatarPage /></ProtectedRoute>} />
+      {/* Avatar routes removed - profile photos managed in ProfilePage */}
       
       {/* Main App Routes - protected and requires avatar */}
       <Route path="/app" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>

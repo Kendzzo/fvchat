@@ -8,7 +8,8 @@ import { useFriendships } from "@/hooks/useFriendships";
 import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/UserSearch";
 import { FriendRequestsList } from "@/components/FriendRequestsList";
-import { AvatarBadge } from "@/components/avatar/AvatarBadge";
+import { ProfilePhoto } from "@/components/ProfilePhoto";
+import { ProfilePhotoEditor } from "@/components/ProfilePhotoEditor";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export default function ProfilePage() {
@@ -18,7 +19,8 @@ export default function ProfilePage() {
     signOut,
     isLoading: authLoading,
     isAdmin,
-    canInteract
+    canInteract,
+    refreshProfile
   } = useAuth();
   const {
     posts,
@@ -30,6 +32,7 @@ export default function ProfilePage() {
   } = useFriendships();
   const [activeTab, setActiveTab] = useState<"posts" | "likes">("posts");
   const [showSettings, setShowSettings] = useState(false);
+  const [showPhotoEditor, setShowPhotoEditor] = useState(false);
   const handleLogout = async () => {
     await signOut();
     navigate("/");
@@ -70,20 +73,22 @@ export default function ProfilePage() {
       }} className="glass-card p-6 text-center border-success-foreground bg-white py-0 px-[22px]">
           {/* Avatar */}
           <div className="relative inline-block mb-4 mt-[20px]">
-            <AvatarBadge 
-              avatarUrl={profile?.avatar_snapshot_url}
+            <ProfilePhoto 
+              url={profile?.profile_photo_url || profile?.avatar_snapshot_url}
               nick={profile?.nick || ''}
               size="xl"
               showBorder={true}
               className="w-28 h-28 animate-pulse-glow"
+              onClick={() => setShowPhotoEditor(true)}
+              editable={true}
             />
-            <motion.button 
-              whileTap={{ scale: 0.9 }}
-              onClick={() => navigate('/edit-avatar')} 
-              className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground shadow-lg z-10"
-            >
-              <Edit3 className="w-5 h-5" />
-            </motion.button>
+            {/* Photo Editor Modal */}
+            <ProfilePhotoEditor
+              isOpen={showPhotoEditor}
+              onClose={() => setShowPhotoEditor(false)}
+              currentPhotoUrl={profile?.profile_photo_url || profile?.avatar_snapshot_url}
+              onPhotoUpdated={refreshProfile}
+            />
             
             {/* Level Badge */}
             <div className="absolute -top-2 -right-2 px-3 py-1 rounded-full bg-warning text-warning-foreground text-xs font-bold z-10">
@@ -276,8 +281,8 @@ function SettingsView({
         {/* User info */}
         <div className="glass-card p-4 mb-4">
           <div className="flex items-center gap-4">
-            <AvatarBadge 
-              avatarUrl={profile?.avatar_snapshot_url}
+            <ProfilePhoto 
+              url={profile?.avatar_snapshot_url}
               nick={profile?.nick || ''}
               size="lg"
               showBorder={true}

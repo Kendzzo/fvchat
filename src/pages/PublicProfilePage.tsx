@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { AvatarBadge } from '@/components/avatar/AvatarBadge';
+import { ProfilePhoto } from '@/components/ProfilePhoto';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Heart, Users, FileImage, CheckCircle, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -117,7 +117,7 @@ export default function PublicProfilePage() {
 
       {/* Profile Info */}
       <div className="flex flex-col items-center py-8 px-4 bg-white">
-        <AvatarBadge avatarUrl={profile?.avatar_snapshot_url} nick={profile?.nick || ''} size="xl" />
+        <ProfilePhoto url={profile?.avatar_snapshot_url} nick={profile?.nick || ''} size="xl" />
         <h2 className="mt-4 text-xl font-bold text-secondary-foreground">@{profile?.nick}</h2>
         <p className="text-muted-foreground text-sm mt-1">
           Grupo de edad: {profile?.age_group}

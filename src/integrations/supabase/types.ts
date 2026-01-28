@@ -354,6 +354,7 @@ export type Database = {
           id: string
           is_blocked: boolean
           sender_id: string
+          sticker_id: string | null
           type: Database["public"]["Enums"]["content_type"]
         }
         Insert: {
@@ -363,6 +364,7 @@ export type Database = {
           id?: string
           is_blocked?: boolean
           sender_id: string
+          sticker_id?: string | null
           type?: Database["public"]["Enums"]["content_type"]
         }
         Update: {
@@ -372,6 +374,7 @@ export type Database = {
           id?: string
           is_blocked?: boolean
           sender_id?: string
+          sticker_id?: string | null
           type?: Database["public"]["Enums"]["content_type"]
         }
         Relationships: [
@@ -387,6 +390,13 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
             referencedColumns: ["id"]
           },
         ]
@@ -431,6 +441,54 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_stickers: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          rotation: number
+          scale: number
+          sticker_id: string
+          x: number
+          y: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          rotation?: number
+          scale?: number
+          sticker_id: string
+          x?: number
+          y?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          rotation?: number
+          scale?: number
+          sticker_id?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_stickers_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_stickers_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
             referencedColumns: ["id"]
           },
         ]
@@ -502,6 +560,8 @@ export type Database = {
           last_seen_at: string | null
           nick: string
           parent_approved: boolean
+          profile_photo_updated_at: string | null
+          profile_photo_url: string | null
           suspended_until: string | null
           tutor_email: string
           updated_at: string
@@ -518,6 +578,8 @@ export type Database = {
           last_seen_at?: string | null
           nick: string
           parent_approved?: boolean
+          profile_photo_updated_at?: string | null
+          profile_photo_url?: string | null
           suspended_until?: string | null
           tutor_email: string
           updated_at?: string
@@ -534,6 +596,8 @@ export type Database = {
           last_seen_at?: string | null
           nick?: string
           parent_approved?: boolean
+          profile_photo_updated_at?: string | null
+          profile_photo_url?: string | null
           suspended_until?: string | null
           tutor_email?: string
           updated_at?: string
@@ -633,6 +697,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stickers: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          image_url: string
+          name: string
+          prompt: string | null
+          rarity: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          image_url: string
+          name: string
+          prompt?: string | null
+          rarity?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string
+          prompt?: string | null
+          rarity?: string
+        }
+        Relationships: []
       }
       tutor_notifications: {
         Row: {
@@ -761,6 +855,45 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_stickers: {
+        Row: {
+          id: string
+          source: string
+          sticker_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          source?: string
+          sticker_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          source?: string
+          sticker_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stickers_sticker_id_fkey"
+            columns: ["sticker_id"]
+            isOneToOne: false
+            referencedRelation: "stickers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_stickers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
