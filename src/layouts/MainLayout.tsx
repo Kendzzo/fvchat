@@ -60,7 +60,13 @@ export default function MainLayout() {
             return (
               <button 
                 key={item.path} 
-                onClick={() => navigate(item.path)} 
+                onClick={() => {
+                  // Dispatch reset event when clicking Home
+                  if (item.path === '/app') {
+                    window.dispatchEvent(new CustomEvent('vfc-home-reset'));
+                  }
+                  navigate(item.path);
+                }} 
                 className={cn("nav-item relative py-px my-0", isActive && "active")}
               >
                 {item.isMain ? (
