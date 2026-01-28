@@ -66,7 +66,7 @@ export function ProfilePhoto({
     if (fallback) fallback.classList.remove('hidden');
   };
   const content = url ? <>
-      <img src={url} alt={`Foto de ${nick || 'usuario'}`} className="w-full h-full rounded-full border-0 object-fill" loading="lazy" onError={handleImageError} />
+      <img src={url} alt={`Foto de ${nick || 'usuario'}`} className="w-full h-full rounded-full object-fill border-8 border-none shadow-card" loading="lazy" onError={handleImageError} />
       <div className={cn("w-full h-full rounded-full flex items-center justify-center font-bold hidden", `bg-gradient-to-br ${gradientColor} text-white`)}>
         {initials}
       </div>
@@ -75,7 +75,7 @@ export function ProfilePhoto({
     </div>;
   const Component = onClick ? 'button' : 'div';
   if (showBorder) {
-    return <Component onClick={onClick} className={cn("relative bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0 py-[5px] ml-0 pl-[16px] text-base opacity-100 border-white border-0 shadow-none rounded-xl font-light text-left", borderClass, className, onClick && "cursor-pointer hover:scale-105 transition-transform")}>
+    return <Component onClick={onClick} className={cn("relative bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0 py-[5px] ml-0 pl-[16px] text-base opacity-100 shadow-none font-light text-center mr-0 border-none rounded-full border-4 border-white", borderClass, className, onClick && "cursor-pointer hover:scale-105 transition-transform")}>
         <div className={cn(sizeClass, "rounded-full bg-card overflow-hidden flex items-center justify-center")}>
           {content}
         </div>
