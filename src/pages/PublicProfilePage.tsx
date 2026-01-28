@@ -116,7 +116,7 @@ export default function PublicProfilePage() {
       </div>
 
       {/* Profile Info */}
-      <div className="flex flex-col items-center py-8 px-4 bg-white">
+      <div className="flex flex-col items-center py-8 px-4 border-transparent bg-primary-foreground">
         <ProfilePhoto url={profile?.avatar_snapshot_url} nick={profile?.nick || ''} size="xl" />
         <h2 className="mt-4 text-xl font-bold text-secondary-foreground">@{profile?.nick}</h2>
         <p className="text-muted-foreground text-sm mt-1">
@@ -141,7 +141,7 @@ export default function PublicProfilePage() {
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
             <FileImage className="w-5 h-5 text-primary" />
           </div>
-          <span className="text-lg font-bold text-secondary-foreground">{stats.postsCount}</span>
+          <span className="font-bold text-secondary-foreground text-4xl">{stats.postsCount}</span>
           <span className="text-xs text-muted-foreground">Publicaciones</span>
         </div>
 
@@ -149,7 +149,7 @@ export default function PublicProfilePage() {
           <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mb-2">
             <Users className="w-5 h-5 text-secondary" />
           </div>
-          <span className="text-lg font-bold text-secondary-foreground">{stats.friendsCount}</span>
+          <span className="font-bold text-secondary-foreground text-4xl">{stats.friendsCount}</span>
           <span className="text-xs text-muted-foreground">Amigos</span>
         </div>
 
@@ -157,7 +157,7 @@ export default function PublicProfilePage() {
           <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-2">
             <Heart className="w-5 h-5 text-red-500" />
           </div>
-          <span className="text-lg font-bold text-secondary-foreground">{stats.likesTotal}</span>
+          <span className="font-bold text-secondary-foreground text-4xl">{stats.likesTotal}</span>
           <span className="text-xs text-muted-foreground">Likes</span>
         </div>
       </div>
