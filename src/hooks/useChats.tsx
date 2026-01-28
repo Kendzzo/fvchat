@@ -27,11 +27,19 @@ export interface Message {
   type: 'text' | 'photo' | 'video' | 'audio' | 'image';
   content: string;
   is_blocked: boolean;
+  sticker_id: string | null;
   created_at: string;
   sender?: {
     nick: string;
     avatar_data: Record<string, unknown>;
+    profile_photo_url?: string | null;
   };
+  sticker?: {
+    id: string;
+    name: string;
+    image_url: string;
+    rarity: string;
+  } | null;
 }
 
 export function useChats() {
@@ -212,7 +220,8 @@ export function useMessages(chatId: string | null) {
         .from('messages')
         .select(`
           *,
-          sender:profiles!messages_sender_id_fkey(nick, avatar_data)
+          sender:profiles!messages_sender_id_fkey(nick, avatar_data, profile_photo_url),
+          sticker:stickers(id, name, image_url, rarity)
         `)
         .eq('chat_id', chatId)
         .order('created_at', { ascending: true });
@@ -230,7 +239,7 @@ export function useMessages(chatId: string | null) {
     }
   };
 
-  const sendMessage = async (content: string, type: Message['type'] = 'text') => {
+  const sendMessage = async (content: string, type: Message['type'] = 'text', stickerId?: string) => {
     if (!user || !chatId) return { error: new Error('No autenticado o chat no seleccionado') };
 
     try {
@@ -240,7 +249,8 @@ export function useMessages(chatId: string | null) {
           chat_id: chatId,
           sender_id: user.id,
           content,
-          type
+          type,
+          sticker_id: stickerId || null
         })
         .select()
         .single();
@@ -253,6 +263,10 @@ export function useMessages(chatId: string | null) {
     } catch (err) {
       return { error: err as Error };
     }
+  };
+
+  const sendSticker = async (stickerId: string, stickerUrl: string) => {
+    return sendMessage(stickerUrl, 'image', stickerId);
   };
 
   useEffect(() => {
@@ -286,6 +300,7 @@ export function useMessages(chatId: string | null) {
     messages,
     isLoading,
     sendMessage,
+    sendSticker,
     refreshMessages: fetchMessages
   };
 }

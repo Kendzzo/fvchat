@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import { Search, Plus, Send, Loader2, AlertCircle } from "lucide-react";
+import { Search, Plus, Send, Loader2, AlertCircle, Sparkles } from "lucide-react";
 import { useChats, useMessages, Chat } from "@/hooks/useChats";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
@@ -13,9 +13,11 @@ import { ChatMediaUpload } from "@/components/ChatMediaUpload";
 import { ModerationWarning } from "@/components/ModerationWarning";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { ProfilePhoto, ProfilePhotoWithStatus } from "@/components/ProfilePhoto";
+import { StickerPicker } from "@/components/StickerPicker";
 import { formatLastSeen, isOnline } from "@/hooks/usePresence";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Sticker } from "@/hooks/useStickers";
 export default function ChatPage() {
   const {
     user,
@@ -144,17 +146,14 @@ function ChatDetail({
   chat: Chat;
   onBack: () => void;
 }) {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const {
     messages,
     isLoading,
-    sendMessage
+    sendMessage,
+    sendSticker
   } = useMessages(chat.id);
-  const {
-    markChatAsRead
-  } = useUnreadMessages();
+  const { markChatAsRead } = useUnreadMessages();
   const {
     checkContent,
     isChecking,
@@ -164,6 +163,7 @@ function ChatDetail({
   } = useModeration();
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [pendingMedia, setPendingMedia] = useState<{
     url: string;
     type: 'image' | 'video' | 'audio';
@@ -275,6 +275,21 @@ function ChatDetail({
       type
     });
   };
+  
+  const handleStickerSelect = async (sticker: Sticker) => {
+    if (isSuspended || isSending) return;
+    
+    setIsSending(true);
+    try {
+      const { error } = await sendSticker(sticker.id, sticker.image_url);
+      if (error) {
+        toast.error('Error al enviar sticker');
+      }
+    } finally {
+      setIsSending(false);
+    }
+  };
+  
   const presenceText = otherUserLastSeen ? formatLastSeen(otherUserLastSeen) : chat.is_group ? `${chat.participant_ids.length} participantes` : "Sin conexión reciente";
   return <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -313,6 +328,7 @@ function ChatDetail({
             <p className="text-sm text-muted-foreground mt-2">¡Envía el primer mensaje!</p>
           </div> : messages.map(msg => {
         const isMine = msg.sender_id === user?.id;
+        const isSticker = msg.sticker_id && msg.sticker;
         const isMedia = msg.type === 'image' || msg.type === 'photo' || msg.type === 'video';
         return <motion.div key={msg.id} initial={{
           opacity: 0,
@@ -321,8 +337,14 @@ function ChatDetail({
           opacity: 1,
           y: 0
         }} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                <div className={isMine ? "chat-bubble-sent" : "chat-bubble-received"}>
-                  {isMedia ? msg.type === 'video' ? <video src={msg.content} controls className="max-w-[200px] rounded-lg" playsInline /> : <img src={msg.content} alt="Media" className="max-w-[200px] rounded-lg" /> : <p className="text-sm">{msg.content}</p>}
+                <div className={isSticker ? "p-1" : (isMine ? "chat-bubble-sent" : "chat-bubble-received")}>
+                  {isSticker ? (
+                    <img src={msg.sticker!.image_url} alt={msg.sticker!.name} className="w-32 h-32 object-contain" />
+                  ) : isMedia ? (
+                    msg.type === 'video' ? <video src={msg.content} controls className="max-w-[200px] rounded-lg" playsInline /> : <img src={msg.content} alt="Media" className="max-w-[200px] rounded-lg" />
+                  ) : (
+                    <p className="text-sm">{msg.content}</p>
+                  )}
                   <p className={`text-[10px] mt-1 ${isMine ? "text-foreground/60" : "text-muted-foreground"}`}>
                     {formatDistanceToNow(new Date(msg.created_at), {
                 addSuffix: false,
@@ -361,8 +383,17 @@ function ChatDetail({
 
       {/* Input */}
       <div className="sticky bottom-0 p-4 backdrop-blur-xl border-t border-border/30 safe-bottom bg-success-foreground">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <ChatMediaUpload onMediaReady={handleMediaReady} disabled={isSending || isSuspended} />
+          
+          <motion.button 
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowStickerPicker(true)}
+            disabled={isSuspended}
+            className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <Sparkles className="w-5 h-5" />
+          </motion.button>
           
           <input type="text" value={messageText} onChange={e => {
           setMessageText(e.target.value);
@@ -376,5 +407,12 @@ function ChatDetail({
           </motion.button>
         </div>
       </div>
+      
+      {/* Sticker Picker */}
+      <StickerPicker 
+        isOpen={showStickerPicker} 
+        onClose={() => setShowStickerPicker(false)} 
+        onSelect={handleStickerSelect} 
+      />
     </div>;
 }
