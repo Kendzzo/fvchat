@@ -196,8 +196,10 @@ export default function HomePage() {
 
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex -space-x-2">
-                    {(todayChallenge.top_entries || []).slice(0, 3).map((entry, i) => <div key={i} className="w-8 h-8 rounded-full bg-card border-2 border-background flex items-center justify-center text-sm">
-                        {(entry.user?.avatar_data as any)?.emoji || "👤"}
+                      {(todayChallenge.top_entries || []).slice(0, 3).map((entry, i) => <div key={i} className="w-8 h-8 rounded-full bg-card border-2 border-background flex items-center justify-center text-sm">
+                        {entry.user?.avatar_snapshot_url ? (
+                          <img src={entry.user.avatar_snapshot_url} alt="" className="w-full h-full rounded-full object-cover" />
+                        ) : "👤"}
                       </div>)}
                   </div>
                   <span className="text-sm text-muted-foreground">
