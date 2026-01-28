@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
 export interface Friendship {
   id: string;
   sender_id: string;
   receiver_id: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   tutor_approved: boolean;
   created_at: string;
   friend?: {
@@ -15,6 +15,7 @@ export interface Friendship {
     avatar_data: Record<string, unknown>;
     age_group: string;
     avatar_snapshot_url?: string | null;
+    profile_photo_url?: string | null;
   };
 }
 
@@ -35,12 +36,12 @@ export function useFriendships() {
 
       // Get all friendships where user is sender or receiver
       const { data, error } = await supabase
-        .from('friendships')
-        .select('*')
+        .from("friendships")
+        .select("*")
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
 
       if (error) {
-        console.error('Error fetching friendships:', error);
+        console.error("Error fetching friendships:", error);
         return;
       }
 
@@ -49,25 +50,23 @@ export function useFriendships() {
       const pending: Friendship[] = [];
 
       for (const friendship of data || []) {
-        const friendId = friendship.sender_id === user.id 
-          ? friendship.receiver_id 
-          : friendship.sender_id;
+        const friendId = friendship.sender_id === user.id ? friendship.receiver_id : friendship.sender_id;
 
         // Fetch friend profile including avatar_snapshot_url
         const { data: friendData } = await supabase
-          .from('profiles')
-          .select('id, nick, avatar_data, age_group, avatar_snapshot_url')
-          .eq('id', friendId)
+          .from("profiles")
+          .select("id, nick, avatar_data, age_group, avatar_snapshot_url, profile_photo_url")
+          .eq("id", friendId)
           .maybeSingle();
 
         const friendshipWithProfile = {
           ...friendship,
-          friend: friendData
+          friend: friendData,
         } as Friendship;
 
-        if (friendship.status === 'approved' && friendship.tutor_approved) {
+        if (friendship.status === "approved" && friendship.tutor_approved) {
           approvedFriends.push(friendshipWithProfile);
-        } else if (friendship.status === 'pending' && friendship.receiver_id === user.id) {
+        } else if (friendship.status === "pending" && friendship.receiver_id === user.id) {
           pending.push(friendshipWithProfile);
         }
       }
@@ -75,23 +74,23 @@ export function useFriendships() {
       setFriends(approvedFriends);
       setPendingRequests(pending);
     } catch (err) {
-      console.error('Error:', err);
+      console.error("Error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
   const sendFriendRequest = async (receiverId: string) => {
-    if (!user) return { error: new Error('No autenticado') };
+    if (!user) return { error: new Error("No autenticado") };
 
     try {
       const { data, error: insertError } = await supabase
-        .from('friendships')
+        .from("friendships")
         .insert({
           sender_id: user.id,
           receiver_id: receiverId,
-          status: 'pending',
-          tutor_approved: false
+          status: "pending",
+          tutor_approved: false,
         })
         .select()
         .single();
@@ -107,18 +106,18 @@ export function useFriendships() {
   };
 
   const acceptFriendRequest = async (friendshipId: string) => {
-    if (!user) return { error: new Error('No autenticado') };
+    if (!user) return { error: new Error("No autenticado") };
 
     try {
       // For development, auto-approve tutor
       const { error: updateError } = await supabase
-        .from('friendships')
-        .update({ 
-          status: 'approved',
-          tutor_approved: true // Auto-approve for development
+        .from("friendships")
+        .update({
+          status: "approved",
+          tutor_approved: true, // Auto-approve for development
         })
-        .eq('id', friendshipId)
-        .eq('receiver_id', user.id);
+        .eq("id", friendshipId)
+        .eq("receiver_id", user.id);
 
       if (updateError) {
         return { error: new Error(updateError.message) };
@@ -132,14 +131,14 @@ export function useFriendships() {
   };
 
   const rejectFriendRequest = async (friendshipId: string) => {
-    if (!user) return { error: new Error('No autenticado') };
+    if (!user) return { error: new Error("No autenticado") };
 
     try {
       const { error: updateError } = await supabase
-        .from('friendships')
-        .update({ status: 'rejected' })
-        .eq('id', friendshipId)
-        .eq('receiver_id', user.id);
+        .from("friendships")
+        .update({ status: "rejected" })
+        .eq("id", friendshipId)
+        .eq("receiver_id", user.id);
 
       if (updateError) {
         return { error: new Error(updateError.message) };
@@ -153,13 +152,10 @@ export function useFriendships() {
   };
 
   const removeFriend = async (friendshipId: string) => {
-    if (!user) return { error: new Error('No autenticado') };
+    if (!user) return { error: new Error("No autenticado") };
 
     try {
-      const { error: deleteError } = await supabase
-        .from('friendships')
-        .delete()
-        .eq('id', friendshipId);
+      const { error: deleteError } = await supabase.from("friendships").delete().eq("id", friendshipId);
 
       if (deleteError) {
         return { error: new Error(deleteError.message) };
@@ -177,20 +173,20 @@ export function useFriendships() {
 
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, nick, avatar_data, age_group')
-        .neq('id', user.id)
-        .ilike('nick', `%${query}%`)
+        .from("profiles")
+        .select("id, nick, avatar_data, age_group")
+        .neq("id", user.id)
+        .ilike("nick", `%${query}%`)
         .limit(10);
 
       if (error) {
-        console.error('Error searching users:', error);
+        console.error("Error searching users:", error);
         return [];
       }
 
       return data || [];
     } catch (err) {
-      console.error('Error:', err);
+      console.error("Error:", err);
       return [];
     }
   };
@@ -200,17 +196,17 @@ export function useFriendships() {
 
     // Subscribe to friendship updates
     const channel = supabase
-      .channel('friendships-realtime')
+      .channel("friendships-realtime")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'friendships'
+          event: "*",
+          schema: "public",
+          table: "friendships",
         },
         () => {
           fetchFriendships();
-        }
+        },
       )
       .subscribe();
 
@@ -228,6 +224,6 @@ export function useFriendships() {
     rejectFriendRequest,
     removeFriend,
     searchUsers,
-    refreshFriendships: fetchFriendships
+    refreshFriendships: fetchFriendships,
   };
 }
