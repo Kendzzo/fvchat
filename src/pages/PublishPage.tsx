@@ -1,30 +1,24 @@
 import { motion } from "framer-motion";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Video, X, Sparkles, Users, Lock, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useMediaUpload } from "@/hooks/useMediaUpload";
+import { useModeration } from "@/hooks/useModeration";
 import { Progress } from "@/components/ui/progress";
+import { SuspensionBanner } from "@/components/SuspensionBanner";
+import { ModerationWarning } from "@/components/ModerationWarning";
 
 // Emojis para stickers
 const stickers = ["😀", "😂", "🥳", "🔥", "💯", "🎮", "🎨", "🎵", "⭐", "💪", "🏆", "❤️"];
 
-// Palabras prohibidas
-const bannedWords = ["tonto", "idiota", "estupido", "imbecil", "malo"];
 export default function PublishPage() {
   const navigate = useNavigate();
-  const {
-    profile
-  } = useAuth();
-  const {
-    createPost
-  } = usePosts();
-  const {
-    uploadMedia,
-    uploadProgress,
-    resetProgress
-  } = useMediaUpload();
+  const { profile } = useAuth();
+  const { createPost } = usePosts();
+  const { uploadMedia, uploadProgress, resetProgress } = useMediaUpload();
+  const { checkContent, isChecking, suspensionInfo, formatSuspensionTime, checkSuspension } = useModeration();
 
   // File input refs
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -34,29 +28,24 @@ export default function PublishPage() {
   const [caption, setCaption] = useState("");
   const [privacy, setPrivacy] = useState<"friends_only" | "same_age_group">("friends_only");
   const [warning, setWarning] = useState("");
+  const [moderationError, setModerationError] = useState<{ reason: string; strikes?: number } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
-  const checkContent = (text: string) => {
-    const lowerText = text.toLowerCase();
-    for (const word of bannedWords) {
-      if (lowerText.includes(word)) {
-        setWarning("⚠️ Tu mensaje contiene palabras no permitidas");
-        return false;
-      }
-    }
-    if (/\d{9}/.test(text) || /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(text)) {
-      setWarning("⚠️ No compartas datos personales como teléfono o email");
-      return false;
-    }
-    setWarning("");
-    return true;
-  };
+
+  // Check suspension on mount
+  useEffect(() => {
+    checkSuspension();
+  }, [checkSuspension]);
+
+  const isSuspended = suspensionInfo.suspended && suspensionInfo.until && suspensionInfo.until > new Date();
+
   const handleCaptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setCaption(value);
-    checkContent(value);
+    setModerationError(null);
+    setWarning("");
   };
   const handlePhotoClick = () => {
     photoInputRef.current?.click();
@@ -93,12 +82,28 @@ export default function PublishPage() {
     }
   };
   const handlePublish = async () => {
-    if (warning || isPublishing || !uploadedUrl) return;
+    if (warning || isPublishing || !uploadedUrl || isChecking) return;
+
+    // Check suspension first
+    if (isSuspended) {
+      return;
+    }
+
+    setModerationError(null);
+
+    // Check caption with moderation (if there's text)
+    if (caption.trim()) {
+      const result = await checkContent(caption, 'post');
+      
+      if (!result.allowed) {
+        setModerationError({ reason: result.reason || 'Contenido no permitido', strikes: result.strikes });
+        return;
+      }
+    }
+
     setIsPublishing(true);
     try {
-      const {
-        error
-      } = await createPost({
+      const { error } = await createPost({
         type: mediaType === 'photo' ? 'image' : 'video',
         content_url: uploadedUrl,
         text: caption || undefined,
@@ -159,10 +164,10 @@ export default function PublishPage() {
             </motion.button>}
           {step === "publish" && <motion.button whileTap={{
           scale: 0.9
-        }} onClick={handlePublish} disabled={!!warning || isPublishing || !uploadedUrl} className="px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground font-medium disabled:opacity-50 flex items-center gap-2">
-              {isPublishing ? <>
+        }} onClick={handlePublish} disabled={!!warning || !!moderationError || isPublishing || !uploadedUrl || isChecking || isSuspended} className="px-4 py-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground font-medium disabled:opacity-50 flex items-center gap-2">
+              {isPublishing || isChecking ? <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Publicando...
+                  {isChecking ? 'Verificando...' : 'Publicando...'}
                 </> : "Publicar"}
             </motion.button>}
           {step === "select" && <div className="w-10" />}
@@ -270,12 +275,34 @@ export default function PublishPage() {
         </div>}
 
       {step === "publish" && <div className="p-6 space-y-6">
+          {/* Suspension Banner */}
+          {isSuspended && suspensionInfo.until && (
+            <SuspensionBanner until={suspensionInfo.until} formatTime={formatSuspensionTime} />
+          )}
+
           {/* Caption */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground">
               Escribe algo...
             </label>
-            <textarea value={caption} onChange={handleCaptionChange} placeholder="¿Qué quieres contar? 😊" rows={4} className="input-gaming w-full resize-none" />
+            <textarea 
+              value={caption} 
+              onChange={handleCaptionChange} 
+              placeholder={isSuspended ? "Cuenta bloqueada temporalmente" : "¿Qué quieres contar? 😊"} 
+              rows={4} 
+              className="input-gaming w-full resize-none" 
+              disabled={isSuspended}
+            />
+            
+            {/* Moderation Warning */}
+            {moderationError && (
+              <ModerationWarning 
+                reason={moderationError.reason} 
+                strikes={moderationError.strikes}
+                onDismiss={() => setModerationError(null)}
+              />
+            )}
+            
             {warning && <motion.div initial={{
           opacity: 0,
           y: -10

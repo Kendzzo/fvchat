@@ -355,6 +355,50 @@ export type Database = {
           },
         ]
       }
+      moderation_events: {
+        Row: {
+          allowed: boolean
+          categories: Json | null
+          created_at: string
+          id: string
+          reason: string | null
+          severity: string | null
+          surface: string
+          text_snippet: string
+          user_id: string
+        }
+        Insert: {
+          allowed?: boolean
+          categories?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          severity?: string | null
+          surface: string
+          text_snippet: string
+          user_id: string
+        }
+        Update: {
+          allowed?: boolean
+          categories?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          severity?: string | null
+          surface?: string
+          text_snippet?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string
@@ -421,6 +465,7 @@ export type Database = {
           last_seen_at: string | null
           nick: string
           parent_approved: boolean
+          suspended_until: string | null
           tutor_email: string
           updated_at: string
         }
@@ -435,6 +480,7 @@ export type Database = {
           last_seen_at?: string | null
           nick: string
           parent_approved?: boolean
+          suspended_until?: string | null
           tutor_email: string
           updated_at?: string
         }
@@ -449,6 +495,7 @@ export type Database = {
           last_seen_at?: string | null
           nick?: string
           parent_approved?: boolean
+          suspended_until?: string | null
           tutor_email?: string
           updated_at?: string
         }
@@ -548,6 +595,50 @@ export type Database = {
           },
         ]
       }
+      tutor_notifications: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json | null
+          sent_at: string | null
+          status: string
+          tutor_email: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json | null
+          sent_at?: string | null
+          status?: string
+          tutor_email: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json | null
+          sent_at?: string | null
+          status?: string
+          tutor_email?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tutors: {
         Row: {
           approval_history: Json | null
@@ -606,6 +697,7 @@ export type Database = {
         Args: { _post_id: string; _user_id: string }
         Returns: boolean
       }
+      get_strikes_24h: { Args: { _user_id: string }; Returns: number }
       get_user_age_group: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["age_group"]
@@ -626,6 +718,7 @@ export type Database = {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
       }
+      is_user_suspended: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       account_status: "pending_approval" | "active" | "suspended"
