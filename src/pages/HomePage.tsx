@@ -224,9 +224,9 @@ export default function HomePage() {
               <div className="p-3 flex items-center gap-3 mb-0">
                 <div className="p-0.5 rounded-full bg-gradient-to-br from-purple-600 via-pink-500 to-teal-400">
                   <div className="w-11 h-11 rounded-full bg-white p-0.5">
-                    {post.author?.avatar_snapshot_url ? (
+                    {post.author?.profile_photo_url ? (
                       <img
-                        src={post.author.avatar_snapshot_url}
+                        src={post.author.profile_photo_url}
                         alt={post.author?.nick}
                         className="w-full h-full rounded-full object-cover"
                       />
