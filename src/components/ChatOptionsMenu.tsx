@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreVertical, User, VolumeX, Volume2, Ban, Flag, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useChatActions } from '@/hooks/useChatActions';
 import { Chat } from '@/hooks/useChats';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,44 +17,54 @@ interface ChatOptionsMenuProps {
   otherUserId: string | null;
 }
 
-export function ChatOptionsMenu({ chat, otherUserId }: ChatOptionsMenuProps) {
+export const ChatOptionsMenu = memo(function ChatOptionsMenu({ chat, otherUserId }: ChatOptionsMenuProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { muteChat, blockUser, unblockUser, reportUser, getChatSettings, isUserBlocked, isLoading } = useChatActions();
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
+  // Load settings only when menu opens
   useEffect(() => {
     const loadSettings = async () => {
-      if (!chat.id || !otherUserId) return;
+      if (!open || settingsLoaded || !chat.id) return;
 
       const settings = await getChatSettings(chat.id);
       setIsMuted(settings?.muted || false);
 
-      const blocked = await isUserBlocked(otherUserId);
-      setIsBlocked(blocked);
+      if (otherUserId) {
+        const blocked = await isUserBlocked(otherUserId);
+        setIsBlocked(blocked);
+      }
+      setSettingsLoaded(true);
     };
 
-    if (isOpen) {
-      loadSettings();
-    }
-  }, [isOpen, chat.id, otherUserId]);
+    loadSettings();
+  }, [open, chat.id, otherUserId, settingsLoaded, getChatSettings, isUserBlocked]);
 
-  const handleViewProfile = () => {
+  // Reset settings loaded when menu closes (for next open to refresh)
+  useEffect(() => {
+    if (!open) {
+      setSettingsLoaded(false);
+    }
+  }, [open]);
+
+  const handleViewProfile = useCallback(() => {
     if (otherUserId) {
       navigate(`/app/profile/${otherUserId}`);
     }
-    setIsOpen(false);
-  };
+    setOpen(false);
+  }, [otherUserId, navigate]);
 
-  const handleMuteToggle = async () => {
+  const handleMuteToggle = useCallback(async () => {
     await muteChat(chat.id, !isMuted);
     setIsMuted(!isMuted);
-    setIsOpen(false);
-  };
+    setOpen(false);
+  }, [chat.id, isMuted, muteChat]);
 
-  const handleBlockToggle = async () => {
+  const handleBlockToggle = useCallback(async () => {
     if (!otherUserId) return;
     
     if (isBlocked) {
@@ -57,127 +73,94 @@ export function ChatOptionsMenu({ chat, otherUserId }: ChatOptionsMenuProps) {
       await blockUser(otherUserId);
     }
     setIsBlocked(!isBlocked);
-    setIsOpen(false);
-  };
+    setOpen(false);
+  }, [otherUserId, isBlocked, blockUser, unblockUser]);
 
-  const handleReport = async () => {
+  const handleReport = useCallback(async () => {
     if (!otherUserId) return;
     await reportUser(otherUserId, chat.id);
-    setIsOpen(false);
-  };
+    setOpen(false);
+  }, [otherUserId, chat.id, reportUser]);
 
   return (
-    <>
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button 
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <MoreVertical className="w-5 h-5 text-white" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent 
+        align="end" 
+        className="w-56 z-[999] bg-card border border-border shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        sideOffset={8}
       >
-        <MoreVertical className="w-5 h-5 text-white" />
-      </button>
+        {/* View Profile - only for 1:1 chats */}
+        {!chat.is_group && otherUserId && (
+          <DropdownMenuItem 
+            onClick={handleViewProfile}
+            className="flex items-center gap-3 py-3 cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+              <User className="w-4 h-4 text-primary" />
+            </div>
+            <span>Ver perfil</span>
+          </DropdownMenuItem>
+        )}
 
-      <AnimatePresence>
-        {isOpen && (
+        {/* Mute Chat */}
+        <DropdownMenuItem 
+          onClick={handleMuteToggle}
+          disabled={isLoading}
+          className="flex items-center gap-3 py-3 cursor-pointer"
+        >
+          <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
+            {isMuted ? (
+              <Volume2 className="w-4 h-4 text-warning" />
+            ) : (
+              <VolumeX className="w-4 h-4 text-warning" />
+            )}
+          </div>
+          <span>{isMuted ? 'Desilenciar chat' : 'Silenciar chat'}</span>
+        </DropdownMenuItem>
+
+        {/* Block User - only for 1:1 chats */}
+        {!chat.is_group && otherUserId && (
           <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-black/50 z-50"
-            />
-
-            {/* Bottom Sheet */}
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 safe-bottom"
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={handleBlockToggle}
+              disabled={isLoading}
+              className="flex items-center gap-3 py-3 cursor-pointer text-destructive focus:text-destructive"
             >
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+              <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center">
+                <Ban className="w-4 h-4 text-destructive" />
               </div>
-
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 pb-3 border-b border-border/30">
-                <h3 className="font-semibold text-lg">Opciones del chat</h3>
-                <button onClick={() => setIsOpen(false)} className="p-2">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Options */}
-              <div className="p-4 space-y-2">
-                {/* View Profile - only for 1:1 chats */}
-                {!chat.is_group && otherUserId && (
-                  <button
-                    onClick={handleViewProfile}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl bg-background hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <User className="w-5 h-5 text-primary" />
-                    </div>
-                    <span className="font-medium">Ver perfil</span>
-                  </button>
-                )}
-
-                {/* Mute Chat */}
-                <button
-                  onClick={handleMuteToggle}
-                  disabled={isLoading}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl bg-background hover:bg-muted/50 transition-colors disabled:opacity-50"
-                >
-                  <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
-                    {isMuted ? (
-                      <Volume2 className="w-5 h-5 text-warning" />
-                    ) : (
-                      <VolumeX className="w-5 h-5 text-warning" />
-                    )}
-                  </div>
-                  <span className="font-medium">
-                    {isMuted ? 'Desilenciar chat' : 'Silenciar chat'}
-                  </span>
-                </button>
-
-                {/* Block User - only for 1:1 chats */}
-                {!chat.is_group && otherUserId && (
-                  <button
-                    onClick={handleBlockToggle}
-                    disabled={isLoading}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl bg-background hover:bg-muted/50 transition-colors disabled:opacity-50"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
-                      <Ban className="w-5 h-5 text-destructive" />
-                    </div>
-                    <span className="font-medium">
-                      {isBlocked ? 'Desbloquear usuario' : 'Bloquear usuario'}
-                    </span>
-                  </button>
-                )}
-
-                {/* Report */}
-                {!chat.is_group && otherUserId && (
-                  <button
-                    onClick={handleReport}
-                    disabled={isLoading}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl bg-background hover:bg-muted/50 transition-colors disabled:opacity-50"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
-                      <Flag className="w-5 h-5 text-secondary" />
-                    </div>
-                    <span className="font-medium">Reportar</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Extra padding for safe area */}
-              <div className="h-4" />
-            </motion.div>
+              <span>{isBlocked ? 'Desbloquear usuario' : 'Bloquear usuario'}</span>
+            </DropdownMenuItem>
           </>
         )}
-      </AnimatePresence>
-    </>
+
+        {/* Report */}
+        {!chat.is_group && otherUserId && (
+          <DropdownMenuItem 
+            onClick={handleReport}
+            disabled={isLoading}
+            className="flex items-center gap-3 py-3 cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center">
+              <Flag className="w-4 h-4 text-secondary" />
+            </div>
+            <span>Reportar</span>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
-}
+});
