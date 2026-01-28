@@ -14,6 +14,7 @@ export interface Friendship {
     nick: string;
     avatar_data: Record<string, unknown>;
     age_group: string;
+    avatar_snapshot_url?: string | null;
   };
 }
 
@@ -52,10 +53,10 @@ export function useFriendships() {
           ? friendship.receiver_id 
           : friendship.sender_id;
 
-        // Fetch friend profile
+        // Fetch friend profile including avatar_snapshot_url
         const { data: friendData } = await supabase
           .from('profiles')
-          .select('id, nick, avatar_data, age_group')
+          .select('id, nick, avatar_data, age_group, avatar_snapshot_url')
           .eq('id', friendId)
           .maybeSingle();
 

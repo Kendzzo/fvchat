@@ -1,21 +1,90 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Share2, MoreHorizontal, Play, Image as ImageIcon, Sparkles, Trophy, Loader2 } from "lucide-react";
+import { Heart, Share2, MoreHorizontal, Play, Image as ImageIcon, Sparkles, Trophy, Loader2, X } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
 import { useChallenges } from "@/hooks/useChallenges";
+import { useFriendships } from "@/hooks/useFriendships";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { CommentSection } from "@/components/CommentSection";
 import { AvatarBadge } from "@/components/avatar/AvatarBadge";
 
+interface FriendWithRecentPost {
+  friend_id: string;
+  nick: string;
+  avatar_snapshot_url: string | null;
+  last_post_at: string;
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<"posts" | "challenges">("posts");
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const { posts, isLoading: postsLoading, toggleLike } = usePosts();
   const { todayChallenge, isLoading: challengeLoading } = useChallenges();
+  const { friends, isLoading: friendsLoading } = useFriendships();
+
+  // Listen for home reset event from nav
+  useEffect(() => {
+    const handleHomeReset = () => {
+      setSelectedFriendId(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    
+    window.addEventListener('vfc-home-reset', handleHomeReset);
+    return () => window.removeEventListener('vfc-home-reset', handleHomeReset);
+  }, []);
+
+  // Calculate friends with recent posts, ordered by most recent post
+  const friendsWithRecentPosts = useMemo((): FriendWithRecentPost[] => {
+    if (!friends.length || !posts.length) return [];
+    
+    // Get friend IDs
+    const friendIds = new Set(friends.map(f => f.friend?.id).filter(Boolean) as string[]);
+    
+    // Filter posts by friends and group by author
+    const postsByFriend = new Map<string, { post: typeof posts[0], friend: typeof friends[0]['friend'] }>();
+    
+    for (const post of posts) {
+      if (friendIds.has(post.author_id)) {
+        const existing = postsByFriend.get(post.author_id);
+        // Keep only the most recent post per friend
+        if (!existing || new Date(post.created_at) > new Date(existing.post.created_at)) {
+          const friendData = friends.find(f => f.friend?.id === post.author_id)?.friend;
+          if (friendData) {
+            postsByFriend.set(post.author_id, { post, friend: friendData });
+          }
+        }
+      }
+    }
+    
+    // Convert to array and sort by most recent post
+    return Array.from(postsByFriend.entries())
+      .map(([friend_id, { post, friend }]) => ({
+        friend_id,
+        nick: friend?.nick || 'Usuario',
+        avatar_snapshot_url: friend?.avatar_snapshot_url || null,
+        last_post_at: post.created_at
+      }))
+      .sort((a, b) => new Date(b.last_post_at).getTime() - new Date(a.last_post_at).getTime())
+      .slice(0, 10);
+  }, [friends, posts]);
+
+  // Get selected friend's nick for the filter banner
+  const selectedFriendNick = useMemo(() => {
+    if (!selectedFriendId) return null;
+    const friend = friendsWithRecentPosts.find(f => f.friend_id === selectedFriendId);
+    return friend?.nick || null;
+  }, [selectedFriendId, friendsWithRecentPosts]);
+
+  // Filter posts based on selected friend
+  const filteredPosts = useMemo(() => {
+    if (!selectedFriendId) return posts;
+    return posts.filter(post => post.author_id === selectedFriendId);
+  }, [posts, selectedFriendId]);
 
   const formatTime = (dateStr: string) => {
     try {
@@ -26,6 +95,11 @@ export default function HomePage() {
     } catch {
       return 'hace un momento';
     }
+  };
+
+  const clearFilter = () => {
+    setSelectedFriendId(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -81,8 +155,9 @@ export default function HomePage() {
             exit={{ opacity: 0, x: 20 }} 
             className="p-4 space-y-4 bg-[#e8e6ff] py-0 my-px px-[5px]"
           >
-            {/* Stories/Avatars Row */}
+            {/* Stories/Friends Row */}
             <div className="overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 px-0 py-0 items-start justify-start flex flex-row gap-[15px] mt-[11px] mb-0">
+              {/* Tu historia - always first */}
               <div 
                 className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px] cursor-pointer" 
                 onClick={() => navigate('/app/publish')}
@@ -94,34 +169,99 @@ export default function HomePage() {
                 </div>
                 <span className="text-base font-bold text-secondary-foreground">Tu historia</span>
               </div>
-              {["🎮", "🎨", "🛹", "🎵", "📸"].map((emoji, i) => (
-                <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0 mx-[2px]">
-                  <div className="avatar-frame w-16 h-16 px-0 py-0">
-                    <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-success-foreground px-0 py-0">
-                      {emoji}
+
+              {/* Real friends with recent posts */}
+              {friendsWithRecentPosts.map((friend) => (
+                <div 
+                  key={friend.friend_id} 
+                  className="flex flex-col items-center gap-1 flex-shrink-0 mx-[2px] cursor-pointer"
+                  onClick={() => setSelectedFriendId(friend.friend_id)}
+                >
+                  <div className={`w-16 h-16 rounded-full p-0.5 hover:scale-105 transition-transform ${
+                    selectedFriendId === friend.friend_id 
+                      ? 'bg-gradient-to-r from-secondary to-primary ring-2 ring-secondary' 
+                      : 'bg-gradient-to-r from-primary/50 to-secondary/50'
+                  }`}>
+                    <div className="w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                      {friend.avatar_snapshot_url ? (
+                        <img 
+                          src={friend.avatar_snapshot_url} 
+                          alt={friend.nick}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-bold text-muted-foreground">
+                          {friend.nick.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <span className="text-secondary-foreground text-base">Amigo{i + 1}</span>
+                  <span className="text-sm text-secondary-foreground max-w-[64px] truncate text-center">
+                    {friend.nick}
+                  </span>
                 </div>
               ))}
+
+              {/* Show placeholder if no friends with posts */}
+              {!friendsLoading && friendsWithRecentPosts.length === 0 && friends.length === 0 && (
+                <div className="flex flex-col items-center gap-1 flex-shrink-0 mx-[2px] opacity-50">
+                  <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+                    <span className="text-2xl">👥</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground text-center">Añade amigos</span>
+                </div>
+              )}
             </div>
+
+            {/* Filter Banner */}
+            {selectedFriendId && selectedFriendNick && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg px-4 py-2 mx-[5px]"
+              >
+                <span className="text-sm font-medium text-foreground">
+                  Viendo publicaciones de <span className="text-primary font-bold">@{selectedFriendNick}</span>
+                </span>
+                <button
+                  onClick={clearFilter}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                  Quitar filtro
+                </button>
+              </motion.div>
+            )}
 
             {/* Loading state */}
             {postsLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : posts.length === 0 ? (
+            ) : filteredPosts.length === 0 ? (
               <div className="glass-card p-8 text-center">
                 <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-gaming font-bold mb-2">No hay publicaciones</h3>
+                <h3 className="font-gaming font-bold mb-2">
+                  {selectedFriendId ? 'Sin publicaciones' : 'No hay publicaciones'}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  ¡Sé el primero en publicar algo!
+                  {selectedFriendId 
+                    ? 'Este amigo aún no ha publicado nada.'
+                    : '¡Sé el primero en publicar algo!'}
                 </p>
+                {selectedFriendId && (
+                  <button
+                    onClick={clearFilter}
+                    className="mt-4 text-sm text-primary hover:underline"
+                  >
+                    Ver todas las publicaciones
+                  </button>
+                )}
               </div>
             ) : (
               /* Posts */
-              posts.map((post, index) => (
+              filteredPosts.map((post, index) => (
                 <motion.div 
                   key={post.id} 
                   initial={{ opacity: 0, y: 20 }} 
