@@ -134,8 +134,8 @@ export default function ChatPage() {
                   null
                 }
                 nick={chat.is_group ? chat.name || "Grupo" : chat.otherParticipant?.nick || "Usuario"}
-                isOnline={!chat.is_group && isOnline((chat.otherParticipant as any)?.last_seen_at)}
-                size="lg"
+                isOnline={!chat.is_group && isOnline(otherUserLastSeen)}
+                size="md"
                 showBorder={true}
               />
 
