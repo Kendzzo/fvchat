@@ -1,26 +1,30 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { Search, Plus, MoreVertical, Image, Mic, Send, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, Plus, Send, Loader2, AlertCircle } from "lucide-react";
 import { useChats, useMessages, Chat } from "@/hooks/useChats";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { NewChatModal } from "@/components/NewChatModal";
+import { ChatOptionsMenu } from "@/components/ChatOptionsMenu";
+import { ChatMediaUpload } from "@/components/ChatMediaUpload";
+import { formatLastSeen, isOnline } from "@/hooks/usePresence";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
 export default function ChatPage() {
-  const {
-    user,
-    profile,
-    canInteract
-  } = useAuth();
-  const {
-    chats,
-    isLoading
-  } = useChats();
+  const { user, canInteract } = useAuth();
+  const { chats, isLoading } = useChats();
+  const { markChatAsRead } = useUnreadMessages();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const filteredChats = chats.filter(chat => (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const filteredChats = chats.filter(chat => 
+    (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleNewChatClick = () => {
     if (!canInteract) {
       toast.error("Cuenta pendiente de aprobación parental");
@@ -28,67 +32,104 @@ export default function ChatPage() {
     }
     setShowNewChatModal(true);
   };
+
   const handleChatCreated = (chatId: string) => {
     const chat = chats.find(c => c.id === chatId);
     if (chat) {
       setSelectedChat(chat);
     }
   };
+
+  const handleSelectChat = async (chat: Chat) => {
+    setSelectedChat(chat);
+    // Mark as read when opening
+    await markChatAsRead(chat.id);
+  };
+
   if (selectedChat) {
-    return <ChatDetail chat={selectedChat} onBack={() => setSelectedChat(null)} />;
+    return (
+      <ChatDetail 
+        chat={selectedChat} 
+        onBack={() => setSelectedChat(null)} 
+      />
+    );
   }
-  return <div className="min-h-screen bg-primary-foreground my-0 py-0">
-      {/* New Chat Modal */}
-      <NewChatModal open={showNewChatModal} onOpenChange={setShowNewChatModal} onChatCreated={handleChatCreated} />
+
+  return (
+    <div className="min-h-screen bg-primary-foreground my-0 py-0">
+      <NewChatModal 
+        open={showNewChatModal} 
+        onOpenChange={setShowNewChatModal} 
+        onChatCreated={handleChatCreated} 
+      />
       
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 opacity-100 border-transparent bg-[#1b0637] py-[11px] pt-0">
         <div className="flex items-center justify-between mb-4 py-px my-0">
           <h1 className="font-gaming font-bold gradient-text text-3xl">Chat</h1>
-          <motion.button whileTap={{
-          scale: 0.9
-        }} onClick={handleNewChatClick} className={`p-2 rounded-xl bg-card transition-colors text-destructive-foreground ${!canInteract ? 'opacity-50' : ''}`}>
+          <motion.button 
+            whileTap={{ scale: 0.9 }} 
+            onClick={handleNewChatClick} 
+            className={`p-2 rounded-xl bg-card transition-colors text-destructive-foreground ${!canInteract ? 'opacity-50' : ''}`}
+          >
             <Plus className="w-[30px] h-[30px] bg-transparent text-white" />
           </motion.button>
         </div>
         
-        {/* Pending approval notice */}
-        {!canInteract && <div className="mb-3 p-2 rounded-lg bg-warning/20 flex items-center gap-2 text-warning text-sm">
+        {!canInteract && (
+          <div className="mb-3 p-2 rounded-lg bg-warning/20 flex items-center gap-2 text-warning text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>Cuenta pendiente de aprobación parental</span>
-          </div>}
+          </div>
+        )}
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-secondary-foreground text-white" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input-gaming w-full pl-12 px-[49px] my-0 py-[6px]" placeholder="Busca un chat .." />
+          <input 
+            type="text" 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)} 
+            className="input-gaming w-full pl-12 px-[49px] my-0 py-[6px]" 
+            placeholder="Busca un chat .." 
+          />
         </div>
       </header>
 
       {/* Chat List */}
       <div className="p-4 space-y-2">
-        {isLoading ? <div className="flex items-center justify-center py-12">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div> : filteredChats.length === 0 ? <div className="text-center py-[4px]">
+          </div>
+        ) : filteredChats.length === 0 ? (
+          <div className="text-center py-[4px]">
             <p className="text-muted-foreground text-xl">
               {searchQuery ? "No se encontraron chats" : "No tienes chats aún"}
             </p>
-            <p className="text-sm text-muted-foreground mt-2">¡Añade amigos desde tu perfil para empezar a chatear!</p>
-          </div> : filteredChats.map((chat, index) => <motion.button key={chat.id} initial={{
-        opacity: 0,
-        x: -20
-      }} animate={{
-        opacity: 1,
-        x: 0
-      }} transition={{
-        delay: index * 0.05
-      }} onClick={() => setSelectedChat(chat)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors">
+            <p className="text-sm text-muted-foreground mt-2">
+              ¡Añade amigos desde tu perfil para empezar a chatear!
+            </p>
+          </div>
+        ) : (
+          filteredChats.map((chat, index) => (
+            <motion.button 
+              key={chat.id} 
+              initial={{ opacity: 0, x: -20 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              transition={{ delay: index * 0.05 }} 
+              onClick={() => handleSelectChat(chat)} 
+              className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors"
+            >
               <div className="relative">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
                   <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
                     {chat.is_group ? "👥" : (chat.otherParticipant?.avatar_data as any)?.emoji || "👤"}
                   </div>
                 </div>
+                {/* Online indicator */}
+                {!chat.is_group && chat.otherParticipant && isOnline((chat.otherParticipant as any)?.last_seen_at) && (
+                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-card" />
+                )}
               </div>
 
               <div className="flex-1 text-left min-w-0">
@@ -97,66 +138,139 @@ export default function ChatPage() {
                     {chat.is_group ? chat.name : chat.otherParticipant?.nick || "Usuario"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {chat.lastMessageTime ? formatDistanceToNow(new Date(chat.lastMessageTime), {
-                addSuffix: false,
-                locale: es
-              }) : ""}
+                    {chat.lastMessageTime 
+                      ? formatDistanceToNow(new Date(chat.lastMessageTime), { addSuffix: false, locale: es }) 
+                      : ""}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground truncate">{chat.lastMessage || "Sin mensajes"}</p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {chat.lastMessage || "Sin mensajes"}
+                </p>
               </div>
 
-              {(chat.unreadCount || 0) > 0 && <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
-                  <span className="text-xs font-bold text-secondary-foreground">{chat.unreadCount}</span>
-                </div>}
-            </motion.button>)}
+              {(chat.unreadCount || 0) > 0 && (
+                <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
+                  <span className="text-xs font-bold text-secondary-foreground">
+                    {chat.unreadCount}
+                  </span>
+                </div>
+              )}
+            </motion.button>
+          ))
+        )}
       </div>
-    </div>;
+    </div>
+  );
 }
 
 // Chat Detail Component
-function ChatDetail({
-  chat,
-  onBack
-}: {
-  chat: Chat;
-  onBack: () => void;
-}) {
-  const {
-    user,
-    profile
-  } = useAuth();
-  const {
-    messages,
-    isLoading,
-    sendMessage
-  } = useMessages(chat.id);
+function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
+  const { user } = useAuth();
+  const { messages, isLoading, sendMessage } = useMessages(chat.id);
+  const { markChatAsRead } = useUnreadMessages();
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const handleSend = async () => {
-    if (!messageText.trim() || isSending) return;
-    setIsSending(true);
-    const {
-      error
-    } = await sendMessage(messageText.trim());
-    if (!error) {
-      setMessageText("");
+  const [pendingMedia, setPendingMedia] = useState<{ url: string; type: 'image' | 'video' | 'audio' } | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null);
+
+  // Get other user ID for 1:1 chats
+  const otherUserId = !chat.is_group 
+    ? chat.participant_ids.find(id => id !== user?.id) || null
+    : null;
+
+  // Fetch other user's last_seen_at
+  useEffect(() => {
+    const fetchLastSeen = async () => {
+      if (!otherUserId) return;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('last_seen_at')
+        .eq('id', otherUserId)
+        .maybeSingle();
+      
+      if (data) {
+        setOtherUserLastSeen(data.last_seen_at);
+      }
+    };
+
+    fetchLastSeen();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchLastSeen, 30000);
+    return () => clearInterval(interval);
+  }, [otherUserId]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-    setIsSending(false);
+  }, [messages]);
+
+  // Mark as read when entering
+  useEffect(() => {
+    markChatAsRead(chat.id);
+  }, [chat.id, markChatAsRead]);
+
+  const handleSend = async () => {
+    if ((!messageText.trim() && !pendingMedia) || isSending) return;
+    
+    setIsSending(true);
+    
+    try {
+      if (pendingMedia) {
+        // Send media message
+        const { error } = await sendMessage(pendingMedia.url, pendingMedia.type);
+        if (error) {
+          toast.error('Error al enviar media');
+        } else {
+          setPendingMedia(null);
+        }
+      }
+      
+      if (messageText.trim()) {
+        const { error } = await sendMessage(messageText.trim());
+        if (error) {
+          toast.error('Error al enviar mensaje');
+        } else {
+          setMessageText("");
+        }
+      }
+    } finally {
+      setIsSending(false);
+    }
   };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-  return <div className="min-h-screen bg-background flex flex-col">
+
+  const handleMediaReady = (url: string, type: 'image' | 'video' | 'audio') => {
+    setPendingMedia({ url, type });
+  };
+
+  const presenceText = otherUserLastSeen 
+    ? formatLastSeen(otherUserLastSeen)
+    : chat.is_group 
+      ? `${chat.participant_ids.length} participantes` 
+      : "Sin conexión reciente";
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-4">
-          <motion.button whileTap={{
-          scale: 0.9
-        }} onClick={onBack} className="p-2 rounded-xl bg-card transition-colors text-white text-xl">
+          <motion.button 
+            whileTap={{ scale: 0.9 }} 
+            onClick={onBack} 
+            className="p-2 rounded-xl bg-card transition-colors text-white text-xl"
+          >
             ←
           </motion.button>
 
@@ -167,68 +281,137 @@ function ChatDetail({
                   {chat.is_group ? "👥" : (chat.otherParticipant?.avatar_data as any)?.emoji || "👤"}
                 </div>
               </div>
+              {/* Online dot */}
+              {!chat.is_group && isOnline(otherUserLastSeen) && (
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+              )}
             </div>
             <div>
               <p className="font-semibold text-sm">
                 {chat.is_group ? chat.name : chat.otherParticipant?.nick || "Usuario"}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {chat.is_group ? `${chat.participant_ids.length} participantes` : "En línea"}
+              <p className={`text-xs ${isOnline(otherUserLastSeen) ? 'text-green-500' : 'text-muted-foreground'}`}>
+                {presenceText}
               </p>
             </div>
           </div>
 
-          <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-            <MoreVertical className="w-5 h-5 text-white" />
-          </button>
+          <ChatOptionsMenu chat={chat} otherUserId={otherUserId} />
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-white">
-        {isLoading ? <div className="flex items-center justify-center py-12">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 p-4 space-y-3 overflow-y-auto bg-white"
+        style={{ paddingBottom: pendingMedia ? '120px' : '80px' }}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div> : messages.length === 0 ? <div className="text-center py-12">
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="text-center py-12">
             <p className="text-muted-foreground">No hay mensajes aún</p>
             <p className="text-sm text-muted-foreground mt-2">¡Envía el primer mensaje!</p>
-          </div> : messages.map(msg => {
-        const isMine = msg.sender_id === user?.id;
-        return <motion.div key={msg.id} initial={{
-          opacity: 0,
-          y: 10
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+          </div>
+        ) : (
+          messages.map(msg => {
+            const isMine = msg.sender_id === user?.id;
+            const isMedia = msg.type === 'image' || msg.type === 'photo' || msg.type === 'video';
+            
+            return (
+              <motion.div 
+                key={msg.id} 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+              >
                 <div className={isMine ? "chat-bubble-sent" : "chat-bubble-received"}>
-                  <p className="text-sm">{msg.content}</p>
+                  {isMedia ? (
+                    msg.type === 'video' ? (
+                      <video 
+                        src={msg.content} 
+                        controls 
+                        className="max-w-[200px] rounded-lg"
+                        playsInline
+                      />
+                    ) : (
+                      <img 
+                        src={msg.content} 
+                        alt="Media" 
+                        className="max-w-[200px] rounded-lg"
+                      />
+                    )
+                  ) : (
+                    <p className="text-sm">{msg.content}</p>
+                  )}
                   <p className={`text-[10px] mt-1 ${isMine ? "text-foreground/60" : "text-muted-foreground"}`}>
-                    {formatDistanceToNow(new Date(msg.created_at), {
-                addSuffix: false,
-                locale: es
-              })}
+                    {formatDistanceToNow(new Date(msg.created_at), { addSuffix: false, locale: es })}
                   </p>
                 </div>
-              </motion.div>;
-      })}
+              </motion.div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
       </div>
+
+      {/* Pending media preview */}
+      {pendingMedia && (
+        <div className="absolute bottom-20 left-4 right-4 bg-card rounded-xl p-3 flex items-center gap-3 shadow-lg">
+          {pendingMedia.type === 'video' ? (
+            <video src={pendingMedia.url} className="w-16 h-16 object-cover rounded-lg" />
+          ) : (
+            <img src={pendingMedia.url} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
+          )}
+          <div className="flex-1">
+            <p className="text-sm font-medium">
+              {pendingMedia.type === 'video' ? 'Vídeo' : 'Imagen'} listo para enviar
+            </p>
+            <p className="text-xs text-muted-foreground">Pulsa enviar o añade un mensaje</p>
+          </div>
+          <button 
+            onClick={() => setPendingMedia(null)}
+            className="p-2 rounded-full bg-destructive/20 text-destructive"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <div className="sticky bottom-0 p-4 backdrop-blur-xl border-t border-border/30 safe-bottom bg-success-foreground">
         <div className="flex items-center gap-3">
-          <button className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors px-[14px] py-[14px]">
-            <Image className="w-5 h-5 text-white" />
-          </button>
-          <button className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors px-[14px] py-[14px]">
-            <Mic className="w-5 h-5 text-white" />
-          </button>
-          <input type="text" value={messageText} onChange={e => setMessageText(e.target.value)} onKeyPress={handleKeyPress} placeholder="Escribe un mensaje..." className="input-gaming flex-1 mb-[5px] mt-0 py-[9px]" disabled={isSending} />
-          <motion.button whileTap={{
-          scale: 0.9
-        }} onClick={handleSend} disabled={!messageText.trim() || isSending} className="p-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground px-[14px] py-[14px] mb-[5px] opacity-100">
-            {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+          <ChatMediaUpload 
+            onMediaReady={handleMediaReady} 
+            disabled={isSending}
+          />
+          
+          <input 
+            type="text" 
+            value={messageText} 
+            onChange={e => setMessageText(e.target.value)} 
+            onKeyPress={handleKeyPress} 
+            placeholder="Escribe un mensaje..." 
+            className="input-gaming flex-1 mb-[5px] mt-0 py-[9px]" 
+            disabled={isSending} 
+          />
+          
+          <motion.button 
+            whileTap={{ scale: 0.9 }} 
+            onClick={handleSend} 
+            disabled={(!messageText.trim() && !pendingMedia) || isSending} 
+            className="p-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground px-[14px] py-[14px] mb-[5px] opacity-100 disabled:opacity-50"
+          >
+            {isSending ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
           </motion.button>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 }

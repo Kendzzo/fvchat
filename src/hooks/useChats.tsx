@@ -15,7 +15,7 @@ export interface Chat {
   otherParticipant?: {
     nick: string;
     avatar_data: Record<string, unknown>;
-    isOnline?: boolean;
+    last_seen_at?: string | null;
   };
 }
 
@@ -77,7 +77,7 @@ export function useChats() {
             if (otherId) {
               const { data: participantData } = await supabase
                 .from('profiles')
-                .select('nick, avatar_data')
+                .select('nick, avatar_data, last_seen_at')
                 .eq('id', otherId)
                 .maybeSingle();
               otherParticipant = participantData;
