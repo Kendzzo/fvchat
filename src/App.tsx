@@ -14,13 +14,15 @@ import PublishPage from "./pages/PublishPage";
 import ChallengesPage from "./pages/ChallengesPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
+import CreateAvatarPage from "./pages/CreateAvatarPage";
+import EditAvatarPage from "./pages/EditAvatarPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 // Protected route component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+function ProtectedRoute({ children, requireAvatar = true }: { children: React.ReactNode; requireAvatar?: boolean }) {
+  const { user, profile, isLoading } = useAuth();
   
   if (isLoading) {
     return (
@@ -35,6 +37,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check if user needs to create avatar (only for main app routes)
+  if (requireAvatar && profile && !profile.avatar_snapshot_url) {
+    return <Navigate to="/create-avatar" replace />;
   }
   
   return <>{children}</>;
@@ -67,7 +74,11 @@ function AppRoutes() {
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
       
-      {/* Main App Routes - protected */}
+      {/* Avatar Creation - protected but doesn't require avatar */}
+      <Route path="/create-avatar" element={<ProtectedRoute requireAvatar={false}><CreateAvatarPage /></ProtectedRoute>} />
+      <Route path="/edit-avatar" element={<ProtectedRoute requireAvatar={false}><EditAvatarPage /></ProtectedRoute>} />
+      
+      {/* Main App Routes - protected and requires avatar */}
       <Route path="/app" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<HomePage />} />
         <Route path="chat" element={<ChatPage />} />

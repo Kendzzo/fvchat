@@ -8,6 +8,7 @@ interface Profile {
   birth_year: number;
   age_group: string;
   avatar_data: Record<string, unknown>;
+  avatar_snapshot_url: string | null;
   tutor_email: string;
   account_status: string;
   language_infractions_count: number;

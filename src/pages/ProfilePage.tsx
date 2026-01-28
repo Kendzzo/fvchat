@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, X, UserCheck } from "lucide-react";
+import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, X, UserCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useFriendships } from "@/hooks/useFriendships";
 import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/UserSearch";
 import { FriendRequestsList } from "@/components/FriendRequestsList";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -69,13 +70,23 @@ export default function ProfilePage() {
           {/* Avatar */}
           <div className="relative inline-block mb-4 mt-[20px]">
             <div className="w-28 h-28 rounded-full bg-gradient-to-r from-primary via-secondary to-accent p-1 animate-pulse-glow">
-              <div className="w-full h-full rounded-full bg-card text-5xl items-center justify-center flex flex-col">
-                {(profile?.avatar_data as any)?.emoji || "🎮"}
+              <div className="w-full h-full rounded-full bg-card overflow-hidden flex items-center justify-center">
+                {profile?.avatar_snapshot_url ? (
+                  <img 
+                    src={profile.avatar_snapshot_url} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-5xl">{(profile?.avatar_data as any)?.emoji || "🎮"}</span>
+                )}
               </div>
             </div>
-            <motion.button whileTap={{
-            scale: 0.9
-          }} className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground shadow-lg">
+            <motion.button 
+              whileTap={{ scale: 0.9 }}
+              onClick={() => navigate('/edit-avatar')} 
+              className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground shadow-lg"
+            >
               <Edit3 className="w-5 h-5" />
             </motion.button>
             
