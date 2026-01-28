@@ -136,9 +136,7 @@ export default function LoginPage() {
           </motion.button>
 
           {/* Dev hint */}
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Desarrollo: Admin / 1234
-          </p>
+          
         </motion.form>
 
         {/* Footer */}
