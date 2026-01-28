@@ -188,7 +188,7 @@ export default function HomePage() {
                       </div>
                     </div>
                     <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <MoreHorizontal className="text-black w-[25px] h-[25px] mr-[10px]" />
+                      <MoreHorizontal className="w-[25px] h-[25px] mr-[10px] text-white" />
                     </button>
                   </div>
 
