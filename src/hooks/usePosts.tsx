@@ -15,8 +15,7 @@ export interface Post {
   created_at: string;
   author?: {
     nick: string;
-    avatar_data: Record<string, unknown>;
-    avatar_snapshot_url?: string | null;
+    profile_photo_url?: string | null;
   };
   isLiked?: boolean;
   comments_count?: number;
