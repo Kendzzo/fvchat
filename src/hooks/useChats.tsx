@@ -14,8 +14,7 @@ export interface Chat {
   unreadCount?: number;
   otherParticipant?: {
     nick: string;
-    avatar_data: Record<string, unknown>;
-    avatar_snapshot_url?: string | null;
+    profile_photo_url?: string | null;
     last_seen_at?: string | null;
   };
 }
@@ -95,7 +94,7 @@ export function useChats() {
             if (otherId) {
               const { data: participantData } = await supabase
                 .from('profiles')
-                .select('nick, avatar_data, avatar_snapshot_url, last_seen_at')
+                .select('nick, profile_photo_url, last_seen_at')
                 .eq('id', otherId)
                 .maybeSingle();
               otherParticipant = participantData;
@@ -147,7 +146,7 @@ export function useChats() {
       if (!isGroup && participantIds.length === 1) {
         const { data: participantData } = await supabase
           .from('profiles')
-          .select('nick, avatar_data, avatar_snapshot_url, last_seen_at')
+          .select('nick, profile_photo_url, last_seen_at')
           .eq('id', participantIds[0])
           .maybeSingle();
         otherParticipant = participantData;

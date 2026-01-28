@@ -299,7 +299,7 @@ function ChatDetail({
           </motion.button>
 
           <div className="flex items-center gap-3 flex-1">
-            <ProfilePhotoWithStatus url={chat.otherParticipant?.avatar_snapshot_url} nick={chat.is_group ? chat.name || "Grupo" : chat.otherParticipant?.nick || "Usuario"} isOnline={!chat.is_group && isOnline(otherUserLastSeen)} size="md" showBorder={true} />
+            <ProfilePhotoWithStatus url={(chat.otherParticipant as any)?.profile_photo_url || null} nick={chat.is_group ? chat.name || "Grupo" : chat.otherParticipant?.nick || "Usuario"} isOnline={!chat.is_group && isOnline(otherUserLastSeen)} size="md" showBorder={true} />
             <div>
               <p className="font-semibold text-sm">
                 {chat.is_group ? chat.name : chat.otherParticipant?.nick || "Usuario"}
