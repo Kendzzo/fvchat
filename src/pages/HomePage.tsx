@@ -90,7 +90,7 @@ export default function HomePage() {
       {/* Header - Dark purple with logo and title */}
       <div className="sticky top-0 z-40">
         {/* Main header bar */}
-        <div className="bg-gradient-to-b from-[#2d1b4e] to-[#251542] px-4 pt-3 pb-2">
+        <div className="bg-gradient-to-b from-[#2d1b4e] to-[#251542] px-4 pt-3 pb-2 py-[5px]">
           <div className="flex items-center gap-3 ml-[10px]">
             {/* VFC Logo */}
             <img src={vfcLogo} alt="VFC" className="h-10 w-auto object-contain" />
@@ -117,7 +117,7 @@ export default function HomePage() {
                 <Plus className="w-7 h-7 text-gray-600" strokeWidth={2.5} />
               </div>
             </div>
-            <span className="text-xs font-medium text-gray-700">Tu historia</span>
+            <span className="font-bold text-base text-black">Tu historia</span>
           </button>
 
           {/* Friends Stories */}
@@ -146,7 +146,7 @@ export default function HomePage() {
                       <span className="text-2xl">{FRIEND_EMOJIS[i]}</span>
                     </div>
                   </div>
-                  <span className="text-xs font-medium text-gray-700">{name}</span>
+                  <span className="font-medium text-sm text-black">{name}</span>
                 </div>)}
             </>}
         </div>
@@ -191,8 +191,8 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-gray-900">@{post.author?.nick}</p>
-                  <p className="text-xs text-gray-500">{formatTimeAgo(post.created_at)}</p>
+                  <p className="font-bold text-black text-xl">@{post.author?.nick}</p>
+                  <p className="text-xs text-gray-500 ml-[5px]">{formatTimeAgo(post.created_at)}</p>
                 </div>
                 <button className="p-2 text-gray-400 hover:text-gray-600">
                   <MoreHorizontal className="w-5 h-5" />
@@ -206,7 +206,7 @@ export default function HomePage() {
                   <p className="text-lg text-center text-gray-800">{post.text}</p>
                 </div>}
               {post.text && post.content_url && <div className="px-4 py-2">
-                  <p className="text-sm text-gray-700">
+                  <p className="text-gray-700 text-lg">
                     <span className="font-bold mr-1">@{post.author?.nick}</span>
                     {post.text}
                   </p>
