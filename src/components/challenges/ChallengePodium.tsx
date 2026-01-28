@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Crown, Medal, Star, Heart } from 'lucide-react';
-import { AvatarBadge } from '@/components/avatar/AvatarBadge';
+import { ProfilePhoto } from '@/components/ProfilePhoto';
 import type { ChallengeEntry } from '@/hooks/useChallenges';
 
 interface ChallengePodiumProps {
@@ -63,8 +63,8 @@ export function ChallengePodium({ entries, onLike, currentUserId }: ChallengePod
             {/* Avatar and info */}
             <div className="flex flex-col items-center mb-2">
               <div className={`relative ${isCenter ? 'scale-110' : ''}`}>
-                <AvatarBadge
-                  avatarUrl={entry.user?.avatar_snapshot_url}
+                <ProfilePhoto
+                  url={entry.user?.avatar_snapshot_url}
                   nick={entry.user?.nick || 'Usuario'}
                   size={isCenter ? 'xl' : 'lg'}
                   className="ring-2 ring-white shadow-lg"

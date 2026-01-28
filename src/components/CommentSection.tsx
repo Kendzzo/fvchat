@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { ModerationWarning } from '@/components/ModerationWarning';
 import { SuspensionBanner } from '@/components/SuspensionBanner';
-import { AvatarBadge } from '@/components/avatar/AvatarBadge';
+import { ProfilePhoto } from '@/components/ProfilePhoto';
 
 interface CommentSectionProps {
   postId: string;
@@ -99,8 +99,8 @@ export function CommentSection({
         ) : (
           comments.map(comment => (
             <div key={comment.id} className="flex gap-2 group">
-              <AvatarBadge 
-                avatarUrl={comment.author?.avatar_snapshot_url}
+              <ProfilePhoto 
+                url={comment.author?.avatar_snapshot_url}
                 nick={comment.author?.nick || ''}
                 size="xs"
                 showBorder={false}

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { Trophy, Clock, Users, Sparkles, ChevronRight, Star, Medal, Crown, Loader2 } from "lucide-react";
 import { useChallenges } from "@/hooks/useChallenges";
-import { AvatarBadge } from "@/components/avatar/AvatarBadge";
+import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { ChallengeParticipateModal } from "@/components/challenges/ChallengeParticipateModal";
 import { toast } from "sonner";
 const rewards = [{
@@ -169,7 +169,7 @@ export default function ChallengesPage() {
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-lg">
                         {index === 0 ? <Crown className="w-6 h-6 text-warning" /> : index === 1 ? <Medal className="w-6 h-6 text-muted-foreground" /> : <Star className="w-6 h-6 text-orange-400" />}
                       </div>
-                      <AvatarBadge avatarUrl={entry.user?.avatar_snapshot_url} nick={entry.user?.nick || 'Usuario'} size="lg" />
+                      <ProfilePhoto url={entry.user?.avatar_snapshot_url} nick={entry.user?.nick || 'Usuario'} size="lg" />
                       <div className="flex-1">
                         <p className="font-semibold">@{entry.user?.nick || "Usuario"}</p>
                         <p className="text-xs text-muted-foreground">{entry.likes_count} likes</p>

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Calendar, Trophy, Crown, Medal, Star } from 'lucide-react';
-import { AvatarBadge } from '@/components/avatar/AvatarBadge';
+import { ProfilePhoto } from '@/components/ProfilePhoto';
 import type { Challenge } from '@/hooks/useChallenges';
 
 interface ChallengeHistoryProps {
@@ -70,8 +70,8 @@ export function ChallengeHistory({ challenges }: ChallengeHistoryProps) {
               <div className="flex -space-x-2">
                 {challenge.top_entries.slice(0, 3).map((entry, i) => (
                   <div key={i} className="relative">
-                    <AvatarBadge
-                      avatarUrl={entry.user?.avatar_snapshot_url}
+                    <ProfilePhoto
+                      url={entry.user?.avatar_snapshot_url}
                       nick={entry.user?.nick || 'Usuario'}
                       size="sm"
                       className="ring-2 ring-card"

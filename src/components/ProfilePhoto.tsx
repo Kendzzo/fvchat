@@ -1,12 +1,14 @@
 import { cn } from "@/lib/utils";
+import { Camera } from "lucide-react";
 
-interface AvatarBadgeProps {
-  avatarUrl?: string | null;
+interface ProfilePhotoProps {
+  url?: string | null;
   nick?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   showBorder?: boolean;
   className?: string;
   onClick?: () => void;
+  editable?: boolean;
 }
 
 const SIZE_CLASSES = {
@@ -35,7 +37,7 @@ const GRADIENT_COLORS = [
 ];
 
 /**
- * AvatarBadge - Universal avatar component for VFC
+ * ProfilePhoto - Universal profile photo component for VFC
  * 
  * MUST be used everywhere a user is displayed:
  * - Feed posts (author)
@@ -45,16 +47,17 @@ const GRADIENT_COLORS = [
  * - Podium (rankings)
  * - User search & friend requests
  * 
- * Uses avatar_snapshot_url from Ready Player Me, falls back to initials
+ * Uses profile_photo_url from profiles table, falls back to initials
  */
-export function AvatarBadge({ 
-  avatarUrl, 
+export function ProfilePhoto({ 
+  url, 
   nick = '',
   size = 'md',
   showBorder = true,
   className = '',
   onClick,
-}: AvatarBadgeProps) {
+  editable = false,
+}: ProfilePhotoProps) {
   const sizeClass = SIZE_CLASSES[size];
   const borderClass = BORDER_CLASSES[size];
   
@@ -66,18 +69,18 @@ export function AvatarBadge({
   const gradientColor = GRADIENT_COLORS[colorIndex];
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.warn(`Avatar image failed to load: ${avatarUrl}`);
+    console.warn(`Profile photo failed to load: ${url}`);
     const target = e.target as HTMLImageElement;
     target.style.display = 'none';
     const fallback = target.nextElementSibling as HTMLElement;
     if (fallback) fallback.classList.remove('hidden');
   };
 
-  const content = avatarUrl ? (
+  const content = url ? (
     <>
       <img 
-        src={avatarUrl} 
-        alt={`Avatar de ${nick || 'usuario'}`}
+        src={url} 
+        alt={`Foto de ${nick || 'usuario'}`}
         className="w-full h-full object-cover rounded-full"
         loading="lazy"
         onError={handleImageError}
@@ -109,7 +112,7 @@ export function AvatarBadge({
       <Component
         onClick={onClick}
         className={cn(
-          "rounded-full bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0",
+          "relative rounded-full bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0",
           borderClass,
           className,
           onClick && "cursor-pointer hover:scale-105 transition-transform"
@@ -118,6 +121,11 @@ export function AvatarBadge({
         <div className={cn(sizeClass, "rounded-full bg-card overflow-hidden flex items-center justify-center")}>
           {content}
         </div>
+        {editable && (
+          <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center shadow-lg">
+            <Camera className="w-3 h-3 text-secondary-foreground" />
+          </div>
+        )}
       </Component>
     );
   }
@@ -126,6 +134,7 @@ export function AvatarBadge({
     <Component
       onClick={onClick}
       className={cn(
+        "relative",
         sizeClass,
         "rounded-full bg-card overflow-hidden flex items-center justify-center flex-shrink-0",
         className,
@@ -133,27 +142,32 @@ export function AvatarBadge({
       )}
     >
       {content}
+      {editable && (
+        <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center shadow-lg">
+          <Camera className="w-3 h-3 text-secondary-foreground" />
+        </div>
+      )}
     </Component>
   );
 }
 
 /**
- * AvatarBadgeWithStatus - Avatar with online/offline indicator
+ * ProfilePhotoWithStatus - Profile photo with online/offline indicator
  */
-export function AvatarBadgeWithStatus({
-  avatarUrl,
+export function ProfilePhotoWithStatus({
+  url,
   nick,
   isOnline = false,
   size = 'md',
   showBorder = true,
   className = '',
-}: AvatarBadgeProps & { isOnline?: boolean }) {
+}: ProfilePhotoProps & { isOnline?: boolean }) {
   const statusSize = size === 'xs' || size === 'sm' ? 'w-2 h-2' : 'w-3 h-3';
   
   return (
     <div className="relative flex-shrink-0">
-      <AvatarBadge 
-        avatarUrl={avatarUrl}
+      <ProfilePhoto 
+        url={url}
         nick={nick}
         size={size}
         showBorder={showBorder}

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Heart, Play } from 'lucide-react';
-import { AvatarBadge } from '@/components/avatar/AvatarBadge';
+import { ProfilePhoto } from '@/components/ProfilePhoto';
 import type { ChallengeEntry } from '@/hooks/useChallenges';
 
 interface ChallengeEntriesListProps {
@@ -68,8 +68,8 @@ export function ChallengeEntriesList({ entries, onLike, currentUserId }: Challen
           {/* Footer */}
           <div className="p-2 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              <AvatarBadge
-                avatarUrl={entry.user?.avatar_snapshot_url}
+              <ProfilePhoto
+                url={entry.user?.avatar_snapshot_url}
                 nick={entry.user?.nick || 'Usuario'}
                 size="sm"
               />

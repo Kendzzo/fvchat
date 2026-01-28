@@ -12,7 +12,7 @@ import { ChatOptionsMenu } from "@/components/ChatOptionsMenu";
 import { ChatMediaUpload } from "@/components/ChatMediaUpload";
 import { ModerationWarning } from "@/components/ModerationWarning";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
-import { AvatarBadge, AvatarBadgeWithStatus } from "@/components/avatar/AvatarBadge";
+import { ProfilePhoto, ProfilePhotoWithStatus } from "@/components/ProfilePhoto";
 import { formatLastSeen, isOnline } from "@/hooks/usePresence";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,7 +107,7 @@ export default function ChatPage() {
       }} transition={{
         delay: index * 0.05
       }} onClick={() => handleSelectChat(chat)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors">
-              <AvatarBadgeWithStatus avatarUrl={chat.otherParticipant?.avatar_snapshot_url} nick={chat.is_group ? chat.name || 'Grupo' : chat.otherParticipant?.nick || 'Usuario'} isOnline={!chat.is_group && isOnline((chat.otherParticipant as any)?.last_seen_at)} size="lg" showBorder={true} />
+              <ProfilePhotoWithStatus url={chat.otherParticipant?.avatar_snapshot_url} nick={chat.is_group ? chat.name || 'Grupo' : chat.otherParticipant?.nick || 'Usuario'} isOnline={!chat.is_group && isOnline((chat.otherParticipant as any)?.last_seen_at)} size="lg" showBorder={true} />
 
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center justify-between mb-1">
@@ -287,7 +287,7 @@ function ChatDetail({
           </motion.button>
 
           <div className="flex items-center gap-3 flex-1">
-            <AvatarBadgeWithStatus avatarUrl={chat.otherParticipant?.avatar_snapshot_url} nick={chat.is_group ? chat.name || 'Grupo' : chat.otherParticipant?.nick || 'Usuario'} isOnline={!chat.is_group && isOnline(otherUserLastSeen)} size="md" showBorder={true} />
+            <ProfilePhotoWithStatus url={chat.otherParticipant?.avatar_snapshot_url} nick={chat.is_group ? chat.name || 'Grupo' : chat.otherParticipant?.nick || 'Usuario'} isOnline={!chat.is_group && isOnline(otherUserLastSeen)} size="md" showBorder={true} />
             <div>
               <p className="font-semibold text-sm">
                 {chat.is_group ? chat.name : chat.otherParticipant?.nick || "Usuario"}
