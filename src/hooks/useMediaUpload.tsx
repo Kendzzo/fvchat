@@ -18,7 +18,8 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 const MAX_VIDEO_DURATION = 10; // seconds
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp', 'video/mov'];
+// Include all common video MIME types, especially video/quicktime for iPhone MOV files
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp', 'video/mov', 'video/x-m4v'];
 
 export function useMediaUpload() {
   const { user } = useAuth();
@@ -81,7 +82,7 @@ export function useMediaUpload() {
       return { url: null, error: new Error(validation.error) };
     }
 
-    // Validate video duration
+    // Validate video duration (if metadata can be read)
     if (type === 'video') {
       try {
         setUploadProgress({ status: 'uploading', progress: 20, message: 'Verificando duración...' });
@@ -92,30 +93,43 @@ export function useMediaUpload() {
           return { url: null, error: new Error(errorMsg) };
         }
       } catch (err) {
-        console.warn('Could not check video duration:', err);
-        // Continue anyway - some formats may not support duration check
+        // iOS/iPhone may fail to read metadata for some video formats
+        // DO NOT block upload - allow it to proceed
+        console.warn('Could not check video duration (iOS quirk, proceeding anyway):', err);
       }
     }
 
     setUploadProgress({ status: 'uploading', progress: 30, message: 'Subiendo...' });
 
     try {
-      // Generate unique filename
+      // Generate unique filename with proper extension for iPhone videos
       const timestamp = Date.now();
-      const extension = file.name.split('.').pop() || (type === 'image' ? 'jpg' : 'mp4');
+      let extension = file.name.split('.').pop()?.toLowerCase() || (type === 'image' ? 'jpg' : 'mp4');
+      
+      // Force correct extension for iPhone MOV files
+      if (type === 'video' && file.type === 'video/quicktime') {
+        extension = 'mov';
+      }
+      
       const fileName = `${user.id}/${timestamp}_${type}.${extension}`;
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage with explicit contentType for iPhone compatibility
       const { data, error } = await supabase.storage
         .from('content')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type || (type === 'image' ? 'image/jpeg' : 'video/mp4')
         });
 
       if (error) {
         console.error('Upload error:', error);
-        setUploadProgress({ status: 'error', progress: 0, message: 'Error al subir: ' + error.message });
+        // Provide helpful error message for MIME type issues
+        let errorMessage = error.message;
+        if (error.message.includes('mime') || error.message.includes('type')) {
+          errorMessage = `El servidor no acepta este formato de vídeo. Verifica que video/quicktime esté habilitado en el bucket.`;
+        }
+        setUploadProgress({ status: 'error', progress: 0, message: 'Error al subir: ' + errorMessage });
         return { url: null, error };
       }
 

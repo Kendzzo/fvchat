@@ -186,10 +186,10 @@ export function ChallengeParticipateModal({
                 </label>
                 
                 <label className="cursor-pointer">
+                  {/* Video input: NO capture for iPhone MOV compatibility */}
                   <input
                     type="file"
-                    accept="video/*,video/quicktime"
-                    capture="environment"
+                    accept="video/*,video/quicktime,video/mp4"
                     onChange={(e) => handleFileSelect(e, 'video')}
                     className="hidden"
                   />
