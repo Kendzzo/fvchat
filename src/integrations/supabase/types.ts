@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatar_items: {
+        Row: {
+          allowed_ages: string[]
+          asset_data: Json
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          rarity: string
+        }
+        Insert: {
+          allowed_ages?: string[]
+          asset_data?: Json
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          rarity?: string
+        }
+        Update: {
+          allowed_ages?: string[]
+          asset_data?: Json
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          rarity?: string
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
@@ -458,6 +494,7 @@ export type Database = {
           account_status: Database["public"]["Enums"]["account_status"]
           age_group: Database["public"]["Enums"]["age_group"]
           avatar_data: Json | null
+          avatar_snapshot_url: string | null
           birth_year: number
           created_at: string
           id: string
@@ -473,6 +510,7 @@ export type Database = {
           account_status?: Database["public"]["Enums"]["account_status"]
           age_group?: Database["public"]["Enums"]["age_group"]
           avatar_data?: Json | null
+          avatar_snapshot_url?: string | null
           birth_year: number
           created_at?: string
           id: string
@@ -488,6 +526,7 @@ export type Database = {
           account_status?: Database["public"]["Enums"]["account_status"]
           age_group?: Database["public"]["Enums"]["age_group"]
           avatar_data?: Json | null
+          avatar_snapshot_url?: string | null
           birth_year?: number
           created_at?: string
           id?: string
@@ -663,6 +702,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_inventory: {
+        Row: {
+          avatar_item_id: string
+          id: string
+          source: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_item_id: string
+          id?: string
+          source?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_item_id?: string
+          id?: string
+          source?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_inventory_avatar_item_id_fkey"
+            columns: ["avatar_item_id"]
+            isOneToOne: false
+            referencedRelation: "avatar_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_inventory_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -701,6 +779,10 @@ export type Database = {
       get_user_age_group: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["age_group"]
+      }
+      grant_challenge_reward: {
+        Args: { _item_id: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
