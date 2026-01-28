@@ -16,6 +16,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import CreateAvatarPage from "./pages/CreateAvatarPage";
 import EditAvatarPage from "./pages/EditAvatarPage";
+import PublicProfilePage from "./pages/PublicProfilePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,9 @@ function AppRoutes() {
       
       {/* Admin Route */}
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+      
+      {/* Public Profile Route */}
+      <Route path="/u/:userId" element={<ProtectedRoute><PublicProfilePage /></ProtectedRoute>} />
       
       {/* Catch-all */}
       <Route path="*" element={<NotFound />} />
