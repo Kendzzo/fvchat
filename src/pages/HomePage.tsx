@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Share2, MoreHorizontal, Play, Image as ImageIcon, Sparkles, Trophy, Loader2, X } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, Play, Image as ImageIcon, Sparkles, Trophy, Loader2, X } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
 import { useChallenges } from "@/hooks/useChallenges";
 import { useFriendships } from "@/hooks/useFriendships";
@@ -215,9 +215,6 @@ export default function HomePage() {
                         {post.likes_count}
                       </span>
                     </motion.button>
-                    <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      <Share2 className="w-6 h-6" />
-                    </button>
                   </div>
 
                   {/* Comments Section */}

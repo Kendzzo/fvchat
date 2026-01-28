@@ -184,26 +184,43 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
         )}
       </button>
 
-      {/* Audio modal - Feature in development */}
+      {/* Audio modal - Centered modal with Portal for mobile safety */}
       <AnimatePresence>
         {showAudioModal && (
           <>
+            {/* Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowAudioModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
+              className="fixed inset-0 bg-black/50 z-[999]"
+              style={{ touchAction: 'none' }}
             />
+            {/* Centered Modal */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-50 w-[90%] max-w-sm"
+              className="fixed z-[999] bg-card shadow-xl"
+              style={{
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 'min(92vw, 420px)',
+                maxHeight: '80vh',
+                borderRadius: '24px',
+                padding: '20px',
+                paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+              }}
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-lg">Nota de voz</h3>
-                <button onClick={() => setShowAudioModal(false)}>
+                <button 
+                  onClick={() => setShowAudioModal(false)}
+                  className="p-2 rounded-full hover:bg-muted transition-colors"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
