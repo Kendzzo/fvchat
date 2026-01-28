@@ -9,6 +9,7 @@ export interface Sticker {
   category: string;
   image_url: string;
   prompt: string | null;
+  is_default: boolean;
   created_at: string;
 }
 
@@ -45,6 +46,7 @@ export function useStickers() {
       const { data, error } = await supabase
         .from('stickers')
         .select('*')
+        .order('is_default', { ascending: false })
         .order('rarity', { ascending: false })
         .order('name', { ascending: true });
 
@@ -106,6 +108,16 @@ export function useStickers() {
   const ownsSticker = useCallback((stickerId: string): boolean => {
     return userStickers.some(us => us.sticker_id === stickerId);
   }, [userStickers]);
+
+  // Check if sticker is available to user (owns it OR is default)
+  const canUseSticker = useCallback((sticker: Sticker): boolean => {
+    return sticker.is_default || ownsSticker(sticker.id);
+  }, [ownsSticker]);
+
+  // Get all stickers user can use (defaults + owned)
+  const getAvailableStickers = useCallback((): Sticker[] => {
+    return catalog.filter(s => canUseSticker(s));
+  }, [catalog, canUseSticker]);
 
   // Get stickers by category
   const getStickersByCategory = useCallback((category: string): Sticker[] => {
@@ -209,6 +221,8 @@ export function useStickers() {
 
     // Helpers
     ownsSticker,
+    canUseSticker,
+    getAvailableStickers,
     getStickersByCategory,
     getStickersByRarity,
     getOwnedStickers,

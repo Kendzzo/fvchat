@@ -8,7 +8,6 @@ interface StickerPickerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (sticker: Sticker) => void;
-  showOnlyOwned?: boolean;
 }
 
 const RARITY_COLORS = {
@@ -26,24 +25,24 @@ const RARITY_LABELS = {
 export function StickerPicker({ 
   isOpen, 
   onClose, 
-  onSelect,
-  showOnlyOwned = true 
+  onSelect
 }: StickerPickerProps) {
-  const { catalog, ownsSticker, getOwnedStickers, isLoading } = useStickers();
+  const { catalog, canUseSticker, getAvailableStickers, isLoading } = useStickers();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const stickersToShow = showOnlyOwned ? getOwnedStickers() : catalog;
+  // Get all available stickers (defaults + owned)
+  const availableStickers = getAvailableStickers();
   
-  // Get unique categories
-  const categories = Array.from(new Set(stickersToShow.map(s => s.category)));
+  // Get unique categories from available stickers
+  const categories = Array.from(new Set(availableStickers.map(s => s.category)));
 
   // Filter by category
   const filteredStickers = selectedCategory
-    ? stickersToShow.filter(s => s.category === selectedCategory)
-    : stickersToShow;
+    ? availableStickers.filter(s => s.category === selectedCategory)
+    : availableStickers;
 
   const handleSelect = (sticker: Sticker) => {
-    if (!showOnlyOwned || ownsSticker(sticker.id)) {
+    if (canUseSticker(sticker)) {
       onSelect(sticker);
       onClose();
     }
@@ -125,27 +124,27 @@ export function StickerPicker({
                 <div className="text-center py-8">
                   <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                   <p className="text-muted-foreground">
-                    {showOnlyOwned 
-                      ? 'No tienes stickers aún. ¡Participa en desafíos para conseguirlos!'
-                      : 'No hay stickers disponibles'}
+                    No hay stickers disponibles
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ¡Gana desafíos para conseguir más!
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-3">
                   {filteredStickers.map((sticker) => {
-                    const owned = ownsSticker(sticker.id);
-                    const canSelect = !showOnlyOwned || owned;
+                    const canUse = canUseSticker(sticker);
 
                     return (
                       <motion.button
                         key={sticker.id}
-                        whileTap={canSelect ? { scale: 0.95 } : undefined}
+                        whileTap={canUse ? { scale: 0.95 } : undefined}
                         onClick={() => handleSelect(sticker)}
-                        disabled={!canSelect}
+                        disabled={!canUse}
                         className={cn(
                           "relative aspect-square rounded-xl border-2 p-2 transition-all",
                           RARITY_COLORS[sticker.rarity],
-                          canSelect 
+                          canUse 
                             ? "hover:scale-105 cursor-pointer" 
                             : "opacity-50 cursor-not-allowed"
                         )}
@@ -157,10 +156,17 @@ export function StickerPicker({
                           loading="lazy"
                         />
                         
-                        {/* Lock icon for unowned */}
-                        {!owned && showOnlyOwned && (
+                        {/* Lock icon for unavailable */}
+                        {!canUse && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl">
                             <Lock className="w-5 h-5 text-white" />
+                          </div>
+                        )}
+
+                        {/* Default badge */}
+                        {sticker.is_default && (
+                          <div className="absolute -top-1 -left-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-500 text-white">
+                            ★
                           </div>
                         )}
 

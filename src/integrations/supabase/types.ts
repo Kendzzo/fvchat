@@ -128,6 +128,132 @@ export type Database = {
           },
         ]
       }
+      challenge_likes: {
+        Row: {
+          created_at: string
+          entry_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_likes_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_rewards: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          id: string
+          position: number
+          reward_id: string
+          reward_type: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          id?: string
+          position: number
+          reward_id: string
+          reward_type?: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          position?: number
+          reward_id?: string
+          reward_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_rewards_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_winners: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          entry_id: string
+          id: string
+          likes_count: number
+          position: number
+          reward_granted: boolean
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          entry_id: string
+          id?: string
+          likes_count?: number
+          position: number
+          reward_granted?: boolean
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          entry_id?: string
+          id?: string
+          likes_count?: number
+          position?: number
+          reward_granted?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_winners_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_winners_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_winners_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenges: {
         Row: {
           challenge_date: string
@@ -135,6 +261,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          rewards_assigned: boolean
         }
         Insert: {
           challenge_date: string
@@ -142,6 +269,7 @@ export type Database = {
           description: string
           id?: string
           is_active?: boolean
+          rewards_assigned?: boolean
         }
         Update: {
           challenge_date?: string
@@ -149,6 +277,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          rewards_assigned?: boolean
         }
         Relationships: []
       }
@@ -704,6 +833,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string
+          is_default: boolean
           name: string
           prompt: string | null
           rarity: string
@@ -713,6 +843,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url: string
+          is_default?: boolean
           name: string
           prompt?: string | null
           rarity?: string
@@ -722,6 +853,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string
+          is_default?: boolean
           name?: string
           prompt?: string | null
           rarity?: string

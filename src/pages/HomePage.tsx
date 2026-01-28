@@ -3,6 +3,7 @@ import { usePosts } from '@/hooks/usePosts';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useAuth } from '@/hooks/useAuth';
 import { CommentSection } from '@/components/CommentSection';
+import { PostStickerRenderer } from '@/components/PostStickerRenderer';
 import { Badge } from '@/components/ui/badge';
 import { Heart, X, Plus, MessageCircle, MoreHorizontal, Swords } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -210,7 +211,12 @@ export default function HomePage() {
               </div>
 
               {/* Post Content */}
-              {post.content_url && (post.type === 'photo' || post.type === 'image') && <img src={post.content_url} alt="Publicación" className="w-full aspect-square object-cover" />}
+              {post.content_url && (post.type === 'photo' || post.type === 'image') && (
+                <div className="relative">
+                  <img src={post.content_url} alt="Publicación" className="w-full aspect-square object-cover" />
+                  <PostStickerRenderer postId={post.id} />
+                </div>
+              )}
               {post.content_url && post.type === 'video' && <video src={post.content_url} controls className="w-full aspect-video" />}
               {post.text && !post.content_url && <div className="px-4 py-8 bg-gradient-to-br from-purple-100 to-teal-50">
                   <p className="text-lg text-center text-gray-800">{post.text}</p>

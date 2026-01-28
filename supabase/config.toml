@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.assign-challenge-rewards]
 verify_jwt = false
+
+[functions.generate-sticker]
+verify_jwt = false
+
+[functions.seed-stickers]
+verify_jwt = false
