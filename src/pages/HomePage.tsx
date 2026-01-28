@@ -10,55 +10,55 @@ import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { CommentSection } from "@/components/CommentSection";
 import { AvatarBadge } from "@/components/avatar/AvatarBadge";
-
 export default function HomePage() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const {
+    profile
+  } = useAuth();
   const [activeTab, setActiveTab] = useState<"posts" | "challenges">("posts");
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
-  
-  const { posts, isLoading: postsLoading, toggleLike } = usePosts();
-  const { todayChallenge, isLoading: challengeLoading } = useChallenges();
-  const { friends } = useFriendships();
+  const {
+    posts,
+    isLoading: postsLoading,
+    toggleLike
+  } = usePosts();
+  const {
+    todayChallenge,
+    isLoading: challengeLoading
+  } = useChallenges();
+  const {
+    friends
+  } = useFriendships();
 
   // Listen for home reset event from bottom nav
   useEffect(() => {
     const handleHomeReset = () => {
       setSelectedFriendId(null);
       setActiveTab("posts");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     };
-    
     window.addEventListener('vfc-home-reset', handleHomeReset);
     return () => window.removeEventListener('vfc-home-reset', handleHomeReset);
   }, []);
 
   // Calculate friends with recent posts (ordered by most recent)
-  const friendsWithRecentPosts = friends
-    .map(f => {
-      const friendPosts = posts.filter(p => p.author_id === f.friend?.id);
-      const mostRecentPost = friendPosts.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )[0];
-      return {
-        ...f,
-        lastPostDate: mostRecentPost?.created_at || null
-      };
-    })
-    .filter(f => f.lastPostDate !== null)
-    .sort((a, b) => new Date(b.lastPostDate!).getTime() - new Date(a.lastPostDate!).getTime())
-    .slice(0, 10);
+  const friendsWithRecentPosts = friends.map(f => {
+    const friendPosts = posts.filter(p => p.author_id === f.friend?.id);
+    const mostRecentPost = friendPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    return {
+      ...f,
+      lastPostDate: mostRecentPost?.created_at || null
+    };
+  }).filter(f => f.lastPostDate !== null).sort((a, b) => new Date(b.lastPostDate!).getTime() - new Date(a.lastPostDate!).getTime()).slice(0, 10);
 
   // Filter posts based on selected friend
-  const filteredPosts = selectedFriendId 
-    ? posts.filter(p => p.author_id === selectedFriendId)
-    : posts;
+  const filteredPosts = selectedFriendId ? posts.filter(p => p.author_id === selectedFriendId) : posts;
 
   // Get selected friend info
-  const selectedFriend = selectedFriendId 
-    ? friends.find(f => f.friend?.id === selectedFriendId)?.friend 
-    : null;
-
+  const selectedFriend = selectedFriendId ? friends.find(f => f.friend?.id === selectedFriendId)?.friend : null;
   const formatTime = (dateStr: string) => {
     try {
       return formatDistanceToNow(new Date(dateStr), {
@@ -69,9 +69,7 @@ export default function HomePage() {
       return 'hace un momento';
     }
   };
-
-  return (
-    <div className="min-h-screen my-0 py-0 bg-[#e8e6ff]">
+  return <div className="min-h-screen my-0 py-0 bg-[#e8e6ff]">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="px-4 py-0">
@@ -80,56 +78,39 @@ export default function HomePage() {
 
         {/* Tabs */}
         <div className="flex border-b border-border/30">
-          <button 
-            onClick={() => setActiveTab("posts")} 
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}
-          >
+          <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
             <span className="flex items-center justify-center gap-2 font-bold text-xl py-0 mb-0 ml-[10px]">
               <ImageIcon className="w-[20px] h-[20px]" />
               Publicaciones
             </span>
-            {activeTab === "posts" && (
-              <motion.div 
-                layoutId="tab-indicator" 
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-md my-0 py-0 mx-[20px] mb-0 mt-0" 
-              />
-            )}
+            {activeTab === "posts" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-md my-0 py-0 mx-[20px] mb-0 mt-0" />}
           </button>
-          <button 
-            onClick={() => setActiveTab("challenges")} 
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}
-          >
+          <button onClick={() => setActiveTab("challenges")} className={`flex-1 py-3 text-sm font-medium transition-colors relative ${activeTab === "challenges" ? "text-foreground" : "text-muted-foreground"}`}>
             <span className="flex items-center justify-center gap-2 font-bold text-xl mr-[10px]">
               <Trophy className="w-[20px] h-[20px]" />
               Desafíos
             </span>
-            {activeTab === "challenges" && (
-              <motion.div 
-                layoutId="tab-indicator" 
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" 
-              />
-            )}
+            {activeTab === "challenges" && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
           </button>
         </div>
       </header>
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        {activeTab === "posts" ? (
-          <motion.div 
-            key="posts" 
-            initial={{ opacity: 0, x: -20 }} 
-            animate={{ opacity: 1, x: 0 }} 
-            exit={{ opacity: 0, x: 20 }} 
-            className="p-4 space-y-4 bg-[#e8e6ff] py-0 my-px px-[5px]"
-          >
+        {activeTab === "posts" ? <motion.div key="posts" initial={{
+        opacity: 0,
+        x: -20
+      }} animate={{
+        opacity: 1,
+        x: 0
+      }} exit={{
+        opacity: 0,
+        x: 20
+      }} className="p-4 space-y-4 bg-[#e8e6ff] py-0 my-px px-[5px]">
             {/* Stories/Friends Row */}
-            <div className="overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 px-0 py-0 items-start justify-start flex flex-row gap-[15px] mt-[11px] mb-0">
+            <div className="overflow-x-auto pb-2 scrollbar-hide mx-0 my-0 px-0 py-0 items-start justify-start flex flex-row gap-[15px] mt-[11px] mb-px">
               {/* Your Story */}
-              <div 
-                className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px] cursor-pointer" 
-                onClick={() => navigate('/app/publish')}
-              >
+              <div className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px] cursor-pointer" onClick={() => navigate('/app/publish')}>
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5 px-0 py-0 hover:scale-105 transition-transform">
                   <div className="w-full h-full rounded-full flex items-center justify-center text-2xl bg-destructive-foreground mx-0 px-[30px] py-[30px] text-black/[0.97]">
                     ➕
@@ -139,98 +120,66 @@ export default function HomePage() {
               </div>
               
               {/* Friends with recent posts */}
-              {friendsWithRecentPosts.map((friendship) => (
-                <button 
-                  key={friendship.id} 
-                  onClick={() => setSelectedFriendId(friendship.friend?.id || null)}
-                  className={`flex flex-col items-center gap-1 flex-shrink-0 mx-[2px] transition-transform ${
-                    selectedFriendId === friendship.friend?.id ? 'scale-105' : ''
-                  }`}
-                >
-                  <div className={`avatar-frame w-16 h-16 px-0 py-0 ${
-                    selectedFriendId === friendship.friend?.id ? 'ring-2 ring-secondary ring-offset-2' : ''
-                  }`}>
-                    <AvatarBadge 
-                      avatarUrl={friendship.friend?.avatar_snapshot_url}
-                      nick={friendship.friend?.nick || ''}
-                      size="lg"
-                      showBorder={false}
-                      className="w-full h-full"
-                    />
+              {friendsWithRecentPosts.map(friendship => <button key={friendship.id} onClick={() => setSelectedFriendId(friendship.friend?.id || null)} className={`flex flex-col items-center gap-1 flex-shrink-0 mx-[2px] transition-transform ${selectedFriendId === friendship.friend?.id ? 'scale-105' : ''}`}>
+                  <div className={`avatar-frame w-16 h-16 px-0 py-0 ${selectedFriendId === friendship.friend?.id ? 'ring-2 ring-secondary ring-offset-2' : ''}`}>
+                    <AvatarBadge avatarUrl={friendship.friend?.avatar_snapshot_url} nick={friendship.friend?.nick || ''} size="lg" showBorder={false} className="w-full h-full" />
                   </div>
                   <span className="text-secondary-foreground text-sm truncate max-w-[64px]">
                     {friendship.friend?.nick || 'Amigo'}
                   </span>
-                </button>
-              ))}
+                </button>)}
               
               {/* Show placeholder if no friends with posts */}
-              {friendsWithRecentPosts.length === 0 && (
-                <div className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px] opacity-50">
+              {friendsWithRecentPosts.length === 0 && <div className="flex flex-col items-center gap-1 flex-shrink-0 mx-[10px] opacity-50">
                   <div className="w-16 h-16 rounded-full border-2 border-dashed border-muted-foreground flex items-center justify-center">
                     <span className="text-muted-foreground text-sm">👋</span>
                   </div>
                   <span className="text-muted-foreground text-xs text-center">Añade amigos</span>
-                </div>
-              )}
+                </div>}
             </div>
 
             {/* Filter Banner */}
-            {selectedFriend && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between bg-primary/10 rounded-xl px-4 py-2 mx-2"
-              >
+            {selectedFriend && <motion.div initial={{
+          opacity: 0,
+          y: -10
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} className="flex items-center justify-between bg-primary/10 rounded-xl px-4 py-2 mx-2">
                 <span className="text-sm font-medium text-primary">
                   Viendo publicaciones de @{selectedFriend.nick}
                 </span>
-                <button 
-                  onClick={() => setSelectedFriendId(null)}
-                  className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-                >
+                <button onClick={() => setSelectedFriendId(null)} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80">
                   <X className="w-4 h-4" />
                   Quitar filtro
                 </button>
-              </motion.div>
-            )}
+              </motion.div>}
 
             {/* Loading state */}
-            {postsLoading ? (
-              <div className="flex items-center justify-center py-12">
+            {postsLoading ? <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : filteredPosts.length === 0 ? (
-              <div className="glass-card p-8 text-center">
+              </div> : filteredPosts.length === 0 ? <div className="glass-card p-8 text-center">
                 <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                 <h3 className="font-gaming font-bold mb-2">
                   {selectedFriendId ? 'Sin publicaciones' : 'No hay publicaciones'}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {selectedFriendId 
-                    ? `@${selectedFriend?.nick} no tiene publicaciones aún` 
-                    : '¡Sé el primero en publicar algo!'}
+                  {selectedFriendId ? `@${selectedFriend?.nick} no tiene publicaciones aún` : '¡Sé el primero en publicar algo!'}
                 </p>
-              </div>
-            ) : (
-              /* Posts */
-              filteredPosts.map((post, index) => (
-                <motion.div 
-                  key={post.id} 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  transition={{ delay: index * 0.1 }} 
-                  className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px] mt-0 mb-[10px]"
-                >
+              </div> : (/* Posts */
+        filteredPosts.map((post, index) => <motion.div key={post.id} initial={{
+          opacity: 0,
+          y: 20
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          delay: index * 0.1
+        }} className="post-card border-success-foreground text-gray-500 bg-success-foreground px-0 my-[20px] mx-[5px] mt-0 mb-[11px]">
                   {/* Post Header */}
                   <div className="flex items-center justify-between px-[20px] mt-[10px] my-[5px] mb-[20px]">
                     <div className="flex items-center gap-3 ml-[10px]">
-                      <AvatarBadge 
-                        avatarUrl={post.author?.avatar_snapshot_url}
-                        nick={post.author?.nick || ''}
-                        size="md"
-                        showBorder={true}
-                      />
+                      <AvatarBadge avatarUrl={post.author?.avatar_snapshot_url} nick={post.author?.nick || ''} size="md" showBorder={true} />
                       <div>
                         <p className="font-semibold text-secondary-foreground text-lg">
                           @{post.author?.nick || "Usuario"}
@@ -244,29 +193,23 @@ export default function HomePage() {
                   </div>
 
                   {/* Post Content */}
-                  {post.content_url && (
-                    <div className="relative rounded-xl overflow-hidden -mx-4 aspect-square">
+                  {post.content_url && <div className="relative rounded-xl overflow-hidden -mx-4 aspect-square">
                       <img src={post.content_url} alt="" className="w-full h-full object-contain" />
-                      {post.type === "video" && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-background/20 py-0 px-0 mx-[12px]">
+                      {post.type === "video" && <div className="absolute inset-0 flex items-center justify-center bg-background/20 py-0 px-0 mx-[12px]">
                           <div className="w-16 h-16 rounded-full bg-background/80 flex items-center justify-center">
                             <Play className="w-8 h-8 text-foreground ml-1" />
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        </div>}
+                    </div>}
 
                   {/* Post Text */}
                   {post.text && <p className="mx-[20px] text-base ml-[30px]">{post.text}</p>}
 
                   {/* Post Actions */}
                   <div className="flex items-center gap-6 pt-2 mx-[20px] ml-[30px]">
-                    <motion.button 
-                      whileTap={{ scale: 0.9 }} 
-                      onClick={() => toggleLike(post.id)} 
-                      className="flex items-center gap-2 text-sm"
-                    >
+                    <motion.button whileTap={{
+              scale: 0.9
+            }} onClick={() => toggleLike(post.id)} className="flex items-center gap-2 text-sm">
                       <Heart className={`w-6 h-6 transition-colors ${post.isLiked ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
                       <span className={post.isLiked ? "text-destructive" : "text-muted-foreground"}>
                         {post.likes_count}
@@ -279,28 +222,26 @@ export default function HomePage() {
 
                   {/* Comments Section */}
                   <CommentSection postId={post.id} postAuthorId={post.author_id} />
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-        ) : (
-          <motion.div 
-            key="challenges" 
-            initial={{ opacity: 0, x: 20 }} 
-            animate={{ opacity: 1, x: 0 }} 
-            exit={{ opacity: 0, x: -20 }} 
-            className="p-4 space-y-4"
-          >
-            {challengeLoading ? (
-              <div className="flex items-center justify-center py-12">
+                </motion.div>))}
+          </motion.div> : <motion.div key="challenges" initial={{
+        opacity: 0,
+        x: 20
+      }} animate={{
+        opacity: 1,
+        x: 0
+      }} exit={{
+        opacity: 0,
+        x: -20
+      }} className="p-4 space-y-4">
+            {challengeLoading ? <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : todayChallenge ? (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                className="challenge-card"
-              >
+              </div> : todayChallenge ? <motion.div initial={{
+          opacity: 0,
+          y: 20
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} className="challenge-card">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
@@ -318,13 +259,9 @@ export default function HomePage() {
 
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex -space-x-2">
-                    {(todayChallenge.top_entries || []).slice(0, 3).map((entry, i) => (
-                      <div key={i} className="w-8 h-8 rounded-full bg-card border-2 border-background flex items-center justify-center text-sm">
-                        {entry.user?.avatar_snapshot_url ? (
-                          <img src={entry.user.avatar_snapshot_url} alt="" className="w-full h-full rounded-full object-cover" />
-                        ) : "👤"}
-                      </div>
-                    ))}
+                    {(todayChallenge.top_entries || []).slice(0, 3).map((entry, i) => <div key={i} className="w-8 h-8 rounded-full bg-card border-2 border-background flex items-center justify-center text-sm">
+                        {entry.user?.avatar_snapshot_url ? <img src={entry.user.avatar_snapshot_url} alt="" className="w-full h-full rounded-full object-cover" /> : "👤"}
+                      </div>)}
                   </div>
                   <span className="text-sm text-muted-foreground">
                     {todayChallenge.participants_count || 0} participantes
@@ -333,32 +270,27 @@ export default function HomePage() {
 
                 {/* Top 3 */}
                 <div className="space-y-2 mb-4">
-                  {(todayChallenge.top_entries || []).map((entry, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
+                  {(todayChallenge.top_entries || []).map((entry, i) => <div key={i} className="flex items-center gap-2 text-sm">
                       <span>
                         {i === 0 ? "🏆" : i === 1 ? "🥈" : "🥉"} @{entry.user?.nick || "Usuario"}
                       </span>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
 
-                <motion.button 
-                  whileHover={{ scale: 1.02 }} 
-                  whileTap={{ scale: 0.98 }} 
-                  className="btn-gaming w-full py-3 rounded-xl text-foreground font-gaming"
-                >
+                <motion.button whileHover={{
+            scale: 1.02
+          }} whileTap={{
+            scale: 0.98
+          }} className="btn-gaming w-full py-3 rounded-xl text-foreground font-gaming">
                   ¡Participar!
                 </motion.button>
-              </motion.div>
-            ) : (
-              <div className="glass-card p-6 text-center">
+              </motion.div> : <div className="glass-card p-6 text-center">
                 <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                 <h3 className="font-gaming font-bold mb-2">No hay desafío activo</h3>
                 <p className="text-sm text-white">
                   ¡Vuelve mañana para el próximo desafío!
                 </p>
-              </div>
-            )}
+              </div>}
 
             {/* Past challenges placeholder */}
             <div className="glass-card p-6 text-center my-[30px]">
@@ -368,9 +300,7 @@ export default function HomePage() {
                 Cada día hay un nuevo desafío. ¡No te los pierdas!
               </p>
             </div>
-          </motion.div>
-        )}
+          </motion.div>}
       </AnimatePresence>
-    </div>
-  );
+    </div>;
 }
