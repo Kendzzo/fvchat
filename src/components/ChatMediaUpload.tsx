@@ -7,20 +7,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 
 interface ChatMediaUploadProps {
-  onMediaReady: (url: string, type: "image" | "video" | "audio") => void;
+  onMediaReady: (url: string, type: "image" | "audio") => void;
   disabled?: boolean;
 }
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_VIDEO_DURATION = 10; // 10 seconds
 
+/**
+ * ChatMediaUpload - ONLY for images and audio in chat
+ * Videos are NOT allowed in chat - they go through PublishPage only
+ */
 export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps) {
   const { user } = useAuth();
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadType, setUploadType] = useState<"image" | "video" | null>(null);
   const [showAudioModal, setShowAudioModal] = useState(false);
 
   const handleImageClick = () => {
@@ -28,106 +28,61 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
     imageInputRef.current?.click();
   };
 
-  const handleVideoClick = () => {
-    if (disabled || isUploading) return;
-    videoInputRef.current?.click();
-  };
-
   const handleAudioClick = () => {
     if (disabled || isUploading) return;
     setShowAudioModal(true);
   };
 
-  const validateVideoMetadata = (file: File): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const video = document.createElement("video");
-      video.preload = "metadata";
-
-      video.onloadedmetadata = () => {
-        URL.revokeObjectURL(video.src);
-        if (video.duration > MAX_VIDEO_DURATION) {
-          toast.error(
-            `El vídeo debe durar máximo ${MAX_VIDEO_DURATION} segundos (actual: ${Math.round(video.duration)}s)`,
-          );
-          resolve(false);
-        } else {
-          resolve(true);
-        }
-      };
-
-      video.onerror = () => {
-        URL.revokeObjectURL(video.src);
-        resolve(true);
-      };
-
-      video.src = URL.createObjectURL(file);
-    });
-  };
-
-  const uploadFile = async (file: File, type: "image" | "video") => {
+  const uploadImage = async (file: File) => {
     if (!user) {
       toast.error("No autenticado");
       return;
     }
 
-    if (type === "image" && file.size > MAX_IMAGE_SIZE) {
+    if (file.size > MAX_IMAGE_SIZE) {
       toast.error("La imagen debe ser menor a 10MB");
       return;
     }
 
-    if (type === "video" && file.size > MAX_VIDEO_SIZE) {
-      toast.error("El vídeo debe ser menor a 50MB");
-      return;
-    }
-
-    if (type === "video") {
-      const isValidDuration = await validateVideoMetadata(file);
-      if (!isValidDuration) return;
-    }
-
     setIsUploading(true);
-    setUploadType(type);
 
     try {
-      const fileExt = file.name.split(".").pop() || (type === "image" ? "jpg" : "mp4");
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${user.id}/chat/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("content")
-        .upload(fileName, file, { cacheControl: "3600", upsert: false });
+        .upload(fileName, file, { 
+          cacheControl: "3600", 
+          upsert: false,
+          contentType: file.type || "image/jpeg"
+        });
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("content").getPublicUrl(fileName);
 
-      onMediaReady(urlData.publicUrl, type);
-      toast.success(`${type === "image" ? "Imagen" : "Vídeo"} adjuntado`);
+      onMediaReady(urlData.publicUrl, "image");
+      toast.success("Imagen adjuntada");
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Error al subir archivo");
+      toast.error("Error al subir imagen");
     } finally {
       setIsUploading(false);
-      setUploadType(null);
     }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) uploadFile(file, "image");
+    if (file) uploadImage(file);
     if (imageInputRef.current) imageInputRef.current.value = "";
-  };
-
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) uploadFile(file, "video");
-    if (videoInputRef.current) videoInputRef.current.value = "";
   };
 
   const closeAudioModal = () => setShowAudioModal(false);
 
   return (
     <>
-      {/* Hidden file inputs */}
+      {/* Hidden image input - NO video input in chat */}
       <input
         ref={imageInputRef}
         type="file"
@@ -136,25 +91,17 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
         onChange={handleImageChange}
         className="hidden"
       />
-      <input
-        ref={videoInputRef}
-        type="file"
-        accept="video/*,video/quicktime,video/mp4"
-        capture="environment"
-        onChange={handleVideoChange}
-        className="hidden"
-      />
 
       {/* Image button */}
       <button
         onClick={handleImageClick}
         disabled={disabled || isUploading}
-        className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors px-[14px] py-[14px] disabled:opacity-50"
+        className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
       >
-        {isUploading && uploadType === "image" ? (
-          <Loader2 className="w-5 h-5 animate-spin text-white" />
+        {isUploading ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
-          <Image className="w-5 h-5 text-white" />
+          <Image className="w-5 h-5" />
         )}
       </button>
 
@@ -162,13 +109,9 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
       <button
         onClick={handleAudioClick}
         disabled={disabled || isUploading}
-        className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors px-[14px] py-[14px] disabled:opacity-50"
+        className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
       >
-        {isUploading && uploadType === "video" ? (
-          <Loader2 className="w-5 h-5 animate-spin text-white" />
-        ) : (
-          <Mic className="w-5 h-5 text-white" />
-        )}
+        <Mic className="w-5 h-5" />
       </button>
 
       {/* Audio modal - Portal to body (fix iOS) */}
@@ -187,7 +130,7 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[10000] w-[92vw] max-w-sm max-h-[80vh] overflow-auto pb-[calc(16px+env(safe-area-inset-bottom))]"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[10000] w-11/12 max-w-sm"
                 role="dialog"
                 aria-modal="true"
               >
