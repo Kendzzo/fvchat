@@ -23,6 +23,7 @@ export interface ChallengeEntry {
   user?: {
     nick: string;
     avatar_data: Record<string, unknown>;
+    avatar_snapshot_url?: string | null;
   };
 }
 
@@ -77,7 +78,7 @@ export function useChallenges() {
         .from('challenge_entries')
         .select(`
           *,
-          user:profiles!challenge_entries_user_id_fkey(nick, avatar_data)
+          user:profiles!challenge_entries_user_id_fkey(nick, avatar_data, avatar_snapshot_url)
         `)
         .eq('challenge_id', challenge.id)
         .order('likes_count', { ascending: false })

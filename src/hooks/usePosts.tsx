@@ -16,6 +16,7 @@ export interface Post {
   author?: {
     nick: string;
     avatar_data: Record<string, unknown>;
+    avatar_snapshot_url?: string | null;
   };
   isLiked?: boolean;
   comments_count?: number;
@@ -39,7 +40,7 @@ export function usePosts() {
         .from('posts')
         .select(`
           *,
-          author:profiles!posts_author_id_fkey(nick, avatar_data)
+          author:profiles!posts_author_id_fkey(nick, avatar_data, avatar_snapshot_url)
         `)
         .order('created_at', { ascending: false })
         .limit(50);
