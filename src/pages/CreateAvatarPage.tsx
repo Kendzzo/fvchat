@@ -1,44 +1,135 @@
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAvatar, AvatarConfig } from "@/hooks/useAvatar";
-import { AvatarEditor } from "@/components/avatar/AvatarEditor";
+import { motion } from "framer-motion";
+import { Loader2, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const READY_PLAYER_ME_SUBDOMAIN = "vfc-kids"; // Customizable subdomain
 
 export default function CreateAvatarPage() {
   const navigate = useNavigate();
-  const { generateAvatar, isGenerating, DEFAULT_AVATAR_CONFIG } = useAvatar();
+  const { user, refreshProfile } = useAuth();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = async (config: AvatarConfig) => {
-    const result = await generateAvatar(config);
+  useEffect(() => {
+    // Listen for Ready Player Me avatar export
+    const handleMessage = async (event: MessageEvent) => {
+      // Ready Player Me sends the avatar URL when done
+      if (event.data?.source === 'readyplayerme') {
+        if (event.data.eventName === 'v1.avatar.exported') {
+          const avatarModelUrl = event.data.data.url;
+          await saveAvatar(avatarModelUrl);
+        }
+        if (event.data.eventName === 'v1.frame.ready') {
+          setIsLoading(false);
+        }
+      }
+      
+      // Alternative: direct URL from iframe
+      if (typeof event.data === 'string' && event.data.includes('.glb')) {
+        await saveAvatar(event.data);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [user]);
+
+  const saveAvatar = async (modelUrl: string) => {
+    if (!user || isSaving) return;
     
-    if (result.success) {
-      toast.success("¡Avatar creado con éxito!");
-      navigate("/app");
-    } else {
-      toast.error(result.error || "Error creando avatar");
+    setIsSaving(true);
+    try {
+      // Generate snapshot URL from Ready Player Me
+      // Format: https://models.readyplayer.me/{avatar-id}.png
+      const avatarId = modelUrl.split('/').pop()?.replace('.glb', '') || '';
+      const snapshotUrl = `https://models.readyplayer.me/${avatarId}.png?size=256`;
+
+      // Save to profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          avatar_snapshot_url: snapshotUrl,
+          avatar_data: { 
+            model_url: modelUrl,
+            provider: 'readyplayerme',
+            avatar_id: avatarId
+          }
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error saving avatar:', error);
+        toast.error('Error al guardar avatar');
+        return;
+      }
+
+      toast.success('¡Avatar creado con éxito!');
+      await refreshProfile?.();
+      navigate('/app');
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Error al guardar avatar');
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  // Ready Player Me iframe URL with kid-friendly settings
+  const iframeUrl = `https://${READY_PLAYER_ME_SUBDOMAIN}.readyplayer.me/avatar?frameApi&clearCache&bodyType=halfbody`;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/80 flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-gaming font-bold gradient-text">Crea tu Avatar</h1>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-primary" />
+            <h1 className="text-xl font-gaming font-bold gradient-text">Crea tu Avatar 3D</h1>
+          </div>
           <div className="text-sm text-muted-foreground">
             ¡Personalízalo a tu gusto!
           </div>
         </div>
       </header>
 
-      <div className="p-4 pb-8">
-        <AvatarEditor
-          initialConfig={DEFAULT_AVATAR_CONFIG}
-          onSave={handleSave}
-          isSaving={isGenerating}
-          saveButtonText="¡Crear Avatar!"
-          showProgress={true}
+      {/* Loading overlay */}
+      {(isLoading || isSaving) && (
+        <div className="absolute inset-0 z-50 bg-background/80 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-lg font-medium">
+              {isSaving ? 'Guardando tu avatar...' : 'Cargando editor de avatar...'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Ready Player Me iframe */}
+      <div className="flex-1 relative">
+        <iframe
+          ref={iframeRef}
+          src={iframeUrl}
+          className="w-full h-full absolute inset-0 border-0"
+          allow="camera *; microphone *; clipboard-write"
+          title="Ready Player Me Avatar Creator"
         />
       </div>
+
+      {/* Help text */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-4 bg-card/50 backdrop-blur-sm border-t border-border/30"
+      >
+        <p className="text-center text-sm text-muted-foreground">
+          📸 Puedes usar una foto o crear desde cero • Personaliza cara, pelo, ropa y más
+        </p>
+      </motion.div>
     </div>
   );
 }

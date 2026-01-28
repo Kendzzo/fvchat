@@ -8,8 +8,9 @@ import { useFriendships } from "@/hooks/useFriendships";
 import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/UserSearch";
 import { FriendRequestsList } from "@/components/FriendRequestsList";
-import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { AvatarBadge } from "@/components/avatar/AvatarBadge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const {
@@ -69,29 +70,23 @@ export default function ProfilePage() {
       }} className="glass-card p-6 text-center border-success-foreground bg-white py-0 px-[22px]">
           {/* Avatar */}
           <div className="relative inline-block mb-4 mt-[20px]">
-            <div className="w-28 h-28 rounded-full bg-gradient-to-r from-primary via-secondary to-accent p-1 animate-pulse-glow">
-              <div className="w-full h-full rounded-full bg-card overflow-hidden flex items-center justify-center">
-                {profile?.avatar_snapshot_url ? (
-                  <img 
-                    src={profile.avatar_snapshot_url} 
-                    alt="Avatar" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-5xl">{(profile?.avatar_data as any)?.emoji || "🎮"}</span>
-                )}
-              </div>
-            </div>
+            <AvatarBadge 
+              avatarUrl={profile?.avatar_snapshot_url}
+              nick={profile?.nick || ''}
+              size="xl"
+              showBorder={true}
+              className="w-28 h-28 animate-pulse-glow"
+            />
             <motion.button 
               whileTap={{ scale: 0.9 }}
               onClick={() => navigate('/edit-avatar')} 
-              className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground shadow-lg"
+              className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground shadow-lg z-10"
             >
               <Edit3 className="w-5 h-5" />
             </motion.button>
             
             {/* Level Badge */}
-            <div className="absolute -top-2 -right-2 px-3 py-1 rounded-full bg-warning text-warning-foreground text-xs font-bold">
+            <div className="absolute -top-2 -right-2 px-3 py-1 rounded-full bg-warning text-warning-foreground text-xs font-bold z-10">
               Lvl 1
             </div>
           </div>
@@ -281,11 +276,12 @@ function SettingsView({
         {/* User info */}
         <div className="glass-card p-4 mb-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
-              <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
-                {(profile?.avatar_data as any)?.emoji || "🎮"}
-              </div>
-            </div>
+            <AvatarBadge 
+              avatarUrl={profile?.avatar_snapshot_url}
+              nick={profile?.nick || ''}
+              size="lg"
+              showBorder={true}
+            />
             <div>
               <p className="font-semibold">@{profile?.nick || "Usuario"}</p>
               <p className="text-sm text-muted-foreground">{profile?.tutor_email}</p>

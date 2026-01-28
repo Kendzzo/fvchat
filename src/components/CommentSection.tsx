@@ -3,12 +3,12 @@ import { useComments } from '@/hooks/useComments';
 import { useModeration } from '@/hooks/useModeration';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { ModerationWarning } from '@/components/ModerationWarning';
 import { SuspensionBanner } from '@/components/SuspensionBanner';
+import { AvatarBadge } from '@/components/avatar/AvatarBadge';
 
 interface CommentSectionProps {
   postId: string;
@@ -99,11 +99,12 @@ export function CommentSection({
         ) : (
           comments.map(comment => (
             <div key={comment.id} className="flex gap-2 group">
-              <Avatar className="w-6 h-6">
-                <AvatarFallback className="text-xs">
-                  {comment.author?.nick?.charAt(0).toUpperCase() || '?'}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarBadge 
+                avatarUrl={comment.author?.avatar_snapshot_url}
+                nick={comment.author?.nick || ''}
+                size="xs"
+                showBorder={false}
+              />
               <div className="flex-1 px-2 py-1 bg-zinc-100 rounded mx-[10px] ml-0 mr-[30px]">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium ml-[2px]">{comment.author?.nick}</span>
