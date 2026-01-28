@@ -91,17 +91,17 @@ export default function HomePage() {
       <div className="sticky top-0 z-40">
         {/* Main header bar */}
         <div className="bg-gradient-to-b from-[#2d1b4e] to-[#251542] px-4 pt-3 pb-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 ml-[10px]">
             {/* VFC Logo */}
             <img src={vfcLogo} alt="VFC" className="h-10 w-auto object-contain" />
             {/* Title */}
-            <span className="text-white text-xl font-semibold tracking-wide">Publicaciones</span>
+            <span className="text-white text-xl font-semibold tracking-wide ml-[20px]">Publicaciones</span>
           </div>
         </div>
         
         {/* Green indicator line */}
         <div className="bg-[#251542] px-4 pb-1">
-          <div className="h-[3px] w-32 bg-gradient-to-r from-[#00d4aa] to-[#00b894] rounded-full ml-[60px]" />
+          
         </div>
       </div>
 
@@ -164,7 +164,7 @@ export default function HomePage() {
         </div>}
 
       {/* Feed */}
-      <div className="space-y-4 p-4 min-h-[60vh] bg-purple-50">
+      <div className="space-y-4 p-4 min-h-[60vh] bg-purple-50 pt-0 pb-0">
         {postsLoading ? <>
             {[1, 2, 3].map(i => <div key={i} className="bg-white rounded-3xl p-4 space-y-3 shadow-sm">
                 <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ export default function HomePage() {
             {selectedFriendId ? <p>Este amigo aún no tiene publicaciones</p> : <p>No hay publicaciones. ¡Sé el primero en publicar!</p>}
           </div> : filteredPosts.map(post => <article key={post.id} className="bg-white rounded-3xl overflow-hidden shadow-sm">
               {/* Post Header - Instagram style */}
-              <div className="p-3 flex items-center gap-3">
+              <div className="p-3 flex items-center gap-3 mb-0">
                 <div className="p-0.5 rounded-full bg-gradient-to-br from-purple-600 via-pink-500 to-teal-400">
                   <div className="w-11 h-11 rounded-full bg-white p-0.5">
                     {post.author?.avatar_snapshot_url ? <img src={post.author.avatar_snapshot_url} alt={post.author?.nick} className="w-full h-full rounded-full object-cover" /> : <div className="w-full h-full rounded-full bg-purple-900 flex items-center justify-center">
