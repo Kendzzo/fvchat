@@ -128,13 +128,9 @@ export default function ChatPage() {
               className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors"
             >
               <ProfilePhotoWithStatus
-                url={
-                  (chat.otherParticipant as any)?.profile_photo_url ||
-                  chat.otherParticipant?.avatar_snapshot_url ||
-                  null
-                }
+                url={(chat.otherParticipant as any)?.profile_photo_url || null}
                 nick={chat.is_group ? chat.name || "Grupo" : chat.otherParticipant?.nick || "Usuario"}
-                isOnline={!chat.is_group && isOnline(otherUserLastSeen)}
+                isOnline={!chat.is_group && isOnline((chat.otherParticipant as any)?.last_seen_at ?? null)}
                 size="md"
                 showBorder={true}
               />
