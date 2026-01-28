@@ -75,7 +75,7 @@ export function ProfilePhoto({
     </div>;
   const Component = onClick ? 'button' : 'div';
   if (showBorder) {
-    return <Component onClick={onClick} className={cn("relative bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0 py-[5px] ml-0 pl-[16px] text-center text-base rounded-sm opacity-100 shadow-lg border-white", borderClass, className, onClick && "cursor-pointer hover:scale-105 transition-transform")}>
+    return <Component onClick={onClick} className={cn("relative bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0 py-[5px] ml-0 pl-[16px] text-base opacity-100 border-white border-0 shadow-none rounded-xl font-light text-left", borderClass, className, onClick && "cursor-pointer hover:scale-105 transition-transform")}>
         <div className={cn(sizeClass, "rounded-full bg-card overflow-hidden flex items-center justify-center")}>
           {content}
         </div>
