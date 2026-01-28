@@ -25,11 +25,27 @@ const BORDER_CLASSES = {
   xl: 'p-[3px]',
 };
 
+// Color palette for initials fallback
+const GRADIENT_COLORS = [
+  'from-primary to-secondary',
+  'from-secondary to-accent',
+  'from-accent to-primary',
+  'from-purple-500 to-blue-500',
+  'from-orange-500 to-red-500',
+];
+
 /**
- * AvatarBadge - Global component to display user avatars across the app
+ * AvatarBadge - Universal avatar component for VFC
  * 
- * Uses avatar_snapshot_url if available, otherwise shows initials from nick
- * MUST be used in: Feed, Comments, Chat, Profile, Podium, User Search, Friend Requests
+ * MUST be used everywhere a user is displayed:
+ * - Feed posts (author)
+ * - Comments (author) 
+ * - Chat list & conversation
+ * - Profile page
+ * - Podium (rankings)
+ * - User search & friend requests
+ * 
+ * Uses avatar_snapshot_url from Ready Player Me, falls back to initials
  */
 export function AvatarBadge({ 
   avatarUrl, 
@@ -42,44 +58,44 @@ export function AvatarBadge({
   const sizeClass = SIZE_CLASSES[size];
   const borderClass = BORDER_CLASSES[size];
   
-  // Get initials from nick (first 2 characters, uppercase)
-  const initials = nick.slice(0, 2).toUpperCase() || '??';
+  // Get initials (first 2 characters, uppercase)
+  const initials = nick.slice(0, 2).toUpperCase() || '🎮';
   
-  // Generate a consistent color based on nick
-  const getColorFromNick = (nick: string) => {
-    const colors = [
-      'from-primary to-secondary',
-      'from-secondary to-accent',
-      'from-accent to-primary',
-      'from-neon-purple to-neon-blue',
-      'from-warning to-destructive',
-    ];
-    const index = nick.charCodeAt(0) % colors.length;
-    return colors[index];
+  // Consistent color based on nick
+  const colorIndex = nick ? nick.charCodeAt(0) % GRADIENT_COLORS.length : 0;
+  const gradientColor = GRADIENT_COLORS[colorIndex];
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.warn(`Avatar image failed to load: ${avatarUrl}`);
+    const target = e.target as HTMLImageElement;
+    target.style.display = 'none';
+    const fallback = target.nextElementSibling as HTMLElement;
+    if (fallback) fallback.classList.remove('hidden');
   };
-  
-  const gradientColor = getColorFromNick(nick);
-  
+
   const content = avatarUrl ? (
-    <img 
-      src={avatarUrl} 
-      alt={`Avatar de ${nick}`}
-      className="w-full h-full object-cover rounded-full"
-      loading="lazy"
-      onError={(e) => {
-        // Fallback to initials on error
-        (e.target as HTMLImageElement).style.display = 'none';
-        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-      }}
-    />
-  ) : null;
-  
-  const fallback = (
+    <>
+      <img 
+        src={avatarUrl} 
+        alt={`Avatar de ${nick || 'usuario'}`}
+        className="w-full h-full object-cover rounded-full"
+        loading="lazy"
+        onError={handleImageError}
+      />
+      <div 
+        className={cn(
+          "w-full h-full rounded-full flex items-center justify-center font-bold hidden",
+          `bg-gradient-to-br ${gradientColor} text-white`
+        )}
+      >
+        {initials}
+      </div>
+    </>
+  ) : (
     <div 
       className={cn(
         "w-full h-full rounded-full flex items-center justify-center font-bold",
-        `bg-gradient-to-br ${gradientColor} text-white`,
-        avatarUrl && 'hidden'
+        `bg-gradient-to-br ${gradientColor} text-white`
       )}
     >
       {initials}
@@ -93,7 +109,7 @@ export function AvatarBadge({
       <Component
         onClick={onClick}
         className={cn(
-          "rounded-full bg-gradient-to-r from-primary via-secondary to-accent",
+          "rounded-full bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0",
           borderClass,
           className,
           onClick && "cursor-pointer hover:scale-105 transition-transform"
@@ -101,7 +117,6 @@ export function AvatarBadge({
       >
         <div className={cn(sizeClass, "rounded-full bg-card overflow-hidden flex items-center justify-center")}>
           {content}
-          {fallback}
         </div>
       </Component>
     );
@@ -112,13 +127,12 @@ export function AvatarBadge({
       onClick={onClick}
       className={cn(
         sizeClass,
-        "rounded-full bg-card overflow-hidden flex items-center justify-center",
+        "rounded-full bg-card overflow-hidden flex items-center justify-center flex-shrink-0",
         className,
         onClick && "cursor-pointer hover:scale-105 transition-transform"
       )}
     >
       {content}
-      {fallback}
     </Component>
   );
 }
@@ -137,7 +151,7 @@ export function AvatarBadgeWithStatus({
   const statusSize = size === 'xs' || size === 'sm' ? 'w-2 h-2' : 'w-3 h-3';
   
   return (
-    <div className="relative">
+    <div className="relative flex-shrink-0">
       <AvatarBadge 
         avatarUrl={avatarUrl}
         nick={nick}

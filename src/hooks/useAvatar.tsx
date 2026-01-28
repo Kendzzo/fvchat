@@ -2,17 +2,13 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-export interface AvatarConfig {
-  hair: { type: string; color: string };
-  face: { shape: string };
-  eyes: { type: string; color: string };
-  skin: { tone: string };
-  top: { type: string; color: string };
-  bottom: { type: string; color: string };
-  shoes: { type: string; color: string };
-  accessory: { type: string; color?: string };
-  pose: { pose: string };
-  expression: { expression: string };
+/**
+ * Ready Player Me Avatar Data stored in profiles.avatar_data
+ */
+export interface ReadyPlayerMeAvatarData {
+  provider: 'readyplayerme';
+  avatar_id: string;
+  model_url: string;
 }
 
 export interface AvatarItem {
@@ -35,35 +31,22 @@ export interface InventoryItem {
   avatar_item?: AvatarItem;
 }
 
-const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
-  hair: { type: 'short', color: 'brown' },
-  face: { shape: 'round' },
-  eyes: { type: 'normal', color: 'brown' },
-  skin: { tone: 'medium' },
-  top: { type: 'tshirt', color: 'blue' },
-  bottom: { type: 'jeans', color: 'blue' },
-  shoes: { type: 'sneakers', color: 'white' },
-  accessory: { type: 'none' },
-  pose: { pose: 'idle' },
-  expression: { expression: 'happy' },
-};
-
 export function useAvatar() {
   const { user, profile, refreshProfile } = useAuth();
-  const [isGenerating, setIsGenerating] = useState(false);
   const [avatarItems, setAvatarItems] = useState<AvatarItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
 
-  // Check if user has a configured avatar
+  // Check if user has a configured avatar (Ready Player Me)
   const hasAvatar = !!(profile?.avatar_snapshot_url);
   const avatarUrl = profile?.avatar_snapshot_url || null;
-  const avatarData = profile?.avatar_data as Record<string, unknown> | undefined;
-  const currentConfig: AvatarConfig = avatarData && 'hair' in avatarData 
-    ? avatarData as unknown as AvatarConfig 
-    : DEFAULT_AVATAR_CONFIG;
+  const avatarData = profile?.avatar_data as Record<string, unknown> | null;
+  
+  // Ready Player Me specific data
+  const avatarId = (avatarData?.avatar_id as string) || null;
+  const modelUrl = (avatarData?.model_url as string) || null;
 
-  // Fetch available avatar items
+  // Fetch available avatar items (for unlockables system)
   const fetchAvatarItems = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -73,7 +56,6 @@ export function useAvatar() {
         .order('category', { ascending: true });
 
       if (error) throw error;
-      // Cast data to our interface type
       const items = (data || []).map(item => ({
         ...item,
         asset_data: item.asset_data as Record<string, unknown>,
@@ -98,7 +80,6 @@ export function useAvatar() {
         .eq('user_id', user.id);
 
       if (error) throw error;
-      // Cast data to our interface type
       const items = (data || []).map(item => ({
         ...item,
         avatar_item: item.avatar_item ? {
@@ -140,107 +121,58 @@ export function useAvatar() {
     );
   }, [avatarItems, ownsItem]);
 
-  // Generate avatar with AI
-  const generateAvatar = useCallback(async (config: AvatarConfig): Promise<{ 
-    success: boolean; 
-    avatarUrl?: string; 
-    error?: string 
-  }> => {
+  // Save Ready Player Me avatar (called from CreateAvatarPage/EditAvatarPage)
+  const saveReadyPlayerMeAvatar = useCallback(async (
+    modelUrl: string, 
+    snapshotUrl: string, 
+    avatarId: string
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
       return { success: false, error: 'No autenticado' };
     }
 
-    setIsGenerating(true);
-
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          avatar_snapshot_url: snapshotUrl,
+          avatar_data: { 
+            provider: 'readyplayerme',
+            model_url: modelUrl,
+            avatar_id: avatarId
+          }
+        })
+        .eq('id', user.id);
 
-      if (!token) {
-        return { success: false, error: 'Sesión expirada' };
+      if (error) {
+        return { success: false, error: error.message };
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-avatar`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ avatar_config: config }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        return { success: false, error: result.error || 'Error generando avatar' };
-      }
-
-      // Refresh profile to get updated avatar
       await refreshProfile();
-
-      return { 
-        success: true, 
-        avatarUrl: result.avatar_url 
-      };
+      return { success: true };
     } catch (error) {
-      console.error('Error generating avatar:', error);
-      return { 
-        success: false, 
-        error: 'Error de conexión. Inténtalo de nuevo.' 
-      };
-    } finally {
-      setIsGenerating(false);
+      console.error('Error saving avatar:', error);
+      return { success: false, error: 'Error guardando avatar' };
     }
   }, [user, refreshProfile]);
-
-  // Grant default items to user (called after registration)
-  const grantDefaultItems = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      // This is handled by the database trigger, but we can manually call it
-      const defaultItems = avatarItems.filter(item => item.is_default);
-      
-      for (const item of defaultItems) {
-        if (!ownsItem(item.id)) {
-          await supabase.from('user_inventory').insert({
-            user_id: user.id,
-            avatar_item_id: item.id,
-            source: 'default',
-          });
-        }
-      }
-
-      await fetchInventory();
-    } catch (error) {
-      console.error('Error granting default items:', error);
-    }
-  }, [user, avatarItems, ownsItem, fetchInventory]);
 
   return {
     // State
     hasAvatar,
     avatarUrl,
-    currentConfig,
-    isGenerating,
+    avatarId,
+    modelUrl,
     avatarItems,
     inventory,
     isLoadingItems,
     
     // Actions
-    generateAvatar,
+    saveReadyPlayerMeAvatar,
     fetchInventory,
-    grantDefaultItems,
     
     // Helpers
     ownsItem,
     getItemsByCategory,
     getOwnedItemsByCategory,
-    
-    // Constants
-    DEFAULT_AVATAR_CONFIG,
   };
 }

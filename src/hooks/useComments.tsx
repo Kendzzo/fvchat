@@ -11,6 +11,7 @@ export interface Comment {
   author?: {
     nick: string;
     avatar_data: Record<string, unknown>;
+    avatar_snapshot_url?: string | null;
   };
 }
 
@@ -33,7 +34,7 @@ export function useComments(postId: string | null) {
         .from('comments')
         .select(`
           *,
-          author:profiles!comments_author_id_fkey(nick, avatar_data)
+          author:profiles!comments_author_id_fkey(nick, avatar_data, avatar_snapshot_url)
         `)
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
@@ -66,7 +67,7 @@ export function useComments(postId: string | null) {
         })
         .select(`
           *,
-          author:profiles!comments_author_id_fkey(nick, avatar_data)
+          author:profiles!comments_author_id_fkey(nick, avatar_data, avatar_snapshot_url)
         `)
         .single();
 
@@ -121,7 +122,7 @@ export function useComments(postId: string | null) {
               .from('comments')
               .select(`
                 *,
-                author:profiles!comments_author_id_fkey(nick, avatar_data)
+                author:profiles!comments_author_id_fkey(nick, avatar_data, avatar_snapshot_url)
               `)
               .eq('id', payload.new.id)
               .single();

@@ -12,6 +12,7 @@ import { ChatOptionsMenu } from "@/components/ChatOptionsMenu";
 import { ChatMediaUpload } from "@/components/ChatMediaUpload";
 import { ModerationWarning } from "@/components/ModerationWarning";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
+import { AvatarBadge, AvatarBadgeWithStatus } from "@/components/avatar/AvatarBadge";
 import { formatLastSeen, isOnline } from "@/hooks/usePresence";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,17 +124,13 @@ export default function ChatPage() {
               onClick={() => handleSelectChat(chat)} 
               className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors"
             >
-              <div className="relative">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
-                  <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-2xl">
-                    {chat.is_group ? "👥" : (chat.otherParticipant?.avatar_data as any)?.emoji || "👤"}
-                  </div>
-                </div>
-                {/* Online indicator */}
-                {!chat.is_group && chat.otherParticipant && isOnline((chat.otherParticipant as any)?.last_seen_at) && (
-                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-card" />
-                )}
-              </div>
+              <AvatarBadgeWithStatus
+                avatarUrl={chat.otherParticipant?.avatar_snapshot_url}
+                nick={chat.is_group ? (chat.name || 'Grupo') : (chat.otherParticipant?.nick || 'Usuario')}
+                isOnline={!chat.is_group && isOnline((chat.otherParticipant as any)?.last_seen_at)}
+                size="lg"
+                showBorder={true}
+              />
 
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center justify-between mb-1">
@@ -304,17 +301,13 @@ function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
           </motion.button>
 
           <div className="flex items-center gap-3 flex-1">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
-                <div className="w-full h-full rounded-full bg-card flex items-center justify-center text-lg">
-                  {chat.is_group ? "👥" : (chat.otherParticipant?.avatar_data as any)?.emoji || "👤"}
-                </div>
-              </div>
-              {/* Online dot */}
-              {!chat.is_group && isOnline(otherUserLastSeen) && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
-              )}
-            </div>
+            <AvatarBadgeWithStatus
+              avatarUrl={chat.otherParticipant?.avatar_snapshot_url}
+              nick={chat.is_group ? (chat.name || 'Grupo') : (chat.otherParticipant?.nick || 'Usuario')}
+              isOnline={!chat.is_group && isOnline(otherUserLastSeen)}
+              size="md"
+              showBorder={true}
+            />
             <div>
               <p className="font-semibold text-sm">
                 {chat.is_group ? chat.name : chat.otherParticipant?.nick || "Usuario"}
