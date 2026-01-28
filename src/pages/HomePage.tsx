@@ -3,10 +3,10 @@ import { usePosts } from '@/hooks/usePosts';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useAuth } from '@/hooks/useAuth';
 import { CommentSection } from '@/components/CommentSection';
-import { Heart, X, Plus, MessageCircle, MoreHorizontal, Trophy, Image } from 'lucide-react';
+import { Heart, X, Plus, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
-import vfcLogo from '@/assets/vfc-logo-new.png';
+import vfcLogo from '@/assets/vfc-logo.png';
 
 // Emoji placeholders for friends without avatars
 const FRIEND_EMOJIS = ['🎮', '🎨', '🛹', '⚽', '🎸', '🎯', '🌟', '🦋', '🚀', '🎭'];
@@ -16,7 +16,6 @@ export default function HomePage() {
   const { posts, isLoading: postsLoading, toggleLike } = usePosts();
   const { friends, isLoading: friendsLoading } = useFriendships();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'publicaciones' | 'desafios'>('publicaciones');
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
 
@@ -25,7 +24,6 @@ export default function HomePage() {
     const handleHomeReset = () => {
       setSelectedFriendId(null);
       setOpenCommentsPostId(null);
-      setActiveTab('publicaciones');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     window.addEventListener('vfc-home-reset', handleHomeReset);
@@ -83,70 +81,48 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-900 pb-20">
-      {/* Header with Logo and Tabs */}
-      <div className="bg-gradient-to-b from-purple-900 to-purple-800 px-4 pt-3 pb-0 sticky top-0 z-40">
-        {/* Logo */}
-        <div className="flex justify-center mb-2">
-          <img src={vfcLogo} alt="VFC" className="h-10 object-contain" />
+    <div className="min-h-screen bg-[#1a0a2e] pb-20">
+      {/* Header - Dark purple with logo and title */}
+      <div className="sticky top-0 z-40">
+        {/* Main header bar */}
+        <div className="bg-gradient-to-b from-[#2d1b4e] to-[#251542] px-4 pt-3 pb-2">
+          <div className="flex items-center gap-3">
+            {/* VFC Logo */}
+            <img src={vfcLogo} alt="VFC" className="h-10 w-auto object-contain" />
+            {/* Title */}
+            <span className="text-white text-xl font-semibold tracking-wide">Publicaciones</span>
+          </div>
         </div>
         
-        {/* Tabs */}
-        <div className="flex">
-          <button
-            onClick={() => setActiveTab('publicaciones')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-white font-semibold transition-all ${
-              activeTab === 'publicaciones' ? 'opacity-100' : 'opacity-50'
-            }`}
-          >
-            <Image className="w-5 h-5" />
-            Publicaciones
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('desafios');
-              navigate('/app/challenges');
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-white font-semibold transition-all ${
-              activeTab === 'desafios' ? 'opacity-100' : 'opacity-50'
-            }`}
-          >
-            <Trophy className="w-5 h-5" />
-            Desafíos
-          </button>
-        </div>
-        
-        {/* Tab indicator */}
-        <div className="flex">
-          <div
-            className={`h-1 bg-gradient-to-r from-green-400 to-teal-400 rounded-full transition-all duration-300 ${
-              activeTab === 'publicaciones' ? 'w-1/2' : 'w-0 ml-1/2'
-            }`}
-          />
+        {/* Green indicator line */}
+        <div className="bg-[#251542] px-4 pb-1">
+          <div className="h-[3px] w-32 bg-gradient-to-r from-[#00d4aa] to-[#00b894] rounded-full" />
         </div>
       </div>
 
-      {/* Stories Row */}
-      <div className="bg-gradient-to-b from-purple-200/90 to-purple-100/80 px-4 py-4 overflow-x-auto">
-        <div className="flex gap-4 min-w-max">
+      {/* Stories Row - Light purple background #e8e6ff */}
+      <div className="px-4 py-4 overflow-x-auto" style={{ backgroundColor: '#e8e6ff' }}>
+        <div className="flex gap-5 min-w-max">
           {/* Tu historia */}
           <button
             onClick={() => navigate('/app/publish')}
-            className="flex flex-col items-center gap-2 min-w-[80px]"
+            className="flex flex-col items-center gap-2 min-w-[72px]"
           >
-            <div className="w-[70px] h-[70px] rounded-full bg-white flex items-center justify-center shadow-md border-2 border-gray-100">
-              <Plus className="w-8 h-8 text-gray-400" />
+            <div className="w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400">
+              <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                <Plus className="w-7 h-7 text-gray-600" strokeWidth={2.5} />
+              </div>
             </div>
-            <span className="text-xs font-semibold text-gray-700">Tu historia</span>
+            <span className="text-xs font-medium text-gray-700">Tu historia</span>
           </button>
 
           {/* Friends Stories */}
           {friendsLoading ? (
             <>
               {[1, 2, 3].map(i => (
-                <div key={i} className="flex flex-col items-center gap-2 min-w-[80px]">
-                  <Skeleton className="w-[70px] h-[70px] rounded-full" />
-                  <Skeleton className="w-14 h-3" />
+                <div key={i} className="flex flex-col items-center gap-2 min-w-[72px]">
+                  <Skeleton className="w-[68px] h-[68px] rounded-full" />
+                  <Skeleton className="w-12 h-3" />
                 </div>
               ))}
             </>
@@ -155,24 +131,26 @@ export default function HomePage() {
               <button
                 key={friend.id}
                 onClick={() => setSelectedFriendId(selectedFriendId === friend.id ? null : friend.id)}
-                className={`flex flex-col items-center gap-2 min-w-[80px] transition-opacity ${
+                className={`flex flex-col items-center gap-2 min-w-[72px] transition-opacity ${
                   selectedFriendId && selectedFriendId !== friend.id ? 'opacity-50' : ''
                 }`}
               >
-                <div className={`w-[70px] h-[70px] rounded-full bg-white flex items-center justify-center shadow-md border-2 ${
-                  selectedFriendId === friend.id ? 'border-purple-500 ring-2 ring-purple-400' : 'border-gray-100'
+                <div className={`w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400 ${
+                  selectedFriendId === friend.id ? 'ring-2 ring-purple-600 ring-offset-2' : ''
                 }`}>
-                  {friend.avatar_snapshot_url ? (
-                    <img
-                      src={friend.avatar_snapshot_url}
-                      alt={friend.nick}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-3xl">{FRIEND_EMOJIS[index % FRIEND_EMOJIS.length]}</span>
-                  )}
+                  <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                    {friend.avatar_snapshot_url ? (
+                      <img
+                        src={friend.avatar_snapshot_url}
+                        alt={friend.nick}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl">{FRIEND_EMOJIS[index % FRIEND_EMOJIS.length]}</span>
+                    )}
+                  </div>
                 </div>
-                <span className="text-xs font-semibold text-gray-700 truncate max-w-[70px]">
+                <span className="text-xs font-medium text-gray-700 truncate max-w-[68px]">
                   {friend.nick}
                 </span>
               </button>
@@ -181,11 +159,13 @@ export default function HomePage() {
             // Placeholder friends when no real friends
             <>
               {['Amigo1', 'Amigo2', 'Amigo3', 'Amigo4'].map((name, i) => (
-                <div key={name} className="flex flex-col items-center gap-2 min-w-[80px] opacity-60">
-                  <div className="w-[70px] h-[70px] rounded-full bg-white flex items-center justify-center shadow-md border-2 border-gray-100">
-                    <span className="text-3xl">{FRIEND_EMOJIS[i]}</span>
+                <div key={name} className="flex flex-col items-center gap-2 min-w-[72px]">
+                  <div className="w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400">
+                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                      <span className="text-2xl">{FRIEND_EMOJIS[i]}</span>
+                    </div>
                   </div>
-                  <span className="text-xs font-semibold text-gray-700">{name}</span>
+                  <span className="text-xs font-medium text-gray-700">{name}</span>
                 </div>
               ))}
             </>
