@@ -4,7 +4,7 @@ import { useFriendships } from '@/hooks/useFriendships';
 import { useAuth } from '@/hooks/useAuth';
 import { AvatarBadge } from '@/components/avatar/AvatarBadge';
 import { CommentSection } from '@/components/CommentSection';
-import { Heart, X, Plus } from 'lucide-react';
+import { Heart, X, Plus, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -15,11 +15,13 @@ export default function HomePage() {
   const navigate = useNavigate();
   
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
 
   // Listen for home reset event (when user taps Home in bottom nav)
   useEffect(() => {
     const handleHomeReset = () => {
       setSelectedFriendId(null);
+      setOpenCommentsPostId(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -217,9 +219,10 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Post Actions */}
+              {/* Post Actions - Likes & Comments on same line */}
               <div className="p-4 pt-2">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between gap-6 pt-2 mx-5 flex-nowrap">
+                  {/* Like button */}
                   <button
                     onClick={() => toggleLike(post.id)}
                     className="flex items-center gap-1 text-sm hover:text-primary transition-colors"
@@ -229,10 +232,21 @@ export default function HomePage() {
                     />
                     <span>{post.likes_count}</span>
                   </button>
+
+                  {/* Comments button */}
+                  <button
+                    onClick={() => setOpenCommentsPostId(prev => prev === post.id ? null : post.id)}
+                    className="flex items-center gap-1 text-sm hover:text-primary transition-colors whitespace-nowrap"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span>{post.comments_count || 0} Comentarios</span>
+                  </button>
                 </div>
 
-                {/* Comments */}
-                <CommentSection postId={post.id} postAuthorId={post.author_id} />
+                {/* Comments Section - only when open */}
+                {openCommentsPostId === post.id && (
+                  <CommentSection postId={post.id} postAuthorId={post.author_id} />
+                )}
               </div>
             </article>
           ))
