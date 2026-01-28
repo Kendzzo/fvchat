@@ -144,7 +144,8 @@ export default function PublishPage() {
   return <div className="min-h-screen bg-purple-50">
       {/* Hidden file inputs */}
       <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={e => handleFileSelect(e, 'photo')} className="hidden" />
-      <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={e => handleFileSelect(e, 'video')} className="hidden text-white" />
+      {/* Video input: NO capture attribute for iPhone compatibility with MOV files */}
+      <input ref={videoInputRef} type="file" accept="video/*,video/quicktime,video/mp4" onChange={e => handleFileSelect(e, 'video')} className="hidden" />
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
