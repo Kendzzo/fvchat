@@ -41,6 +41,88 @@ function buildPrompt(config: AvatarConfig): string {
   return parts.join("\n");
 }
 
+async function generateImageWithRetry(
+  prompt: string,
+  apiKey: string,
+  maxRetries = 2
+): Promise<{ imageData: string | null; error: string | null }> {
+  const models = [
+    "google/gemini-2.5-flash-image",
+    "google/gemini-3-pro-image-preview", // Fallback to pro model
+  ];
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const model = models[Math.min(attempt, models.length - 1)];
+    console.log(`Attempt ${attempt + 1}: Using model ${model}`);
+
+    try {
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error(`AI HTTP error (${aiResponse.status}):`, errorText);
+
+        if (aiResponse.status === 429) {
+          console.log("Rate limited, waiting before retry...");
+          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+          continue;
+        }
+        if (aiResponse.status === 402) {
+          return { imageData: null, error: "Servicio AI temporalmente no disponible. Intenta más tarde." };
+        }
+        continue;
+      }
+
+      const aiData = await aiResponse.json();
+      
+      // Check for errors inside the response (rate limits can come as 200 with error in body)
+      const choiceError = aiData.choices?.[0]?.error;
+      if (choiceError) {
+        console.error("Error in AI response:", JSON.stringify(choiceError));
+        
+        // Check if it's a rate limit error
+        const rawError = choiceError.metadata?.raw || "";
+        if (rawError.includes("429") || rawError.includes("RESOURCE_EXHAUSTED")) {
+          console.log("Rate limit detected in response body, waiting before retry...");
+          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+          continue;
+        }
+        continue;
+      }
+
+      // Extract image from response
+      const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      
+      if (imageData) {
+        console.log("Image generated successfully");
+        return { imageData, error: null };
+      }
+
+      console.error("No image in AI response:", JSON.stringify(aiData).substring(0, 500));
+    } catch (e) {
+      console.error(`Attempt ${attempt + 1} failed:`, e);
+    }
+
+    // Wait before retry
+    if (attempt < maxRetries - 1) {
+      await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1)));
+    }
+  }
+
+  return { imageData: null, error: "No se pudo generar el avatar. Intenta de nuevo en unos segundos." };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -103,58 +185,16 @@ serve(async (req) => {
     const prompt = buildPrompt(avatar_config);
     console.log("Generated prompt:", prompt);
 
-    // Call Lovable AI to generate avatar image
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+    // Generate image with retry logic
+    const { imageData, error: genError } = await generateImageWithRetry(prompt, LOVABLE_API_KEY, 3);
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI generation failed:", aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Servicio AI temporalmente no disponible." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      return new Response(JSON.stringify({ error: "Error generating avatar" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const aiData = await aiResponse.json();
-    console.log("AI response received");
-
-    // Extract image from response
-    const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
-    if (!imageData) {
-      console.error("No image in AI response:", JSON.stringify(aiData));
-      return new Response(JSON.stringify({ error: "Failed to generate avatar image" }), {
-        status: 500,
+    if (!imageData || genError) {
+      console.error("Image generation failed after retries");
+      return new Response(JSON.stringify({ 
+        error: genError || "No se pudo generar el avatar. Intenta de nuevo.",
+        retry: true 
+      }), {
+        status: 503,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -223,7 +263,8 @@ serve(async (req) => {
   } catch (error) {
     console.error("Generate avatar error:", error);
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
+      error: error instanceof Error ? error.message : "Error desconocido",
+      retry: true
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
