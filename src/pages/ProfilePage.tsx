@@ -11,7 +11,6 @@ import { FriendRequestsList } from "@/components/FriendRequestsList";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { ProfilePhotoEditor } from "@/components/ProfilePhotoEditor";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-
 export default function ProfilePage() {
   const navigate = useNavigate();
   const {
@@ -72,23 +71,10 @@ export default function ProfilePage() {
         y: 0
       }} className="glass-card p-6 text-center border-success-foreground bg-white py-0 px-[22px]">
           {/* Avatar */}
-          <div className="relative inline-block mb-4 mt-[20px]">
-            <ProfilePhoto 
-              url={profile?.profile_photo_url || profile?.avatar_snapshot_url}
-              nick={profile?.nick || ''}
-              size="xl"
-              showBorder={true}
-              className="w-28 h-28 animate-pulse-glow"
-              onClick={() => setShowPhotoEditor(true)}
-              editable={true}
-            />
+          <div className="relative inline-block mb-4 mt-[20px] rounded-sm border-solid border-white">
+            <ProfilePhoto url={profile?.profile_photo_url || profile?.avatar_snapshot_url} nick={profile?.nick || ''} size="xl" showBorder={true} className="w-28 h-28 animate-pulse-glow" onClick={() => setShowPhotoEditor(true)} editable={true} />
             {/* Photo Editor Modal */}
-            <ProfilePhotoEditor
-              isOpen={showPhotoEditor}
-              onClose={() => setShowPhotoEditor(false)}
-              currentPhotoUrl={profile?.profile_photo_url || profile?.avatar_snapshot_url}
-              onPhotoUpdated={refreshProfile}
-            />
+            <ProfilePhotoEditor isOpen={showPhotoEditor} onClose={() => setShowPhotoEditor(false)} currentPhotoUrl={profile?.profile_photo_url || profile?.avatar_snapshot_url} onPhotoUpdated={refreshProfile} />
             
             {/* Level Badge */}
             <div className="absolute -top-2 -right-2 px-3 py-1 rounded-full bg-warning text-warning-foreground text-xs font-bold z-10">
@@ -281,12 +267,7 @@ function SettingsView({
         {/* User info */}
         <div className="glass-card p-4 mb-4">
           <div className="flex items-center gap-4">
-            <ProfilePhoto 
-              url={profile?.avatar_snapshot_url}
-              nick={profile?.nick || ''}
-              size="lg"
-              showBorder={true}
-            />
+            <ProfilePhoto url={profile?.avatar_snapshot_url} nick={profile?.nick || ''} size="lg" showBorder={true} />
             <div>
               <p className="font-semibold">@{profile?.nick || "Usuario"}</p>
               <p className="text-sm text-muted-foreground">{profile?.tutor_email}</p>
