@@ -1,17 +1,18 @@
 import { motion } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Video, X, Sparkles, Users, Lock, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { Camera, Video, X, Sparkles, Users, Lock, AlertCircle, Loader2, CheckCircle, Sticker } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useMediaUpload } from "@/hooks/useMediaUpload";
 import { useModeration } from "@/hooks/useModeration";
+import { useStickers } from "@/hooks/useStickers";
 import { Progress } from "@/components/ui/progress";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { ModerationWarning } from "@/components/ModerationWarning";
-
-// Emojis para stickers
-const stickers = ["😀", "😂", "🥳", "🔥", "💯", "🎮", "🎨", "🎵", "⭐", "💪", "🏆", "❤️"];
+import { StickerPicker } from "@/components/StickerPicker";
+import { StickerOverlay, PlacedSticker } from "@/components/StickerOverlay";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function PublishPage() {
   const navigate = useNavigate();
@@ -19,10 +20,14 @@ export default function PublishPage() {
   const { createPost } = usePosts();
   const { uploadMedia, uploadProgress, resetProgress } = useMediaUpload();
   const { checkContent, isChecking, suspensionInfo, formatSuspensionTime, checkSuspension } = useModeration();
+  const { getAvailableStickers } = useStickers();
+  const availableStickers = getAvailableStickers();
 
   // File input refs
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  
   const [step, setStep] = useState<"select" | "edit" | "publish">("select");
   const [mediaType, setMediaType] = useState<"photo" | "video" | null>(null);
   const [caption, setCaption] = useState("");
@@ -33,6 +38,10 @@ export default function PublishPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  
+  // Sticker overlay state
+  const [placedStickers, setPlacedStickers] = useState<PlacedSticker[]>([]);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
 
   // Check suspension on mount
   useEffect(() => {
@@ -103,15 +112,36 @@ export default function PublishPage() {
 
     setIsPublishing(true);
     try {
-      const { error } = await createPost({
+      const { data: postData, error } = await createPost({
         type: mediaType === 'photo' ? 'image' : 'video',
         content_url: uploadedUrl,
         text: caption || undefined,
         privacy: privacy
       });
+      
       if (error) {
         setWarning(error.message);
-      } else {
+      } else if (postData) {
+        // Save stickers to post_stickers
+        if (placedStickers.length > 0) {
+          const stickersToInsert = placedStickers.map(s => ({
+            post_id: postData.id,
+            sticker_id: s.sticker.id,
+            x: s.x,
+            y: s.y,
+            scale: s.scale,
+            rotation: s.rotation
+          }));
+          
+          const { error: stickersError } = await supabase
+            .from('post_stickers')
+            .insert(stickersToInsert);
+            
+          if (stickersError) {
+            console.error('Error saving stickers:', stickersError);
+          }
+        }
+        
         // Clean up preview URL
         if (previewUrl) {
           URL.revokeObjectURL(previewUrl);
@@ -136,11 +166,36 @@ export default function PublishPage() {
         setPreviewUrl(null);
       }
       setUploadedUrl(null);
+      setPlacedStickers([]);
       resetProgress();
     } else {
       setStep("edit");
     }
   };
+  
+  // Sticker handlers
+  const handleAddSticker = useCallback((sticker: typeof availableStickers[0]) => {
+    const newPlacedSticker: PlacedSticker = {
+      id: crypto.randomUUID(),
+      sticker: sticker,
+      x: 0.5,
+      y: 0.5,
+      scale: 1,
+      rotation: 0
+    };
+    setPlacedStickers(prev => [...prev, newPlacedSticker]);
+    setShowStickerPicker(false);
+  }, []);
+  
+  const handleUpdateSticker = useCallback((id: string, updates: Partial<PlacedSticker>) => {
+    setPlacedStickers(prev => 
+      prev.map(s => s.id === id ? { ...s, ...updates } : s)
+    );
+  }, []);
+  
+  const handleRemoveSticker = useCallback((id: string) => {
+    setPlacedStickers(prev => prev.filter(s => s.id !== id));
+  }, []);
   return <div className="min-h-screen bg-purple-50">
       {/* Hidden file inputs */}
       <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={e => handleFileSelect(e, 'photo')} className="hidden" />
@@ -248,30 +303,57 @@ export default function PublishPage() {
         </div>}
 
       {step === "edit" && previewUrl && <div className="flex flex-col h-[calc(100vh-60px)]">
-          {/* Media Preview */}
-          <div className="relative flex-1 bg-background">
-            {mediaType === "video" ? <video src={previewUrl} controls className="w-full h-full object-contain" /> : <img src={previewUrl} alt="" className="w-full h-full object-contain" />}
+          {/* Media Preview with Sticker Overlay */}
+          <div 
+            ref={imageContainerRef}
+            className="relative flex-1 bg-background overflow-hidden"
+          >
+            {mediaType === "video" ? (
+              <video src={previewUrl} controls className="w-full h-full object-contain" />
+            ) : (
+              <>
+                <img src={previewUrl} alt="" className="w-full h-full object-contain" />
+                <StickerOverlay
+                  stickers={placedStickers}
+                  onUpdateSticker={handleUpdateSticker}
+                  onRemoveSticker={handleRemoveSticker}
+                  editable={true}
+                  containerRef={imageContainerRef}
+                />
+              </>
+            )}
             
             {/* Upload status badge */}
-            {uploadedUrl && <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-green-500/90 text-white text-xs flex items-center gap-1">
+            {uploadedUrl && <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-green-500/90 text-white text-xs flex items-center gap-1 z-20">
                 <CheckCircle className="w-3 h-3" />
                 Subido
               </div>}
           </div>
 
-          {/* Stickers */}
+          {/* Sticker Controls */}
           <div className="p-4 bg-background/80 backdrop-blur-xl border-t border-border/30">
-            <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
-              Stickers del día
-            </p>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {stickers.map(emoji => <motion.button key={emoji} whileTap={{
-            scale: 0.9
-          }} className="w-12 h-12 rounded-xl bg-card flex items-center justify-center text-2xl flex-shrink-0 hover:bg-muted transition-colors">
-                  {emoji}
-                </motion.button>)}
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                Stickers {placedStickers.length > 0 && `(${placedStickers.length})`}
+              </p>
+              {mediaType === "photo" && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowStickerPicker(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium"
+                >
+                  <Sticker className="w-4 h-4" />
+                  Añadir sticker
+                </motion.button>
+              )}
             </div>
+            
+            {placedStickers.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Toca un sticker para moverlo, escalarlo o rotarlo
+              </p>
+            )}
           </div>
         </div>}
 
@@ -377,5 +459,12 @@ export default function PublishPage() {
             </div>
           </div>
         </div>}
+        
+      {/* Sticker Picker Modal */}
+      <StickerPicker
+        isOpen={showStickerPicker}
+        onClose={() => setShowStickerPicker(false)}
+        onSelect={handleAddSticker}
+      />
     </div>;
 }
