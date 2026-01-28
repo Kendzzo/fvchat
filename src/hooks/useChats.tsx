@@ -40,6 +40,15 @@ export function useChats() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Add a new chat to local state immediately (optimistic update)
+  const addChatToState = (newChat: Chat) => {
+    setChats(prev => {
+      // Avoid duplicates
+      if (prev.some(c => c.id === newChat.id)) return prev;
+      return [newChat, ...prev];
+    });
+  };
+
   const fetchChats = async () => {
     if (!user) {
       setIsLoading(false);
@@ -105,7 +114,7 @@ export function useChats() {
   };
 
   const createChat = async (participantIds: string[], isGroup: boolean = false, name?: string) => {
-    if (!user) return { error: new Error('No autenticado') };
+    if (!user) return { error: new Error('No autenticado'), data: null };
 
     try {
       const allParticipants = [...new Set([user.id, ...participantIds])];
@@ -122,13 +131,33 @@ export function useChats() {
         .single();
 
       if (insertError) {
-        return { error: new Error(insertError.message) };
+        return { error: new Error(insertError.message), data: null };
       }
 
-      await fetchChats();
-      return { data, error: null };
+      // Fetch other participant info for immediate display
+      let otherParticipant = null;
+      if (!isGroup && participantIds.length === 1) {
+        const { data: participantData } = await supabase
+          .from('profiles')
+          .select('nick, avatar_data, avatar_snapshot_url, last_seen_at')
+          .eq('id', participantIds[0])
+          .maybeSingle();
+        otherParticipant = participantData;
+      }
+
+      // Add to local state immediately
+      const newChat: Chat = {
+        ...data,
+        lastMessage: '',
+        lastMessageTime: data.created_at,
+        unreadCount: 0,
+        otherParticipant
+      };
+      addChatToState(newChat);
+
+      return { data: newChat, error: null };
     } catch (err) {
-      return { error: err as Error };
+      return { error: err as Error, data: null };
     }
   };
 
@@ -161,6 +190,7 @@ export function useChats() {
     isLoading,
     error,
     createChat,
+    addChatToState,
     refreshChats: fetchChats
   };
 }

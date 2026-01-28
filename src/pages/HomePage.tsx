@@ -3,7 +3,8 @@ import { usePosts } from '@/hooks/usePosts';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useAuth } from '@/hooks/useAuth';
 import { CommentSection } from '@/components/CommentSection';
-import { Heart, X, Plus, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Heart, X, Plus, MessageCircle, MoreHorizontal, Swords } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import vfcLogo from '@/assets/vfc-logo.png';
@@ -191,7 +192,16 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-black text-xl">@{post.author?.nick}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-black text-xl">@{post.author?.nick}</p>
+                    {/* Challenge badge */}
+                    {(post.challenge_id || post.is_challenge_entry) && (
+                      <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0">
+                        <Swords className="w-3 h-3 mr-1" />
+                        DESAFÍO
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 ml-[5px]">{formatTimeAgo(post.created_at)}</p>
                 </div>
                 <button className="p-2 text-gray-400 hover:text-gray-600">

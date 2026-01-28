@@ -40,28 +40,41 @@ export function NewChatModal({
     const otherUserId = friendship.friend.id;
 
     // Check if direct chat already exists
-    const existingChat = chats.find(chat => !chat.is_group && chat.participant_ids.length === 2 && chat.participant_ids.includes(user.id) && chat.participant_ids.includes(otherUserId));
+    const existingChat = chats.find(chat => 
+      !chat.is_group && 
+      chat.participant_ids.length === 2 && 
+      chat.participant_ids.includes(user.id) && 
+      chat.participant_ids.includes(otherUserId)
+    );
+    
     if (existingChat) {
-      onChatCreated(existingChat.id);
+      // Close modal first, then navigate
       onOpenChange(false);
+      // Small delay to allow modal to close before navigation
+      setTimeout(() => {
+        onChatCreated(existingChat.id);
+      }, 100);
       setIsCreating(null);
       return;
     }
 
-    // Create new chat
-    const {
-      data,
-      error
-    } = await createChat([otherUserId], false);
+    // Create new chat - wait for the full response
+    const { data, error } = await createChat([otherUserId], false);
+    
     if (error) {
       toast.error(`Error al crear chat: ${error.message}`);
       setIsCreating(null);
       return;
     }
+    
     if (data) {
-      onChatCreated(data.id);
+      // Close modal first
       onOpenChange(false);
       toast.success(`Chat con @${friendship.friend.nick} creado`);
+      // Small delay to allow modal to close and state to update
+      setTimeout(() => {
+        onChatCreated(data.id);
+      }, 100);
     }
     setIsCreating(null);
   };
