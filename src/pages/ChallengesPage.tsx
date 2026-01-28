@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Trophy, Clock, Users, Sparkles, ChevronRight, Star, Medal, Crown, Loader2 } from "lucide-react";
 import { useChallenges } from "@/hooks/useChallenges";
 import { AvatarBadge } from "@/components/avatar/AvatarBadge";
+import { ChallengeParticipateModal } from "@/components/challenges/ChallengeParticipateModal";
+import { toast } from "sonner";
 
 const rewards = [
   { id: "1", name: "Gorra Épica", emoji: "🧢", rarity: "Épico" },
@@ -13,6 +15,16 @@ const rewards = [
 export default function ChallengesPage() {
   const { todayChallenge, isLoading, submitEntry, likeEntry } = useChallenges();
   const [showParticipate, setShowParticipate] = useState(false);
+
+  const handleSubmitEntry = async (contentUrl: string, visibility: "friends" | "public" = "public") => {
+    const { error } = await submitEntry(contentUrl, visibility);
+    if (error) {
+      toast.error(error.message);
+      return { error };
+    }
+    setShowParticipate(false);
+    return {};
+  };
 
   const getTimeRemaining = () => {
     const now = new Date();
@@ -26,6 +38,18 @@ export default function ChallengesPage() {
 
   return (
     <div className="min-h-screen bg-[#e8e6ff]">
+      {/* Challenge Participate Modal */}
+      {todayChallenge && (
+        <ChallengeParticipateModal
+          isOpen={showParticipate}
+          onClose={() => setShowParticipate(false)}
+          challengeId={todayChallenge.id}
+          challengeTitle={todayChallenge.description}
+          onSubmit={handleSubmitEntry}
+          entriesRemaining={3 - (todayChallenge.my_entries_count || 0)}
+        />
+      )}
+      
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center justify-between">

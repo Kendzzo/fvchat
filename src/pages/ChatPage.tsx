@@ -40,9 +40,18 @@ export default function ChatPage() {
     setShowNewChatModal(true);
   };
   const handleChatCreated = (chatId: string) => {
+    // Find the chat in the updated list (it should be there due to optimistic update)
     const chat = chats.find(c => c.id === chatId);
     if (chat) {
       setSelectedChat(chat);
+    } else {
+      // If not found yet, refresh and try again
+      setTimeout(() => {
+        const retryChat = chats.find(c => c.id === chatId);
+        if (retryChat) {
+          setSelectedChat(retryChat);
+        }
+      }, 300);
     }
   };
   const handleSelectChat = async (chat: Chat) => {
