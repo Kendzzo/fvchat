@@ -321,6 +321,7 @@ export function useChallenges() {
     }
 
     try {
+      // 1) Insert into challenge_entries
       const { data, error: insertError } = await supabase
         .from('challenge_entries')
         .insert({
@@ -335,8 +336,34 @@ export function useChallenges() {
         return { error: new Error(insertError.message) };
       }
 
+      // 2) Also create a post so it appears in Home feed
+      const postType = contentUrl.match(/\.(mp4|mov|webm)(\?|$)/i) ? 'video' : 'photo';
+      const privacy = visibility === 'friends' ? 'friends_only' : 'same_age_group';
+      
+      const { error: postError } = await supabase
+        .from('posts')
+        .insert({
+          author_id: user.id,
+          type: postType,
+          content_url: contentUrl,
+          text: null,
+          privacy,
+          is_challenge_entry: true,
+          challenge_id: todayChallenge.id
+        });
+
+      if (postError) {
+        console.error('Error creating post for challenge:', postError);
+        toast.error('Error al publicar en Home');
+        return { error: new Error(postError.message) };
+      }
+
       toast.success('¡Participación enviada!');
       await fetchTodayChallenge();
+      
+      // Dispatch event to refresh posts in Home
+      window.dispatchEvent(new Event('vfc-posts-refresh'));
+      
       return { data, error: null };
     } catch (err) {
       return { error: err as Error };
