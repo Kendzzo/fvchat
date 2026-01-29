@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Video, X, Loader2, Users, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Camera, Video, X, Loader2, Users, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ChallengeParticipateModalProps {
   isOpen: boolean;
   onClose: () => void;
   challengeId: string;
   challengeTitle: string;
-  onSubmit: (contentUrl: string, visibility: 'public' | 'friends') => Promise<{ error?: Error | null }>;
+  onSubmit: (contentUrl: string, visibility: "public" | "friends") => Promise<{ error?: Error | null }>;
   entriesRemaining: number;
 }
 
@@ -20,33 +20,33 @@ export function ChallengeParticipateModal({
   onClose,
   challengeTitle,
   onSubmit,
-  entriesRemaining
+  entriesRemaining,
 }: ChallengeParticipateModalProps) {
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [visibility, setVisibility] = useState<'public' | 'friends'>('public');
+  const [visibility, setVisibility] = useState<"public" | "friends">("public");
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "video") => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
     // Validate file size
-    const maxSize = type === 'image' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
+    const maxSize = type === "image" ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
     if (selectedFile.size > maxSize) {
-      toast.error(`Archivo muy grande. Máximo ${type === 'image' ? '10MB' : '50MB'}`);
+      toast.error(`Archivo muy grande. Máximo ${type === "image" ? "10MB" : "50MB"}`);
       return;
     }
 
     // Validate video duration (10s max)
-    if (type === 'video') {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
+    if (type === "video") {
+      const video = document.createElement("video");
+      video.preload = "metadata";
       video.onloadedmetadata = () => {
         URL.revokeObjectURL(video.src);
         if (video.duration > 10) {
-          toast.error('El vídeo debe durar máximo 10 segundos');
+          toast.error("El vídeo debe durar máximo 10 segundos");
           return;
         }
         setFile(selectedFile);
@@ -65,25 +65,23 @@ export function ChallengeParticipateModal({
     setIsUploading(true);
     try {
       // Upload to Supabase storage
-      const ext = file.name.split('.').pop();
-      const path = `challenges/${user.id}/${Date.now()}.${ext}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('content')
-        .upload(path, file);
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/challenges/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage.from("content").upload(path, file);
 
       if (uploadError) {
         throw uploadError;
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('content')
-        .getPublicUrl(path);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("content").getPublicUrl(path);
 
       // Submit entry
       const result = await onSubmit(publicUrl, visibility);
-      
+
       if (result.error) {
         throw result.error;
       }
@@ -93,8 +91,8 @@ export function ChallengeParticipateModal({
       setFile(null);
       onClose();
     } catch (err) {
-      console.error('Upload error:', err);
-      toast.error('Error al subir el archivo');
+      console.error("Upload error:", err);
+      toast.error("Error al subir el archivo");
     } finally {
       setIsUploading(false);
     }
@@ -141,27 +139,28 @@ export function ChallengeParticipateModal({
             <div className="flex items-center justify-center gap-2 text-sm">
               <div className="flex gap-1">
                 {[...Array(3)].map((_, i) => (
-                  <div 
-                    key={i} 
-                    className={`w-3 h-3 rounded-full ${i < (3 - entriesRemaining) ? "bg-primary" : "bg-muted"}`} 
+                  <div
+                    key={i}
+                    className={`w-3 h-3 rounded-full ${i < 3 - entriesRemaining ? "bg-primary" : "bg-muted"}`}
                   />
                 ))}
               </div>
-              <span className="text-muted-foreground">
-                {entriesRemaining} participaciones restantes
-              </span>
+              <span className="text-muted-foreground">{entriesRemaining} participaciones restantes</span>
             </div>
 
             {/* Preview or Upload */}
             {preview ? (
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted">
-                {file?.type.startsWith('video') ? (
+                {file?.type.startsWith("video") ? (
                   <video src={preview} controls className="w-full h-full object-contain" />
                 ) : (
                   <img src={preview} alt="Preview" className="w-full h-full object-contain" />
                 )}
                 <button
-                  onClick={() => { setPreview(null); setFile(null); }}
+                  onClick={() => {
+                    setPreview(null);
+                    setFile(null);
+                  }}
                   className="absolute top-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/70"
                 >
                   <X className="w-4 h-4 text-white" />
@@ -174,7 +173,7 @@ export function ChallengeParticipateModal({
                     type="file"
                     accept="image/*"
                     capture="environment"
-                    onChange={(e) => handleFileSelect(e, 'image')}
+                    onChange={(e) => handleFileSelect(e, "image")}
                     className="hidden"
                   />
                   <div className="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-colors">
@@ -184,13 +183,13 @@ export function ChallengeParticipateModal({
                     <span className="font-medium">Foto</span>
                   </div>
                 </label>
-                
+
                 <label className="cursor-pointer">
                   {/* Video input: NO capture for iPhone MOV compatibility */}
                   <input
                     type="file"
                     accept="video/*,video/quicktime,video/mp4"
-                    onChange={(e) => handleFileSelect(e, 'video')}
+                    onChange={(e) => handleFileSelect(e, "video")}
                     className="hidden"
                   />
                   <div className="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-dashed border-secondary/30 hover:border-secondary/60 hover:bg-secondary/5 transition-colors">
@@ -210,22 +209,22 @@ export function ChallengeParticipateModal({
                 <p className="text-sm font-medium">¿Quién puede verlo?</p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setVisibility('public')}
+                    onClick={() => setVisibility("public")}
                     className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-colors ${
-                      visibility === 'public' 
-                        ? 'border-primary bg-primary/10 text-primary' 
-                        : 'border-border hover:border-primary/50'
+                      visibility === "public"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:border-primary/50"
                     }`}
                   >
                     <Users className="w-4 h-4" />
                     Todos
                   </button>
                   <button
-                    onClick={() => setVisibility('friends')}
+                    onClick={() => setVisibility("friends")}
                     className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-colors ${
-                      visibility === 'friends' 
-                        ? 'border-secondary bg-secondary/10 text-secondary' 
-                        : 'border-border hover:border-secondary/50'
+                      visibility === "friends"
+                        ? "border-secondary bg-secondary/10 text-secondary"
+                        : "border-border hover:border-secondary/50"
                     }`}
                   >
                     <Eye className="w-4 h-4" />
@@ -249,7 +248,7 @@ export function ChallengeParticipateModal({
                   Subiendo...
                 </>
               ) : (
-                '¡Participar!'
+                "¡Participar!"
               )}
             </Button>
           </div>
