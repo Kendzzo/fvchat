@@ -239,22 +239,21 @@ export default function HomePage() {
                     )}
                   </div>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-black text-xl">@{post.author?.nick}</p>
-                    {/* Challenge badge */}
-                    {(post.challenge_id || post.is_challenge_entry) && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs px-2 py-0.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0"
-                      >
-                        <Swords className="w-3 h-3 mr-1" />
-                        DESAFÍO
-                      </Badge>
-                    )}
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-black text-xl truncate">@{post.author?.nick}</p>
                   <p className="text-xs text-gray-500 ml-[5px]">{formatTimeAgo(post.created_at)}</p>
                 </div>
+                {/* Challenge badge - clickable, top right */}
+                {(post.challenge_id || post.is_challenge_entry) && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate('/app/challenges'); }}
+                    className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-sm hover:opacity-90 active:scale-95 transition cursor-pointer"
+                    aria-label="Ir a Desafíos"
+                  >
+                    <Swords className="w-3 h-3" />
+                    DESAFÍO
+                  </button>
+                )}
                 <button className="p-2 text-gray-400 hover:text-gray-600">
                   <MoreHorizontal className="w-5 h-5" />
                 </button>
