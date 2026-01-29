@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, X, UserCheck, Sparkles } from "lucide-react";
+import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, FileText, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useFriendships } from "@/hooks/useFriendships";
@@ -11,6 +11,16 @@ import { FriendRequestsList } from "@/components/FriendRequestsList";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { ProfilePhotoEditor } from "@/components/ProfilePhotoEditor";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { EditProfileScreen } from "@/components/settings/EditProfileScreen";
+import { AccountInfoScreen } from "@/components/settings/AccountInfoScreen";
+import { NotificationsScreen } from "@/components/settings/NotificationsScreen";
+import { PrivacyScreen } from "@/components/settings/PrivacyScreen";
+import { SecurityScreen } from "@/components/settings/SecurityScreen";
+import { RulesScreen } from "@/components/settings/RulesScreen";
+import { HelpScreen } from "@/components/settings/HelpScreen";
+
+type SettingsScreen = 'main' | 'edit-profile' | 'account-info' | 'notifications' | 'privacy' | 'security' | 'rules' | 'help';
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const {
@@ -31,21 +41,60 @@ export default function ProfilePage() {
   } = useFriendships();
   const [activeTab, setActiveTab] = useState<"posts" | "likes">("posts");
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>('main');
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
+
   const handleLogout = async () => {
     await signOut();
     navigate("/");
   };
+
+  const handleBackToSettings = () => {
+    setSettingsScreen('main');
+  };
+
+  const handleCloseSettings = () => {
+    setShowSettings(false);
+    setSettingsScreen('main');
+  };
+
   const myPosts = posts.filter(p => p.author_id === profile?.id);
   const totalLikes = myPosts.reduce((sum, post) => sum + post.likes_count, 0);
+
   if (authLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>;
   }
+
+  // Render specific settings screens
   if (showSettings) {
-    return <SettingsView onBack={() => setShowSettings(false)} onLogout={handleLogout} />;
+    switch (settingsScreen) {
+      case 'edit-profile':
+        return <EditProfileScreen onBack={handleBackToSettings} />;
+      case 'account-info':
+        return <AccountInfoScreen onBack={handleBackToSettings} />;
+      case 'notifications':
+        return <NotificationsScreen onBack={handleBackToSettings} />;
+      case 'privacy':
+        return <PrivacyScreen onBack={handleBackToSettings} />;
+      case 'security':
+        return <SecurityScreen onBack={handleBackToSettings} />;
+      case 'rules':
+        return <RulesScreen onBack={handleBackToSettings} />;
+      case 'help':
+        return <HelpScreen onBack={handleBackToSettings} />;
+      default:
+        return (
+          <SettingsView 
+            onBack={handleCloseSettings} 
+            onLogout={handleLogout}
+            onNavigate={setSettingsScreen}
+          />
+        );
+    }
   }
+
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 py-3 px-px my-0">
@@ -222,41 +271,62 @@ export default function ProfilePage() {
 // Settings View
 function SettingsView({
   onBack,
-  onLogout
+  onLogout,
+  onNavigate
 }: {
   onBack: () => void;
   onLogout: () => void;
+  onNavigate: (screen: SettingsScreen) => void;
 }) {
-  const {
-    profile
-  } = useAuth();
-  const settingsItems = [{
-    icon: Edit3,
-    label: "Editar perfil",
-    action: () => {}
-  }, {
-    icon: Shield,
-    label: "Privacidad y seguridad",
-    action: () => {}
-  }, {
-    icon: Bell,
-    label: "Notificaciones",
-    action: () => {}
-  }, {
-    icon: Lock,
-    label: "Control parental",
-    action: () => {}
-  }, {
-    icon: HelpCircle,
-    label: "Ayuda",
-    action: () => {}
-  }];
-  return <div className="min-h-screen bg-purple-50">
+  const { profile } = useAuth();
+
+  const settingsItems = [
+    {
+      icon: Edit3,
+      label: "Editar perfil",
+      action: () => onNavigate('edit-profile')
+    },
+    {
+      icon: User,
+      label: "Información de la cuenta",
+      action: () => onNavigate('account-info')
+    },
+    {
+      icon: Bell,
+      label: "Notificaciones",
+      action: () => onNavigate('notifications')
+    },
+    {
+      icon: Lock,
+      label: "Privacidad",
+      action: () => onNavigate('privacy')
+    },
+    {
+      icon: Shield,
+      label: "Seguridad",
+      action: () => onNavigate('security')
+    },
+    {
+      icon: FileText,
+      label: "Normas y seguridad",
+      action: () => onNavigate('rules')
+    },
+    {
+      icon: HelpCircle,
+      label: "Ayuda y soporte",
+      action: () => onNavigate('help')
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-purple-50">
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-4">
-          <motion.button whileTap={{
-          scale: 0.9
-        }} onClick={onBack} className="p-2 rounded-xl bg-card transition-colors text-white text-2xl">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={onBack}
+            className="p-2 rounded-xl bg-card transition-colors text-white text-2xl"
+          >
             ←
           </motion.button>
           <h1 className="text-xl font-gaming font-bold bg-transparent border-white">Ajustes</h1>
@@ -267,7 +337,12 @@ function SettingsView({
         {/* User info */}
         <div className="glass-card p-4 mb-4">
           <div className="flex items-center gap-4">
-            <ProfilePhoto url={profile?.avatar_snapshot_url} nick={profile?.nick || ''} size="lg" showBorder={true} />
+            <ProfilePhoto
+              url={profile?.profile_photo_url || profile?.avatar_snapshot_url}
+              nick={profile?.nick || ''}
+              size="lg"
+              showBorder={true}
+            />
             <div>
               <p className="font-semibold">@{profile?.nick || "Usuario"}</p>
               <p className="text-sm text-muted-foreground">{profile?.tutor_email}</p>
@@ -275,32 +350,31 @@ function SettingsView({
           </div>
         </div>
 
-        {settingsItems.map((item, i) => <motion.button key={i} initial={{
-        opacity: 0,
-        x: -20
-      }} animate={{
-        opacity: 1,
-        x: 0
-      }} transition={{
-        delay: i * 0.05
-      }} onClick={item.action} className="w-full glass-card p-4 flex items-center gap-4">
+        {settingsItems.map((item, i) => (
+          <motion.button
+            key={i}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.05 }}
+            onClick={item.action}
+            className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/80 active:scale-[0.98] transition-all"
+          >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground bg-transparent">
               <item.icon className="w-5 h-5 text-white" />
             </div>
             <span className="flex-1 text-left font-medium mr-0 ml-0 text-lg">{item.label}</span>
             <ChevronRight className="w-5 h-5 text-white" />
-          </motion.button>)}
+          </motion.button>
+        ))}
 
         {/* Logout */}
-        <motion.button initial={{
-        opacity: 0,
-        x: -20
-      }} animate={{
-        opacity: 1,
-        x: 0
-      }} transition={{
-        delay: 0.3
-      }} onClick={onLogout} className="w-full glass-card p-4 flex items-center gap-4 mt-8">
+        <motion.button
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          onClick={onLogout}
+          className="w-full glass-card p-4 flex items-center gap-4 mt-8 hover:bg-destructive/10 active:scale-[0.98] transition-all"
+        >
           <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center text-destructive">
             <LogOut className="w-5 h-5" />
           </div>
@@ -313,5 +387,6 @@ function SettingsView({
           <p className="text-muted-foreground text-base">Red social segura para menores</p>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 }
