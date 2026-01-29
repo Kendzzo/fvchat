@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { Trophy, Clock, Users, Sparkles, ChevronRight, Star, Medal, Crown, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Trophy, Clock, Users, Sparkles, ChevronRight, Star, Medal, Crown, Loader2, RefreshCw, Wand2 } from "lucide-react";
 import { useChallenges } from "@/hooks/useChallenges";
+import { useAuth } from "@/hooks/useAuth";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { ChallengeParticipateModal } from "@/components/challenges/ChallengeParticipateModal";
 import { toast } from "sonner";
-const rewards = [{
+
+// Fallback rewards when no real rewards are configured
+const fallbackRewards = [{
   id: "1",
   name: "Gorra Épica",
   emoji: "🧢",
@@ -25,10 +28,56 @@ export default function ChallengesPage() {
   const {
     todayChallenge,
     isLoading,
+    error,
     submitEntry,
-    likeEntry
+    likeEntry,
+    generateTodayChallenge,
+    ensureTodayChallenge,
+    refreshChallenge
   } = useChallenges();
+  const { isAdmin, user } = useAuth();
   const [showParticipate, setShowParticipate] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const hasEnsured = useRef(false);
+
+  // Auto-ensure challenge exists on mount
+  useEffect(() => {
+    if (!hasEnsured.current && user) {
+      hasEnsured.current = true;
+      ensureTodayChallenge();
+    }
+  }, [user, ensureTodayChallenge]);
+
+  // Handle manual retry
+  const handleRetry = async () => {
+    setIsGenerating(true);
+    try {
+      await ensureTodayChallenge();
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle admin manual generation
+  const handleAdminGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      await generateTodayChallenge();
+      await refreshChallenge();
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Use real rewards if available, otherwise fallback
+  const displayRewards = (todayChallenge?.rewards && todayChallenge.rewards.length > 0)
+    ? todayChallenge.rewards.map((r, idx) => ({
+        id: r.id,
+        name: r.sticker?.name || r.avatar_item?.name || `Premio ${idx + 1}`,
+        emoji: r.sticker?.emoji || "🎁",
+        rarity: r.sticker?.rarity || r.avatar_item?.rarity || "Común"
+      }))
+    : fallbackRewards;
   const handleSubmitEntry = async (contentUrl: string, visibility: "friends" | "public" = "public") => {
     const {
       error
@@ -183,10 +232,54 @@ export default function ChallengesPage() {
           </> : <div className="glass-card p-8 text-center py-[50px]">
             <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-gaming font-bold text-xl mb-2">No hay desafío activo</h3>
-            <p className="text-muted-foreground">
-              ¡Vuelve mañana para el próximo desafío!
+            <p className="text-muted-foreground mb-4">
+              {error || "¡Vuelve mañana para el próximo desafío!"}
             </p>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleRetry}
+              disabled={isGenerating}
+              className="btn-gaming px-6 py-3 rounded-xl text-foreground font-gaming inline-flex items-center gap-2 disabled:opacity-50"
+            >
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Reintentar
+            </motion.button>
           </div>}
+
+        {/* Admin Generate Button */}
+        {isAdmin && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="glass-card p-4 border-warning/30"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-5 h-5 text-warning" />
+                <span className="text-sm font-medium text-warning">Admin</span>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleAdminGenerate}
+                disabled={isGenerating}
+                className="px-4 py-2 rounded-lg bg-warning/20 text-warning font-medium text-sm inline-flex items-center gap-2 disabled:opacity-50"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Wand2 className="w-4 h-4" />
+                )}
+                Generar desafío (admin)
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Rewards */}
         <motion.div initial={{
@@ -204,7 +297,7 @@ export default function ChallengesPage() {
           </h3>
 
           <div className="grid grid-cols-3 gap-3">
-            {rewards.map((reward, index) => <motion.div key={reward.id} initial={{
+            {displayRewards.map((reward, index) => <motion.div key={reward.id} initial={{
             opacity: 0,
             scale: 0.9
           }} animate={{
@@ -215,8 +308,8 @@ export default function ChallengesPage() {
           }} className="text-center p-4 rounded-xl border border-border/50 bg-white">
                 <div className="text-4xl mb-2 px-[10px] py-[10px]">{reward.emoji}</div>
                 <p className="font-medium truncate text-secondary-foreground text-base">{reward.name}</p>
-                <p className={`text-[10px] mt-1 ${reward.rarity === "Legendario" ? "text-warning" : reward.rarity === "Épico" ? "text-primary" : "text-secondary"}`}>
-                  {reward.rarity}
+                <p className={`text-[10px] mt-1 ${reward.rarity === "Legendario" || reward.rarity === "legendary" ? "text-warning" : reward.rarity === "Épico" || reward.rarity === "epic" ? "text-primary" : "text-secondary"}`}>
+                  {reward.rarity === "epic" ? "Épico" : reward.rarity === "rare" ? "Raro" : reward.rarity === "common" ? "Común" : reward.rarity === "legendary" ? "Legendario" : reward.rarity}
                 </p>
               </motion.div>)}
           </div>

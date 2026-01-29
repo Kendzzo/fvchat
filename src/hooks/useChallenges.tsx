@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
@@ -95,6 +95,7 @@ export function useChallenges() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const isEnsuring = useRef(false); // Guard to prevent multiple concurrent calls
 
   // Calculate time remaining until midnight Madrid
   const calculateTimeRemaining = useCallback(() => {
@@ -397,7 +398,9 @@ export function useChallenges() {
       const { data, error } = await supabase.functions.invoke('generate-daily-challenge');
       
       if (error) {
-        toast.error('Error generando desafío');
+        const errorMessage = error.message || 'Error desconocido';
+        setError('No se pudo generar el desafío');
+        toast.error(`Error generando desafío: ${errorMessage}`);
         return { error };
       }
       
@@ -405,9 +408,47 @@ export function useChallenges() {
       await fetchTodayChallenge();
       return { data };
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError('No se pudo generar el desafío');
+      toast.error(`Error: ${errorMessage}`);
       return { error: err };
     }
   };
+
+  // Ensure today's challenge exists - auto-generates if missing
+  const ensureTodayChallenge = useCallback(async () => {
+    // Prevent multiple concurrent calls
+    if (isEnsuring.current) return;
+    isEnsuring.current = true;
+    
+    try {
+      setError(null);
+      await fetchTodayChallenge();
+      
+      // Check if challenge still doesn't exist after fetch
+      // We need to re-fetch the state since fetchTodayChallenge updates it
+      const today = new Date().toLocaleDateString('en-CA', { 
+        timeZone: 'Europe/Madrid' 
+      });
+      
+      const { data: existingChallenge } = await supabase
+        .from('challenges')
+        .select('id')
+        .eq('challenge_date', today)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (!existingChallenge) {
+        console.log('No challenge found for today, generating...');
+        const result = await generateTodayChallenge();
+        if (result.error) {
+          console.error('Failed to generate challenge:', result.error);
+        }
+      }
+    } finally {
+      isEnsuring.current = false;
+    }
+  }, [fetchTodayChallenge]);
 
   // Legacy compatibility
   const likeEntry = async (entryId: string) => {
@@ -449,6 +490,7 @@ export function useChallenges() {
     toggleLikeEntry,
     likeEntry,
     generateTodayChallenge,
+    ensureTodayChallenge,
     refreshChallenge: fetchTodayChallenge
   };
 }
