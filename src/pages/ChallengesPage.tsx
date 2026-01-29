@@ -35,7 +35,10 @@ export default function ChallengesPage() {
     ensureTodayChallenge,
     refreshChallenge
   } = useChallenges();
-  const { isAdmin, user } = useAuth();
+  const {
+    isAdmin,
+    user
+  } = useAuth();
   const [showParticipate, setShowParticipate] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const hasEnsured = useRef(false);
@@ -70,14 +73,12 @@ export default function ChallengesPage() {
   };
 
   // Use real rewards if available, otherwise fallback
-  const displayRewards = (todayChallenge?.rewards && todayChallenge.rewards.length > 0)
-    ? todayChallenge.rewards.map((r, idx) => ({
-        id: r.id,
-        name: r.sticker?.name || r.avatar_item?.name || `Premio ${idx + 1}`,
-        emoji: r.sticker?.emoji || "🎁",
-        rarity: r.sticker?.rarity || r.avatar_item?.rarity || "Común"
-      }))
-    : fallbackRewards;
+  const displayRewards = todayChallenge?.rewards && todayChallenge.rewards.length > 0 ? todayChallenge.rewards.map((r, idx) => ({
+    id: r.id,
+    name: r.sticker?.name || r.avatar_item?.name || `Premio ${idx + 1}`,
+    emoji: r.sticker?.emoji || "🎁",
+    rarity: r.sticker?.rarity || r.avatar_item?.rarity || "Común"
+  })) : fallbackRewards;
   const handleSubmitEntry = async (contentUrl: string, visibility: "friends" | "public" = "public") => {
     const {
       error
@@ -131,7 +132,7 @@ export default function ChallengesPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-primary via-neon-purple to-secondary opacity-30" />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
 
-              <div className="relative p-6">
+              <div className="relative p-6 bg-white border-primary">
                 {/* Badge */}
                 <div className="flex items-center gap-2 mb-4">
                   <Sparkles className="w-5 h-5 text-secondary animate-pulse" />
@@ -141,24 +142,24 @@ export default function ChallengesPage() {
                 </div>
 
                 {/* Title */}
-                <h2 className="text-2xl font-gaming font-bold mb-2">{todayChallenge.description}</h2>
+                <h2 className="text-2xl font-gaming font-bold mb-2 text-secondary-foreground">{todayChallenge.description}</h2>
 
                 {/* Stats */}
                 <div className="flex items-center gap-6 mb-6">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-warning" />
-                    <span className="text-sm text-warning font-medium">{getTimeRemaining()}</span>
+                    <Clock className="w-4 h-4 text-red-500" />
+                    <span className="text-sm font-medium text-destructive">{getTimeRemaining()}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
+                    <Users className="w-4 h-4 text-black bg-transparent" />
+                    <span className="text-sm text-secondary-foreground">
                       {todayChallenge.participants_count || 0} participantes
                     </span>
                   </div>
                 </div>
 
                 {/* Participation info */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 text-black">
                   <div className="text-sm">
                     <span className="text-muted-foreground">Participaciones: </span>
                     <span className="text-foreground font-semibold">
@@ -235,51 +236,37 @@ export default function ChallengesPage() {
             <p className="text-muted-foreground mb-4">
               {error || "¡Vuelve mañana para el próximo desafío!"}
             </p>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleRetry}
-              disabled={isGenerating}
-              className="btn-gaming px-6 py-3 rounded-xl text-foreground font-gaming inline-flex items-center gap-2 disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
+            <motion.button whileHover={{
+          scale: 1.02
+        }} whileTap={{
+          scale: 0.98
+        }} onClick={handleRetry} disabled={isGenerating} className="btn-gaming px-6 py-3 rounded-xl text-foreground font-gaming inline-flex items-center gap-2 disabled:opacity-50">
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               Reintentar
             </motion.button>
           </div>}
 
         {/* Admin Generate Button */}
-        {isAdmin && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="glass-card p-4 border-warning/30"
-          >
+        {isAdmin && <motion.div initial={{
+        opacity: 0
+      }} animate={{
+        opacity: 1
+      }} className="glass-card p-4 border-warning/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Wand2 className="w-5 h-5 text-warning" />
                 <span className="text-sm font-medium text-warning">Admin</span>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAdminGenerate}
-                disabled={isGenerating}
-                className="px-4 py-2 rounded-lg bg-warning/20 text-warning font-medium text-sm inline-flex items-center gap-2 disabled:opacity-50"
-              >
-                {isGenerating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Wand2 className="w-4 h-4" />
-                )}
+              <motion.button whileHover={{
+            scale: 1.02
+          }} whileTap={{
+            scale: 0.98
+          }} onClick={handleAdminGenerate} disabled={isGenerating} className="px-4 py-2 rounded-lg bg-warning/20 text-warning font-medium text-sm inline-flex items-center gap-2 disabled:opacity-50">
+                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 Generar desafío (admin)
               </motion.button>
             </div>
-          </motion.div>
-        )}
+          </motion.div>}
 
         {/* Rewards */}
         <motion.div initial={{
