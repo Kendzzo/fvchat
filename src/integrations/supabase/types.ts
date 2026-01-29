@@ -988,6 +988,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string
+          id: string
+          message_permission: string
+          notify_challenges: boolean
+          notify_comments: boolean
+          notify_likes: boolean
+          notify_messages: boolean
+          post_visibility: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_permission?: string
+          notify_challenges?: boolean
+          notify_comments?: boolean
+          notify_likes?: boolean
+          notify_messages?: boolean
+          post_visibility?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_permission?: string
+          notify_challenges?: boolean
+          notify_comments?: boolean
+          notify_likes?: boolean
+          notify_messages?: boolean
+          post_visibility?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_stickers: {
         Row: {
           id: string
