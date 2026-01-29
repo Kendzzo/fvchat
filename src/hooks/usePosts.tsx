@@ -149,6 +149,15 @@ export function usePosts() {
     fetchPosts();
   }, [user]);
 
+  // Listen for refresh event from challenges
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchPosts();
+    };
+    window.addEventListener('vfc-posts-refresh', handleRefresh);
+    return () => window.removeEventListener('vfc-posts-refresh', handleRefresh);
+  }, []);
+
   return {
     posts,
     isLoading,
