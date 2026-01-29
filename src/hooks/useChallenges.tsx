@@ -395,19 +395,34 @@ export function useChallenges() {
 
   const generateTodayChallenge = async () => {
     try {
+      console.log('[useChallenges] Calling generate-daily-challenge...');
       const { data, error } = await supabase.functions.invoke('generate-daily-challenge');
       
+      console.log('[useChallenges] Response:', { data, error });
+      
       if (error) {
+        console.error('[useChallenges] Edge function error:', error);
         const errorMessage = error.message || 'Error desconocido';
+        const errorContext = (error as any).context ? JSON.stringify((error as any).context) : '';
         setError('No se pudo generar el desafío');
-        toast.error(`Error generando desafío: ${errorMessage}`);
+        toast.error(`Error generando desafío: ${errorMessage}${errorContext ? ` - ${errorContext}` : ''}`);
         return { error };
+      }
+      
+      // Check if response contains an error field (function returned 200 but with error in body)
+      if (data && data.ok === false) {
+        console.error('[useChallenges] Function returned error in body:', data);
+        const errorMsg = data.error || 'Error en la función';
+        setError(errorMsg);
+        toast.error(`Error: ${errorMsg}`);
+        return { error: new Error(errorMsg) };
       }
       
       toast.success('¡Desafío generado!');
       await fetchTodayChallenge();
       return { data };
     } catch (err) {
+      console.error('[useChallenges] Exception calling function:', err);
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError('No se pudo generar el desafío');
       toast.error(`Error: ${errorMessage}`);

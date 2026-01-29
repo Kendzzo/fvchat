@@ -4,9 +4,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
 };
 
-// Challenge themes for variety
+// Challenge themes for variety - fallback when AI is not available
 const THEMES = [
   { category: "photo_fun", prompts: [
     "Haz tu cara más graciosa 😜",
@@ -45,45 +46,86 @@ const THEMES = [
 ];
 
 serve(async (req) => {
+  console.log("[generate-daily-challenge] Request received:", req.method);
+  
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // 1. Validate environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log("[generate-daily-challenge] Checking env vars...");
+    
+    if (!supabaseUrl) {
+      console.error("[generate-daily-challenge] Missing SUPABASE_URL");
+      return new Response(JSON.stringify({ 
+        ok: false, 
+        error: "Missing env var: SUPABASE_URL" 
+      }), { status: 500, headers: corsHeaders });
+    }
+    
+    if (!supabaseServiceKey) {
+      console.error("[generate-daily-challenge] Missing SUPABASE_SERVICE_ROLE_KEY");
+      return new Response(JSON.stringify({ 
+        ok: false, 
+        error: "Missing env var: SUPABASE_SERVICE_ROLE_KEY" 
+      }), { status: 500, headers: corsHeaders });
+    }
 
-    // Get today's date in Madrid timezone
+    console.log("[generate-daily-challenge] Env vars OK, creating Supabase client...");
+
+    // 2. Create Supabase client with SERVICE ROLE (not anon)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      }
+    });
+
+    // 3. Get today's date in Madrid timezone
     const madridDate = new Date().toLocaleDateString('en-CA', { 
       timeZone: 'Europe/Madrid' 
     });
+    
+    console.log("[generate-daily-challenge] Today (Madrid):", madridDate);
 
-    // Check if challenge already exists for today
-    const { data: existingChallenge } = await supabase
+    // 4. Check if challenge already exists for today
+    const { data: existingChallenge, error: fetchError } = await supabase
       .from("challenges")
-      .select("id")
+      .select("id, description, challenge_date")
       .eq("challenge_date", madridDate)
       .maybeSingle();
 
-    if (existingChallenge) {
-      console.log("Challenge already exists for today:", madridDate);
+    if (fetchError) {
+      console.error("[generate-daily-challenge] Error checking existing challenge:", fetchError);
       return new Response(JSON.stringify({ 
-        message: "Challenge already exists",
-        challenge_id: existingChallenge.id 
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        ok: false, 
+        error: `DB fetch error: ${fetchError.message}`,
+        code: fetchError.code
+      }), { status: 500, headers: corsHeaders });
     }
 
-    let challengeDescription: string;
-    let challengeTitle: string;
+    if (existingChallenge) {
+      console.log("[generate-daily-challenge] Challenge already exists for today:", existingChallenge.id);
+      return new Response(JSON.stringify({ 
+        ok: true,
+        message: "Challenge already exists",
+        challenge: existingChallenge
+      }), { status: 200, headers: corsHeaders });
+    }
 
-    // Try AI generation first
+    // 5. Generate challenge description
+    let challengeDescription: string;
+    let generatedByAI = false;
+
+    // Try AI generation first if API key is available
     if (LOVABLE_API_KEY) {
+      console.log("[generate-daily-challenge] Attempting AI generation...");
       try {
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -92,7 +134,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
+            model: "google/gemini-2.5-flash",
             messages: [
               {
                 role: "system",
@@ -108,12 +150,11 @@ REGLAS:
 - Tono positivo y motivador
 - Máximo 50 caracteres
 
-Responde SOLO con JSON (sin markdown):
-{"title": "titulo corto 3-4 palabras", "description": "el desafío en una frase corta con emoji"}`
+Responde SOLO con el texto del desafío (sin JSON, sin comillas, solo el texto del reto con emoji).`
               },
               {
                 role: "user",
-                content: `Fecha: ${madridDate}. Día de la semana: ${new Date().toLocaleDateString('es-ES', { weekday: 'long', timeZone: 'Europe/Madrid' })}`
+                content: `Genera un desafío para hoy ${madridDate}, día de la semana: ${new Date().toLocaleDateString('es-ES', { weekday: 'long', timeZone: 'Europe/Madrid' })}`
               }
             ],
             temperature: 0.9,
@@ -123,112 +164,149 @@ Responde SOLO con JSON (sin markdown):
 
         if (response.ok) {
           const data = await response.json();
-          const content = data.choices?.[0]?.message?.content || '';
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          const content = data.choices?.[0]?.message?.content?.trim() || '';
           
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            challengeTitle = parsed.title || "Desafío del día";
-            challengeDescription = parsed.description || "";
+          if (content && content.length > 5 && content.length <= 100) {
+            challengeDescription = content;
+            generatedByAI = true;
+            console.log("[generate-daily-challenge] AI generated:", challengeDescription);
+          } else {
+            console.log("[generate-daily-challenge] AI response invalid, using fallback");
           }
+        } else {
+          const errorText = await response.text();
+          console.error("[generate-daily-challenge] AI API error:", response.status, errorText);
         }
       } catch (aiError) {
-        console.error("AI generation failed, using fallback:", aiError);
+        console.error("[generate-daily-challenge] AI generation failed:", aiError);
       }
+    } else {
+      console.log("[generate-daily-challenge] No LOVABLE_API_KEY, using fallback");
     }
 
-    // Fallback: random challenge from predefined list
+    // 6. Fallback: random challenge from predefined list
     if (!challengeDescription!) {
       const randomTheme = THEMES[Math.floor(Math.random() * THEMES.length)];
       const randomPrompt = randomTheme.prompts[Math.floor(Math.random() * randomTheme.prompts.length)];
       challengeDescription = randomPrompt;
-      challengeTitle = randomTheme.category === "photo_fun" ? "Cara divertida" :
-                       randomTheme.category === "creative" ? "Creatividad" :
-                       randomTheme.category === "food" ? "Foodie" :
-                       randomTheme.category === "pets" ? "Mascotas" :
-                       randomTheme.category === "outdoor" ? "Naturaleza" : "En casa";
+      console.log("[generate-daily-challenge] Using fallback challenge:", challengeDescription);
     }
 
-    // Create the challenge
-    const { data: challenge, error } = await supabase
+    // 7. Insert the challenge (only columns that exist in the table)
+    console.log("[generate-daily-challenge] Inserting challenge...");
+    
+    const { data: challenge, error: insertError } = await supabase
       .from("challenges")
       .insert({
         challenge_date: madridDate,
-        title: challengeTitle!,
         description: challengeDescription,
         is_active: true,
-        generated_by: LOVABLE_API_KEY ? 'ai' : 'fallback',
+        rewards_assigned: false
       })
-      .select()
+      .select("id, description, challenge_date")
       .single();
 
-    if (error) {
-      console.error("Error creating challenge:", error);
-      throw error;
+    if (insertError) {
+      // Handle unique constraint violation (challenge already exists)
+      if (insertError.code === "23505") {
+        console.log("[generate-daily-challenge] Conflict - challenge was created concurrently, fetching...");
+        const { data: existingAfterConflict } = await supabase
+          .from("challenges")
+          .select("id, description, challenge_date")
+          .eq("challenge_date", madridDate)
+          .single();
+        
+        if (existingAfterConflict) {
+          return new Response(JSON.stringify({ 
+            ok: true,
+            message: "Challenge already exists (concurrent)",
+            challenge: existingAfterConflict
+          }), { status: 200, headers: corsHeaders });
+        }
+      }
+      
+      console.error("[generate-daily-challenge] Error inserting challenge:", insertError);
+      return new Response(JSON.stringify({ 
+        ok: false, 
+        error: `DB insert error: ${insertError.message}`,
+        code: insertError.code,
+        details: insertError.details
+      }), { status: 500, headers: corsHeaders });
     }
 
-    // Assign rewards to the challenge (1st=epic, 2nd=rare, 3rd=common)
-    const { data: stickers } = await supabase
-      .from("stickers")
-      .select("id, rarity")
-      .eq("is_active", true);
+    console.log("[generate-daily-challenge] Challenge created:", challenge);
 
-    if (stickers && stickers.length > 0) {
-      const epicStickers = stickers.filter(s => s.rarity === 'epic');
-      const rareStickers = stickers.filter(s => s.rarity === 'rare');
-      const commonStickers = stickers.filter(s => s.rarity === 'common');
+    // 8. Try to assign rewards (optional, don't fail if this errors)
+    try {
+      const { data: stickers } = await supabase
+        .from("stickers")
+        .select("id, rarity")
+        .eq("is_default", false);
 
-      const rewards = [];
-      
-      if (epicStickers.length > 0) {
-        rewards.push({
-          challenge_id: challenge.id,
-          position: 1,
-          reward_type: 'sticker',
-          reward_id: epicStickers[Math.floor(Math.random() * epicStickers.length)].id
-        });
-      }
-      
-      if (rareStickers.length > 0) {
-        rewards.push({
-          challenge_id: challenge.id,
-          position: 2,
-          reward_type: 'sticker',
-          reward_id: rareStickers[Math.floor(Math.random() * rareStickers.length)].id
-        });
-      }
-      
-      if (commonStickers.length > 0) {
-        rewards.push({
-          challenge_id: challenge.id,
-          position: 3,
-          reward_type: 'sticker',
-          reward_id: commonStickers[Math.floor(Math.random() * commonStickers.length)].id
-        });
-      }
+      if (stickers && stickers.length > 0) {
+        const epicStickers = stickers.filter(s => s.rarity === 'epic');
+        const rareStickers = stickers.filter(s => s.rarity === 'rare');
+        const commonStickers = stickers.filter(s => s.rarity === 'common');
 
-      if (rewards.length > 0) {
-        await supabase.from("challenge_rewards").insert(rewards);
+        const rewards = [];
+        
+        if (epicStickers.length > 0) {
+          rewards.push({
+            challenge_id: challenge.id,
+            position: 1,
+            reward_type: 'sticker',
+            reward_id: epicStickers[Math.floor(Math.random() * epicStickers.length)].id
+          });
+        }
+        
+        if (rareStickers.length > 0) {
+          rewards.push({
+            challenge_id: challenge.id,
+            position: 2,
+            reward_type: 'sticker',
+            reward_id: rareStickers[Math.floor(Math.random() * rareStickers.length)].id
+          });
+        }
+        
+        if (commonStickers.length > 0) {
+          rewards.push({
+            challenge_id: challenge.id,
+            position: 3,
+            reward_type: 'sticker',
+            reward_id: commonStickers[Math.floor(Math.random() * commonStickers.length)].id
+          });
+        }
+
+        if (rewards.length > 0) {
+          const { error: rewardsError } = await supabase
+            .from("challenge_rewards")
+            .insert(rewards);
+          
+          if (rewardsError) {
+            console.error("[generate-daily-challenge] Error assigning rewards:", rewardsError);
+          } else {
+            console.log("[generate-daily-challenge] Rewards assigned:", rewards.length);
+          }
+        }
       }
+    } catch (rewardsErr) {
+      console.error("[generate-daily-challenge] Error in rewards assignment:", rewardsErr);
+      // Don't fail the request, challenge is already created
     }
 
-    console.log("Challenge created:", challenge);
-
+    // 9. Success response
     return new Response(JSON.stringify({ 
-      success: true, 
-      challenge 
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      ok: true, 
+      challenge,
+      generatedByAI
+    }), { status: 200, headers: corsHeaders });
 
-  } catch (error) {
-    console.error("Error:", error);
+  } catch (err) {
+    console.error("[generate-daily-challenge] Unhandled error:", err);
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      ok: false, 
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : null
+    }), { status: 500, headers: corsHeaders });
   }
 });
