@@ -4,8 +4,8 @@ import { useFriendships } from "@/hooks/useFriendships";
 import { useAuth } from "@/hooks/useAuth";
 import { CommentSection } from "@/components/CommentSection";
 import { PostStickerRenderer } from "@/components/PostStickerRenderer";
-import { Badge } from "@/components/ui/badge";
-import { Heart, X, Plus, MessageCircle, MoreHorizontal, Swords } from "lucide-react";
+import { PostOptionsMenu } from "@/components/PostOptionsMenu";
+import { Heart, X, Plus, MessageCircle, Swords } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import vfcLogo from "@/assets/vfc-logo.png";
@@ -254,9 +254,7 @@ export default function HomePage() {
                     DESAFÍO
                   </button>
                 )}
-                <button className="p-2 text-gray-400 hover:text-gray-600">
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
+                <PostOptionsMenu post={post} />
               </div>
 
               {/* Post Content */}
