@@ -118,7 +118,7 @@ export default function ChatPage() {
               }) : ""}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground truncate mb-0 mt-[7px]">{chat.lastMessage || "Sin mensajes"}</p>
+                <p className="text-sm text-muted-foreground truncate mb-0 mt-[7px] my-0">{chat.lastMessage || "Sin mensajes"}</p>
               </div>
 
               {(chat.unreadCount || 0) > 0 && <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
