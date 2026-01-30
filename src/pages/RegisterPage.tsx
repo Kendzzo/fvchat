@@ -133,7 +133,8 @@ export default function RegisterPage() {
         });
       }
 
-      setStep(4);
+      // Redirect to selfie onboarding
+      navigate("/onboarding/selfie", { replace: true });
     } catch (err) {
       setError("Error al crear la cuenta");
     } finally {
@@ -422,76 +423,7 @@ export default function RegisterPage() {
           </motion.div>
         )}
 
-        {step === 4 && (
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-sm text-center"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", delay: 0.2 }}
-              className="w-24 h-24 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-6"
-            >
-              <Check className="w-12 h-12 text-secondary" />
-            </motion.div>
-
-            <h1 className="text-2xl font-gaming font-bold gradient-text mb-2">
-              ¡Cuenta creada!
-            </h1>
-            <p className="text-muted-foreground mb-6">
-              Tu cuenta ha sido creada exitosamente
-            </p>
-
-            <div className="p-4 rounded-xl bg-card border border-border/50 text-sm text-left space-y-2">
-              <p className="text-foreground font-medium">Tu información:</p>
-              <ul className="text-muted-foreground space-y-2">
-                <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs text-secondary">✓</span>
-                  </span>
-                  Nick: @{nick}
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs text-secondary">✓</span>
-                  </span>
-                  Grupo de edad: {getAgeGroup(birthYear)}
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs text-secondary">✓</span>
-                  </span>
-                  Tutor: {tutorEmail}
-                </li>
-              </ul>
-            </div>
-
-            {/* Parental approval notice */}
-            <div className="p-4 rounded-xl bg-warning/10 border border-warning/30 text-sm text-left mt-4">
-              <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-foreground font-medium mb-1">Pendiente de aprobación</p>
-                  <p className="text-muted-foreground text-xs">
-                    Hemos enviado un email a tu tutor ({tutorEmail}) para aprobar tu cuenta.
-                    Podrás ver publicaciones, pero para chatear y publicar necesitarás su aprobación.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate("/app")}
-              className="btn-gaming w-full py-4 rounded-2xl text-foreground font-gaming text-lg mt-6"
-            >
-              ¡Entrar a VFC!
-            </motion.button>
-          </motion.div>
-        )}
+        {/* Step 4 removed - user is redirected to selfie onboarding */}
       </div>
     </div>
   );

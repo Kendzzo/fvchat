@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import SplashPage from "./pages/SplashPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import OnboardingSelfiePage from "./pages/OnboardingSelfiePage";
 import MainLayout from "./layouts/MainLayout";
 import HomePage from "./pages/HomePage";
 import ChatPage from "./pages/ChatPage";
@@ -14,7 +15,6 @@ import PublishPage from "./pages/PublishPage";
 import ChallengesPage from "./pages/ChallengesPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
-// Avatar pages removed - using profile photos now
 import PublicProfilePage from "./pages/PublicProfilePage";
 import ParentApprovePage from "./pages/ParentApprovePage";
 import ParentDashboardPage from "./pages/ParentDashboardPage";
@@ -22,7 +22,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Protected route component
+// Protected route component with selfie guard
 function ProtectedRoute({ children, requireAvatar = true }: { children: React.ReactNode; requireAvatar?: boolean }) {
   const { user, profile, isLoading } = useAuth();
   
@@ -41,14 +41,44 @@ function ProtectedRoute({ children, requireAvatar = true }: { children: React.Re
     return <Navigate to="/login" replace />;
   }
 
-  // Profile photo is optional - no forced redirect
+  // SELFIE GUARD: If profile photo not completed, redirect to onboarding
+  // Cast to any to access the new field that may not be in types yet
+  const profileData = profile as any;
+  if (profile && profileData?.profile_photo_completed === false) {
+    return <Navigate to="/onboarding/selfie" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+// Onboarding route - requires auth but NOT completed selfie
+function OnboardingRoute({ children }: { children: React.ReactNode }) {
+  const { user, profile, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If already completed selfie, go to app
+  const profileData = profile as any;
+  if (profile && profileData?.profile_photo_completed === true) {
+    return <Navigate to="/app" replace />;
+  }
   
   return <>{children}</>;
 }
 
 // Public route - redirect to app if already logged in
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   
   if (isLoading) {
     return (
@@ -59,6 +89,11 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
   
   if (user) {
+    // Check if selfie completed - if not, go to onboarding
+    const profileData = profile as any;
+    if (profile && profileData?.profile_photo_completed === false) {
+      return <Navigate to="/onboarding/selfie" replace />;
+    }
     return <Navigate to="/app" replace />;
   }
   
@@ -77,9 +112,10 @@ function AppRoutes() {
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
       
-      {/* Avatar routes removed - profile photos managed in ProfilePage */}
+      {/* Onboarding Routes - requires auth but NOT completed selfie */}
+      <Route path="/onboarding/selfie" element={<OnboardingRoute><OnboardingSelfiePage /></OnboardingRoute>} />
       
-      {/* Main App Routes - protected and requires avatar */}
+      {/* Main App Routes - protected and requires completed selfie */}
       <Route path="/app" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<HomePage />} />
         <Route path="chat" element={<ChatPage />} />

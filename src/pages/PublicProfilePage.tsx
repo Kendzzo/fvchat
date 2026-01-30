@@ -2,28 +2,32 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfilePhoto } from '@/components/ProfilePhoto';
+import { FriendRequestButton } from '@/components/FriendRequestButton';
+import { FriendsListSection } from '@/components/FriendsListSection';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Heart, Users, FileImage, CheckCircle, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/useAuth';
+
 interface PublicProfile {
   id: string;
   nick: string;
   age_group: string;
   avatar_snapshot_url: string | null;
+  profile_photo_url: string | null;
   parent_approved: boolean;
 }
+
 interface ProfileStats {
   postsCount: number;
   friendsCount: number;
   likesTotal: number;
 }
+
 export default function PublicProfilePage() {
-  const {
-    userId
-  } = useParams<{
-    userId: string;
-  }>();
+  const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [stats, setStats] = useState<ProfileStats>({
     postsCount: 0,
@@ -32,6 +36,9 @@ export default function PublicProfilePage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  const isOwnProfile = user?.id === userId;
+
   useEffect(() => {
     const fetchProfile = async () => {
       if (!userId) {
@@ -39,32 +46,41 @@ export default function PublicProfilePage() {
         setIsLoading(false);
         return;
       }
+
       try {
         // Fetch profile
-        const {
-          data: profileData,
-          error: profileError
-        } = await supabase.from('profiles').select('id, nick, age_group, avatar_snapshot_url, parent_approved').eq('id', userId).maybeSingle();
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, nick, age_group, avatar_snapshot_url, profile_photo_url, parent_approved')
+          .eq('id', userId)
+          .maybeSingle();
+
         if (profileError || !profileData) {
           setNotFound(true);
           setIsLoading(false);
           return;
         }
+
         setProfile(profileData);
 
         // Fetch stats in parallel
         const [postsRes, friendsRes] = await Promise.all([
-        // Posts count + total likes
-        supabase.from('posts').select('likes_count').eq('author_id', userId),
-        // Friends count (approved friendships)
-        supabase.from('friendships').select('id', {
-          count: 'exact',
-          head: true
-        }).eq('status', 'approved').eq('tutor_approved', true).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)]);
+          // Posts count + total likes
+          supabase.from('posts').select('likes_count').eq('author_id', userId),
+          // Friends count (approved friendships)
+          supabase
+            .from('friendships')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'approved')
+            .eq('tutor_approved', true)
+            .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+        ]);
+
         const postsData = postsRes.data || [];
         const postsCount = postsData.length;
         const likesTotal = postsData.reduce((sum, post) => sum + (post.likes_count || 0), 0);
         const friendsCount = friendsRes.count || 0;
+
         setStats({
           postsCount,
           friendsCount,
@@ -77,10 +93,13 @@ export default function PublicProfilePage() {
         setIsLoading(false);
       }
     };
+
     fetchProfile();
   }, [userId]);
+
   if (isLoading) {
-    return <div className="min-h-screen bg-background p-4">
+    return (
+      <div className="min-h-screen bg-background p-4">
         <div className="flex items-center gap-3 mb-6">
           <Skeleton className="w-10 h-10 rounded-full" />
           <Skeleton className="w-32 h-6" />
@@ -95,20 +114,26 @@ export default function PublicProfilePage() {
           <Skeleton className="w-16 h-16" />
           <Skeleton className="w-16 h-16" />
         </div>
-      </div>;
+      </div>
+    );
   }
+
   if (notFound) {
-    return <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <p className="text-lg text-muted-foreground mb-4">Usuario no encontrado</p>
         <Button onClick={() => navigate(-1)} variant="outline">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Volver
         </Button>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-purple-50">
+
+  return (
+    <div className="min-h-screen bg-purple-50">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b">
+      <div className="flex items-center gap-3 p-4 border-b bg-background">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -117,22 +142,43 @@ export default function PublicProfilePage() {
 
       {/* Profile Info */}
       <div className="flex flex-col items-center py-8 px-4 border-transparent bg-primary-foreground">
-        <ProfilePhoto url={profile?.avatar_snapshot_url} nick={profile?.nick || ''} size="xl" />
+        <ProfilePhoto
+          url={profile?.profile_photo_url || profile?.avatar_snapshot_url}
+          nick={profile?.nick || ''}
+          size="xl"
+        />
         <h2 className="mt-4 text-xl font-bold text-secondary-foreground">@{profile?.nick}</h2>
         <p className="text-muted-foreground text-sm mt-1">
           Grupo de edad: {profile?.age_group}
         </p>
 
         {/* Approval badge */}
-        <div className={`mt-3 flex items-center gap-1.5 px-3 py-1 rounded-full text-sm ${profile?.parent_approved ? 'bg-green-500/20 text-green-600' : 'bg-yellow-500/20 text-yellow-600'}`}>
-          {profile?.parent_approved ? <>
+        <div
+          className={`mt-3 flex items-center gap-1.5 px-3 py-1 rounded-full text-sm ${
+            profile?.parent_approved
+              ? 'bg-green-500/20 text-green-600'
+              : 'bg-yellow-500/20 text-yellow-600'
+          }`}
+        >
+          {profile?.parent_approved ? (
+            <>
               <CheckCircle className="w-4 h-4" />
               <span>Cuenta aprobada</span>
-            </> : <>
+            </>
+          ) : (
+            <>
               <Clock className="w-4 h-4" />
               <span>Pendiente de aprobación</span>
-            </>}
+            </>
+          )}
         </div>
+
+        {/* Friend Request Button - only show if not own profile */}
+        {!isOwnProfile && profile && (
+          <div className="mt-4">
+            <FriendRequestButton targetUserId={profile.id} targetNick={profile.nick} />
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -162,6 +208,11 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
+      {/* Friends Section - Instagram style */}
+      <div className="p-4">
+        <FriendsListSection userId={userId!} isOwnProfile={isOwnProfile} />
+      </div>
+
       {/* Back button */}
       <div className="p-4">
         <Button onClick={() => navigate(-1)} variant="outline" className="w-full">
@@ -169,5 +220,6 @@ export default function PublicProfilePage() {
           Volver
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 }
