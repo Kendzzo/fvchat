@@ -860,6 +860,62 @@ export type Database = {
         }
         Relationships: []
       }
+      tutor_access_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          is_revoked: boolean
+          last_used_at: string | null
+          token_hash: string
+          tutor_email: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_revoked?: boolean
+          last_used_at?: string | null
+          token_hash: string
+          tutor_email: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_revoked?: boolean
+          last_used_at?: string | null
+          token_hash?: string
+          tutor_email?: string
+        }
+        Relationships: []
+      }
+      tutor_child_links: {
+        Row: {
+          child_user_id: string
+          created_at: string
+          id: string
+          tutor_email: string
+        }
+        Insert: {
+          child_user_id: string
+          created_at?: string
+          id?: string
+          tutor_email: string
+        }
+        Update: {
+          child_user_id?: string
+          created_at?: string
+          id?: string
+          tutor_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_child_links_child_user_id_fkey"
+            columns: ["child_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tutor_notifications: {
         Row: {
           created_at: string
