@@ -19,7 +19,7 @@ const MAX_VIDEO_DURATION = 10; // seconds
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"];
 // Include all common video MIME types, especially video/quicktime for iPhone MOV files
-const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/3gpp", "video/mov", "video/x-m4v"];
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/3gpp", "video/x-m4v"];
 
 export function useMediaUpload() {
   const { user } = useAuth();
@@ -112,26 +112,11 @@ export function useMediaUpload() {
       }
 
       const fileName = `${user.id}/${timestamp}_${type}.${extension}`;
-      // Detect correct content-type (CRITICAL for iPhone videos)
-      let contentType: string;
-
-      if (type === "video") {
-        if (extension === "mov") contentType = "video/quicktime";
-        else if (extension === "m4v") contentType = "video/x-m4v";
-        else if (extension === "mp4") contentType = "video/mp4";
-        else contentType = "application/octet-stream";
-      } else {
-        if (extension === "heic" || extension === "heif") contentType = "image/heic";
-        else if (extension === "png") contentType = "image/png";
-        else if (extension === "webp") contentType = "image/webp";
-        else contentType = "image/jpeg";
-      }
 
       // Upload to Supabase Storage with explicit contentType for iPhone compatibility
       const { data, error } = await supabase.storage.from("content").upload(fileName, file, {
         cacheControl: "3600",
         upsert: false,
-        contentType,
       });
 
       if (error) {
