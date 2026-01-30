@@ -41,7 +41,10 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      console.log('[PublicProfilePage] Fetching profile for userId:', userId);
+      
       if (!userId) {
+        console.warn('[PublicProfilePage] No userId provided');
         setNotFound(true);
         setIsLoading(false);
         return;
@@ -55,7 +58,17 @@ export default function PublicProfilePage() {
           .eq('id', userId)
           .maybeSingle();
 
-        if (profileError || !profileData) {
+        console.log('[PublicProfilePage] Profile query result:', { profileData, profileError });
+
+        if (profileError) {
+          console.error('[PublicProfilePage] Error fetching profile:', profileError);
+          setNotFound(true);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!profileData) {
+          console.warn('[PublicProfilePage] No profile found for userId:', userId);
           setNotFound(true);
           setIsLoading(false);
           return;
@@ -87,7 +100,7 @@ export default function PublicProfilePage() {
           likesTotal
         });
       } catch (err) {
-        console.error('Error fetching public profile:', err);
+        console.error('[PublicProfilePage] Error fetching public profile:', err);
         setNotFound(true);
       } finally {
         setIsLoading(false);

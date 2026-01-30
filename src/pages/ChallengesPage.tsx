@@ -18,28 +18,27 @@ import { useAuth } from "@/hooks/useAuth";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { ChallengeParticipateModal } from "@/components/challenges/ChallengeParticipateModal";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-// Fallback rewards when no real rewards are configured
-const fallbackRewards = [
-  {
-    id: "1",
-    name: "Gorra Épica",
-    emoji: "🧢",
-    rarity: "Épico",
-  },
-  {
-    id: "2",
-    name: "Gafas Neón",
-    emoji: "🕶️",
-    rarity: "Raro",
-  },
-  {
-    id: "3",
-    name: "Alas Brillantes",
-    emoji: "🦋",
-    rarity: "Legendario",
-  },
-];
+// Define sticker type for daily rewards
+interface DailyRewardSticker {
+  id: string;
+  name: string;
+  image_url: string | null;
+  rarity: string;
+}
+
+// Generate consistent daily rewards based on date seed
+function getDailyRewardsSeed(date: Date): number {
+  const dateStr = date.toISOString().split('T')[0];
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    const char = dateStr.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
 export default function ChallengesPage() {
   const {
     todayChallenge,
@@ -54,6 +53,8 @@ export default function ChallengesPage() {
   const { isAdmin, user } = useAuth();
   const [showParticipate, setShowParticipate] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [dailyStickers, setDailyStickers] = useState<DailyRewardSticker[]>([]);
+  const [stickersLoading, setStickersLoading] = useState(true);
   const hasEnsured = useRef(false);
 
   // Auto-ensure challenge exists on mount
@@ -63,6 +64,51 @@ export default function ChallengesPage() {
       ensureTodayChallenge();
     }
   }, [user, ensureTodayChallenge]);
+
+  // Fetch daily stickers for rewards
+  useEffect(() => {
+    const fetchDailyStickers = async () => {
+      try {
+        // Get all available stickers
+        const { data: stickers, error: stickersError } = await supabase
+          .from('stickers')
+          .select('id, name, image_url, rarity')
+          .order('created_at', { ascending: false });
+
+        if (stickersError) {
+          console.error('Error fetching stickers:', stickersError);
+          setStickersLoading(false);
+          return;
+        }
+
+        if (stickers && stickers.length >= 3) {
+          // Use date seed to consistently select 3 stickers for today
+          const seed = getDailyRewardsSeed(new Date());
+          const selectedIndices = new Set<number>();
+          
+          // Select 3 unique stickers using the seed
+          let seedOffset = 0;
+          while (selectedIndices.size < 3 && seedOffset < stickers.length * 2) {
+            const idx = (seed + seedOffset) % stickers.length;
+            selectedIndices.add(idx);
+            seedOffset++;
+          }
+          
+          const selectedStickers = Array.from(selectedIndices).slice(0, 3).map(idx => stickers[idx]);
+          setDailyStickers(selectedStickers);
+        } else if (stickers && stickers.length > 0) {
+          // Use what we have
+          setDailyStickers(stickers.slice(0, 3));
+        }
+      } catch (err) {
+        console.error('Error loading daily stickers:', err);
+      } finally {
+        setStickersLoading(false);
+      }
+    };
+
+    fetchDailyStickers();
+  }, []);
 
   // Handle manual retry
   const handleRetry = async () => {
@@ -85,17 +131,28 @@ export default function ChallengesPage() {
     }
   };
 
-  // Use real rewards if available, otherwise fallback
+  // Use real rewards if available from challenge, otherwise use daily stickers
   const displayRewards =
     todayChallenge?.rewards && todayChallenge.rewards.length > 0
       ? todayChallenge.rewards.map((r, idx) => ({
           id: r.id,
           name: r.sticker?.name || r.avatar_item?.name || `Premio ${idx + 1}`,
-          emoji: r.sticker?.emoji || "🎁",
           image_url: r.sticker?.image_url || null,
           rarity: r.sticker?.rarity || r.avatar_item?.rarity || "Común",
         }))
-      : fallbackRewards;
+      : dailyStickers.length > 0
+        ? dailyStickers.map((s, idx) => ({
+            id: s.id,
+            name: s.name,
+            image_url: s.image_url,
+            rarity: idx === 0 ? "Épico" : idx === 1 ? "Raro" : "Común",
+          }))
+        : [
+            { id: "1", name: "Premio 1º", image_url: null, rarity: "Épico" },
+            { id: "2", name: "Premio 2º", image_url: null, rarity: "Raro" },
+            { id: "3", name: "Premio 3º", image_url: null, rarity: "Común" },
+          ];
+          
   const handleSubmitEntry = async (contentUrl: string, visibility: "friends" | "public" = "public") => {
     const { error } = await submitEntry(contentUrl, visibility);
     if (error) {
@@ -395,10 +452,12 @@ export default function ChallengesPage() {
                 className="text-center p-4 rounded-xl border border-border/50 bg-white"
               >
                 <div className="mb-2 flex items-center justify-center px-[10px] py-[10px]">
-                  {"image_url" in reward && (reward as { image_url?: string | null }).image_url ? (
-                    <img src={(reward as { image_url?: string | null }).image_url as string} alt={reward.name} className="w-16 h-16 object-contain" />
+                  {reward.image_url ? (
+                    <img src={reward.image_url} alt={reward.name} className="w-16 h-16 object-contain" />
                   ) : (
-                    <div className="text-4xl">{reward.emoji}</div>
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                      <Trophy className="w-8 h-8 text-primary" />
+                    </div>
                   )}
                 </div>
                 <p className="font-medium truncate text-secondary-foreground text-base">{reward.name}</p>

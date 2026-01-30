@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Video, X, Loader2, Users, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ChallengeParticipateModalProps {
   isOpen: boolean;
@@ -23,6 +25,8 @@ export function ChallengeParticipateModal({
   entriesRemaining,
 }: ChallengeParticipateModalProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -90,6 +94,14 @@ export function ChallengeParticipateModal({
       setPreview(null);
       setFile(null);
       onClose();
+      
+      // Invalidate feed queries so Home shows the new post
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      
+      // Navigate to Home to see the new post
+      toast.success("¡Publicación enviada! Redirigiendo al feed...");
+      navigate('/app');
     } catch (err) {
       console.error("Upload error:", err);
       toast.error("Error al subir el archivo");
