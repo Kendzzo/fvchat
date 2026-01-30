@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, MessageSquarePlus, Loader2, Users, AlertCircle } from "lucide-react";
 import { useFriendships, Friendship } from "@/hooks/useFriendships";
-import { useChats } from "@/hooks/useChats";
 import { useAuth } from "@/hooks/useAuth";
 import type { Chat } from "@/hooks/useChats";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,11 +11,12 @@ interface NewChatModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onChatCreated: (chat: Chat) => void;
+  chats: any[]; // o Chat[] si lo importas
+  createChat: (participantIds: string[], isGroup?: boolean, name?: string) => Promise<any>;
 }
-export function NewChatModal({ open, onOpenChange, onChatCreated }: NewChatModalProps) {
+export function NewChatModal({ open, onOpenChange, onChatCreated, chats, createChat }: NewChatModalProps) {
   const { user, canInteract } = useAuth();
   const { friends, isLoading: friendsLoading } = useFriendships();
-  const { chats, createChat } = useChats();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState<string | null>(null);
 
