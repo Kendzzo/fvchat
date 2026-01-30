@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
 export interface Chat {
   id: string;
@@ -23,7 +23,7 @@ export interface Message {
   id: string;
   chat_id: string;
   sender_id: string;
-  type: 'text' | 'photo' | 'video' | 'audio' | 'image';
+  type: "text" | "photo" | "video" | "audio" | "image";
   content: string;
   is_blocked: boolean;
   sticker_id: string | null;
@@ -49,9 +49,9 @@ export function useChats() {
 
   // Add a new chat to local state immediately (optimistic update)
   const addChatToState = (newChat: Chat) => {
-    setChats(prev => {
+    setChats((prev) => {
       // Avoid duplicates
-      if (prev.some(c => c.id === newChat.id)) return prev;
+      if (prev.some((c) => c.id === newChat.id)) return prev;
       return [newChat, ...prev];
     });
   };
@@ -65,13 +65,13 @@ export function useChats() {
     try {
       setIsLoading(true);
       const { data, error: fetchError } = await supabase
-        .from('chats')
-        .select('*')
-        .contains('participant_ids', [user.id])
-        .order('created_at', { ascending: false });
+        .from("chats")
+        .select("*")
+        .contains("participant_ids", [user.id])
+        .order("created_at", { ascending: false });
 
       if (fetchError) {
-        console.error('Error fetching chats:', fetchError);
+        console.error("Error fetching chats:", fetchError);
         setError(fetchError.message);
         return;
       }
@@ -81,10 +81,10 @@ export function useChats() {
         (data || []).map(async (chat) => {
           // Get last message
           const { data: messages } = await supabase
-            .from('messages')
-            .select('content, created_at')
-            .eq('chat_id', chat.id)
-            .order('created_at', { ascending: false })
+            .from("messages")
+            .select("content, created_at")
+            .eq("chat_id", chat.id)
+            .order("created_at", { ascending: false })
             .limit(1);
 
           // Get other participant for 1-1 chats
@@ -93,9 +93,9 @@ export function useChats() {
             const otherId = chat.participant_ids.find((id: string) => id !== user.id);
             if (otherId) {
               const { data: participantData } = await supabase
-                .from('profiles')
-                .select('nick, profile_photo_url, last_seen_at')
-                .eq('id', otherId)
+                .from("profiles")
+                .select("nick, profile_photo_url, last_seen_at")
+                .eq("id", otherId)
                 .maybeSingle();
               otherParticipant = participantData;
             }
@@ -103,36 +103,36 @@ export function useChats() {
 
           return {
             ...chat,
-            lastMessage: messages?.[0]?.content || '',
+            lastMessage: messages?.[0]?.content || "",
             lastMessageTime: messages?.[0]?.created_at || chat.created_at,
             unreadCount: 0, // TODO: Implement unread count
-            otherParticipant
+            otherParticipant,
           } as Chat;
-        })
+        }),
       );
 
       setChats(chatsWithDetails);
     } catch (err) {
-      console.error('Error:', err);
-      setError('Error al cargar chats');
+      console.error("Error:", err);
+      setError("Error al cargar chats");
     } finally {
       setIsLoading(false);
     }
   };
 
   const createChat = async (participantIds: string[], isGroup: boolean = false, name?: string) => {
-    if (!user) return { error: new Error('No autenticado'), data: null };
+    if (!user) return { error: new Error("No autenticado"), data: null };
 
     try {
       const allParticipants = [...new Set([user.id, ...participantIds])];
-      
+
       const { data, error: insertError } = await supabase
-        .from('chats')
+        .from("chats")
         .insert({
           participant_ids: allParticipants,
           is_group: isGroup,
           name: name || null,
-          created_by: user.id
+          created_by: user.id,
         })
         .select()
         .single();
@@ -145,9 +145,9 @@ export function useChats() {
       let otherParticipant = null;
       if (!isGroup && participantIds.length === 1) {
         const { data: participantData } = await supabase
-          .from('profiles')
-          .select('nick, profile_photo_url, last_seen_at')
-          .eq('id', participantIds[0])
+          .from("profiles")
+          .select("nick, profile_photo_url, last_seen_at")
+          .eq("id", participantIds[0])
           .maybeSingle();
         otherParticipant = participantData;
       }
@@ -155,10 +155,10 @@ export function useChats() {
       // Add to local state immediately
       const newChat: Chat = {
         ...data,
-        lastMessage: '',
+        lastMessage: "",
         lastMessageTime: data.created_at,
         unreadCount: 0,
-        otherParticipant
+        otherParticipant,
       };
       addChatToState(newChat);
 
@@ -173,17 +173,28 @@ export function useChats() {
 
     // Subscribe to new messages
     const channel = supabase
-      .channel('chats-realtime')
+      .channel("chats-realtime")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
+          event: "*",
+          schema: "public",
+          table: "messages",
         },
         () => {
           fetchChats();
-        }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chats",
+        },
+        () => {
+          fetchChats();
+        },
       )
       .subscribe();
 
@@ -198,7 +209,7 @@ export function useChats() {
     error,
     createChat,
     addChatToState,
-    refreshChats: fetchChats
+    refreshChats: fetchChats,
   };
 }
 
@@ -216,40 +227,42 @@ export function useMessages(chatId: string | null) {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('messages')
-        .select(`
+        .from("messages")
+        .select(
+          `
           *,
           sender:profiles!messages_sender_id_fkey(nick, avatar_data, profile_photo_url),
           sticker:stickers(id, name, image_url, rarity)
-        `)
-        .eq('chat_id', chatId)
-        .order('created_at', { ascending: true });
+        `,
+        )
+        .eq("chat_id", chatId)
+        .order("created_at", { ascending: true });
 
       if (error) {
-        console.error('Error fetching messages:', error);
+        console.error("Error fetching messages:", error);
         return;
       }
 
       setMessages(data as Message[]);
     } catch (err) {
-      console.error('Error:', err);
+      console.error("Error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const sendMessage = async (content: string, type: Message['type'] = 'text', stickerId?: string) => {
-    if (!user || !chatId) return { error: new Error('No autenticado o chat no seleccionado') };
+  const sendMessage = async (content: string, type: Message["type"] = "text", stickerId?: string) => {
+    if (!user || !chatId) return { error: new Error("No autenticado o chat no seleccionado") };
 
     try {
       const { data, error: insertError } = await supabase
-        .from('messages')
+        .from("messages")
         .insert({
           chat_id: chatId,
           sender_id: user.id,
           content,
           type,
-          sticker_id: stickerId || null
+          sticker_id: stickerId || null,
         })
         .select()
         .single();
@@ -265,7 +278,7 @@ export function useMessages(chatId: string | null) {
   };
 
   const sendSticker = async (stickerId: string, stickerUrl: string) => {
-    return sendMessage(stickerUrl, 'image', stickerId);
+    return sendMessage(stickerUrl, "image", stickerId);
   };
 
   useEffect(() => {
@@ -276,16 +289,16 @@ export function useMessages(chatId: string | null) {
       const channel = supabase
         .channel(`messages-${chatId}`)
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `chat_id=eq.${chatId}`
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `chat_id=eq.${chatId}`,
           },
           (payload) => {
-            setMessages(prev => [...prev, payload.new as Message]);
-          }
+            setMessages((prev) => [...prev, payload.new as Message]);
+          },
         )
         .subscribe();
 
@@ -300,6 +313,6 @@ export function useMessages(chatId: string | null) {
     isLoading,
     sendMessage,
     sendSticker,
-    refreshMessages: fetchMessages
+    refreshMessages: fetchMessages,
   };
 }
