@@ -124,7 +124,41 @@ serve(async (req) => {
     const { data: urlData } = supabase.storage.from("stickers").getPublicUrl(fileName);
     const imageUrl = urlData.publicUrl;
 
-    // Insert into stickers table
+    // MODERATION: Verify sticker is safe before saving
+    console.log("[generate-sticker] Moderating generated sticker");
+    
+    let moderated = true;
+    try {
+      const moderationResponse = await fetch(
+        `${supabaseUrl}/functions/v1/moderate-image`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+          },
+          body: JSON.stringify({
+            imageBase64: imageBase64,
+            surface: "sticker",
+            checkText: true,
+          }),
+        }
+      );
+
+      if (moderationResponse.ok) {
+        const modResult = await moderationResponse.json();
+        if (!modResult.allowed) {
+          console.error("[generate-sticker] Sticker failed moderation:", modResult.reason);
+          moderated = false;
+          // Don't throw - just mark as not moderated and don't assign to users
+        }
+      }
+    } catch (modError) {
+      console.error("[generate-sticker] Moderation check failed (allowing):", modError);
+      // Fail open for sticker generation
+    }
+
+    // Insert into stickers table with moderation status
     const { data: sticker, error: insertError } = await supabase
       .from("stickers")
       .insert({
@@ -133,7 +167,7 @@ serve(async (req) => {
         category,
         image_url: imageUrl,
         prompt: enhancedPrompt,
-        is_default,
+        is_default: moderated ? is_default : false, // Don't make default if failed moderation
       })
       .select()
       .single();
@@ -141,6 +175,18 @@ serve(async (req) => {
     if (insertError) {
       console.error("Insert error:", insertError);
       throw new Error(`Failed to save sticker: ${insertError.message}`);
+    }
+
+    // If moderation failed, don't return success
+    if (!moderated) {
+      console.log("[generate-sticker] Sticker created but failed moderation, not assigning");
+      return new Response(JSON.stringify({ 
+        error: "Sticker generated but failed content moderation",
+        moderated: false 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("Sticker generated successfully:", sticker.id);

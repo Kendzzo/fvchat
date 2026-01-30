@@ -1,38 +1,47 @@
 import { useRef, useState } from "react";
-import { Image, Mic, Loader2, X } from "lucide-react";
+import { Image, Mic, Loader2, X, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useImageModeration } from "@/hooks/useImageModeration";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+
 interface ChatMediaUploadProps {
   onMediaReady: (url: string, type: "image" | "audio") => void;
   disabled?: boolean;
 }
+
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**
  * ChatMediaUpload - ONLY for images and audio in chat
  * Videos are NOT allowed in chat - they go through PublishPage only
+ * Images are moderated before upload
  */
 export function ChatMediaUpload({
   onMediaReady,
   disabled
 }: ChatMediaUploadProps) {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
+  const { moderateImageFile, isChecking: isModeratingImage } = useImageModeration();
+  
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
+  const [moderationError, setModerationError] = useState<string | null>(null);
+
   const handleImageClick = () => {
-    if (disabled || isUploading) return;
+    if (disabled || isUploading || isModeratingImage) return;
+    setModerationError(null);
     imageInputRef.current?.click();
   };
+
   const handleAudioClick = () => {
     if (disabled || isUploading) return;
     setShowAudioModal(true);
   };
+
   const uploadImage = async (file: File) => {
     if (!user) {
       toast.error("No autenticado");
@@ -42,21 +51,35 @@ export function ChatMediaUpload({
       toast.error("La imagen debe ser menor a 10MB");
       return;
     }
+
     setIsUploading(true);
+    setModerationError(null);
+
     try {
+      // MODERATION: Check image before uploading
+      console.log("[ChatMediaUpload] Moderating image before upload...");
+      const modResult = await moderateImageFile(file, "chat");
+      
+      if (!modResult.allowed) {
+        console.log("[ChatMediaUpload] Image failed moderation:", modResult.reason);
+        setModerationError(modResult.reason || "Imagen no permitida");
+        toast.error("Imagen no permitida");
+        setIsUploading(false);
+        return;
+      }
+
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${user.id}/chat/${Date.now()}.${fileExt}`;
-      const {
-        error: uploadError
-      } = await supabase.storage.from("content").upload(fileName, file, {
+      
+      const { error: uploadError } = await supabase.storage.from("content").upload(fileName, file, {
         cacheControl: "3600",
         upsert: false,
         contentType: file.type || "image/jpeg"
       });
+      
       if (uploadError) throw uploadError;
-      const {
-        data: urlData
-      } = supabase.storage.from("content").getPublicUrl(fileName);
+      
+      const { data: urlData } = supabase.storage.from("content").getPublicUrl(fileName);
       onMediaReady(urlData.publicUrl, "image");
       toast.success("Imagen adjuntada");
     } catch (error) {
@@ -77,8 +100,8 @@ export function ChatMediaUpload({
       <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageChange} className="hidden" />
 
       {/* Image button */}
-      <button onClick={handleImageClick} disabled={disabled || isUploading} className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
-        {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Image className="w-5 h-5 text-white" />}
+      <button onClick={handleImageClick} disabled={disabled || isUploading || isModeratingImage} className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+        {isUploading || isModeratingImage ? <Loader2 className="w-5 h-5 animate-spin" /> : <Image className="w-5 h-5 text-white" />}
       </button>
 
       {/* Audio button */}

@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Camera, Check, Loader2, AlertCircle, User, RefreshCw } from "lucide-react";
+import { Camera, Check, Loader2, AlertCircle, User, RefreshCw, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useImageModeration } from "@/hooks/useImageModeration";
 import { toast } from "sonner";
 import vfcLogo from "@/assets/vfc-logo.png";
 
@@ -13,14 +14,20 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "i
 export default function OnboardingSelfiePage() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const { moderateImageFile, isChecking: isModerating } = useImageModeration();
+  
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [moderationError, setModerationError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Clear previous errors
+    setModerationError(null);
 
     // Validate type
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -46,6 +53,7 @@ export default function OnboardingSelfiePage() {
     }
     setPreviewUrl(null);
     setSelectedFile(null);
+    setModerationError(null);
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -56,8 +64,20 @@ export default function OnboardingSelfiePage() {
     if (!selectedFile || !user) return;
 
     setIsUploading(true);
+    setModerationError(null);
 
     try {
+      // MODERATION: Check image before uploading
+      console.log("[OnboardingSelfiePage] Moderating selfie...");
+      const modResult = await moderateImageFile(selectedFile, "profile");
+      
+      if (!modResult.allowed) {
+        console.log("[OnboardingSelfiePage] Selfie failed moderation:", modResult.reason);
+        setModerationError(modResult.reason || "Imagen no permitida. Toma otra foto.");
+        setIsUploading(false);
+        return;
+      }
+
       // Generate unique filename
       const timestamp = Date.now();
       const ext = selectedFile.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -113,11 +133,13 @@ export default function OnboardingSelfiePage() {
     } finally {
       setIsUploading(false);
     }
-  }, [selectedFile, user, refreshProfile, navigate]);
+  }, [selectedFile, user, refreshProfile, navigate, moderateImageFile]);
 
   const triggerFileInput = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
+
+  const isProcessing = isUploading || isModerating;
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
@@ -216,6 +238,22 @@ export default function OnboardingSelfiePage() {
               </div>
             </div>
 
+            {/* Moderation Error */}
+            {moderationError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-xl bg-destructive/20 border border-destructive/30 text-destructive text-sm flex items-start gap-3"
+              >
+                <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Foto no permitida</p>
+                  <p className="text-xs mt-1 opacity-80">{moderationError}</p>
+                  <p className="text-xs mt-2">Por favor, toma otra foto.</p>
+                </div>
+              </motion.div>
+            )}
+
             {/* Action Buttons */}
             {previewUrl ? (
               <div className="flex gap-3 w-full">
@@ -223,23 +261,23 @@ export default function OnboardingSelfiePage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleRetake}
-                  disabled={isUploading}
+                  disabled={isProcessing}
                   className="flex-1 py-4 rounded-2xl border-2 border-border/50 text-muted-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <RefreshCw className="w-5 h-5" />
                   Repetir
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: isUploading ? 1 : 1.02 }}
-                  whileTap={{ scale: isUploading ? 1 : 0.98 }}
+                  whileHover={{ scale: isProcessing ? 1 : 1.02 }}
+                  whileTap={{ scale: isProcessing ? 1 : 0.98 }}
                   onClick={handleConfirm}
-                  disabled={isUploading}
+                  disabled={isProcessing}
                   className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-gaming font-medium flex items-center justify-center gap-2 disabled:opacity-70"
                 >
-                  {isUploading ? (
+                  {isProcessing ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Guardando...
+                      {isModerating ? 'Verificando...' : 'Guardando...'}
                     </>
                   ) : (
                     <>
