@@ -113,8 +113,15 @@ export function useMediaUpload() {
 
       const fileName = `${user.id}/${timestamp}_${type}.${extension}`;
 
+      // iOS FIX: convert QuickTime to safe MP4 mime
+      let uploadFile: File = file;
+
+      if (type === "video" && file.type === "video/quicktime") {
+        uploadFile = new File([file], file.name.replace(/\.\w+$/, ".mp4"), { type: "video/mp4" });
+      }
+
       // Upload to Supabase Storage with explicit contentType for iPhone compatibility
-      const { data, error } = await supabase.storage.from("content").upload(fileName, file, {
+      const { data, error } = await supabase.storage.from("content").upload(fileName, uploadFile, {
         cacheControl: "3600",
         upsert: false,
       });
