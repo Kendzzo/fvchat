@@ -23,12 +23,14 @@ export default function ChatPage() {
   const { chats, isLoading, refreshChats } = useChats();
   const { markChatAsRead } = useUnreadMessages();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  
   const filteredChats = chats.filter((chat) =>
-  const selectedChat = chats.find(c => c.id === selectedChatId) || null;
-    (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase()),
+    (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
+  const selectedChat = chats.find(c => c.id === selectedChatId) || null;
   const handleNewChatClick = () => {
     if (!canInteract) {
       toast.error("Cuenta pendiente de aprobación parental");
@@ -36,9 +38,9 @@ export default function ChatPage() {
     }
     setShowNewChatModal(true);
   };
-  const handleChatCreated = (chatId: string) => {
-  setSelectedChatId(chatId);
-};
+  const handleChatCreated = (chat: Chat) => {
+    setSelectedChatId(chat.id);
+  };
   const handleSelectChat = async (chat: Chat) => {
   setSelectedChatId(chat.id);
   await markChatAsRead(chat.id);
