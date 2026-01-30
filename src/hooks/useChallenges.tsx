@@ -39,10 +39,12 @@ export interface ChallengeReward {
   reward_type: string;
   reward_id: string;
   sticker?: {
-    name: string;
-    emoji: string;
-    rarity: string;
-  };
+  id?: string;
+  name: string;
+  emoji: string;
+  rarity: string;
+  image_url?: string | null;
+};;
   avatar_item?: {
     name: string;
     rarity: string;
@@ -215,7 +217,9 @@ export function useChallenges() {
       // Fetch sticker details for rewards
       let rewardsWithDetails: ChallengeReward[] = [];
       if (rewardsData && rewardsData.length > 0) {
-        const stickerIds = rewardsData.filter(r => r.reward_type === 'sticker').map(r => r.reward_id);
+        const stickerIds = rewardsData
+  .filter(r => (r.reward_type || '').toLowerCase() === 'sticker')
+  .select('id, name, emoji, rarity, image_url')
         
         const { data: stickers } = await supabase
           .from('stickers' as 'posts')
