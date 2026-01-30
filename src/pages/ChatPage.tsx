@@ -25,8 +25,8 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const [pendingChatId, setPendingChatId] = useState<string | null>(null);
   const filteredChats = chats.filter((chat) =>
+  const selectedChat = chats.find(c => c.id === selectedChatId) || null;
     (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase()),
   );
   const handleNewChatClick = () => {
@@ -36,26 +36,21 @@ export default function ChatPage() {
     }
     setShowNewChatModal(true);
   };
-  const handleChatCreated = (chat: Chat) => {
-    setSelectedChat(chat);
-  };
-  useEffect(() => {
-    if (!pendingChatId) return;
-
-    const chat = chats.find((c) => c.id === pendingChatId);
-    if (chat) {
-      setSelectedChat(chat);
-      setPendingChatId(null);
-    }
-  }, [pendingChatId, chats]);
+  const handleChatCreated = (chatId: string) => {
+  setSelectedChatId(chatId);
+};
   const handleSelectChat = async (chat: Chat) => {
-    setSelectedChat(chat);
-    // Mark as read when opening
-    await markChatAsRead(chat.id);
-  };
+  setSelectedChatId(chat.id);
+  await markChatAsRead(chat.id);
+};
   if (selectedChat) {
-    return <ChatDetail chat={selectedChat} onBack={() => setSelectedChat(null)} />;
-  }
+  return (
+    <ChatDetail
+      chat={selectedChat}
+      onBack={() => setSelectedChatId(null)}
+    />
+  );
+}
   return (
     <div className="min-h-screen bg-primary-foreground my-0 py-0">
       <NewChatModal open={showNewChatModal} onOpenChange={setShowNewChatModal} onChatCreated={handleChatCreated} />
