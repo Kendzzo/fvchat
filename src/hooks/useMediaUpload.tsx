@@ -120,13 +120,19 @@ export function useMediaUpload() {
       });
 
       if (error) {
-        console.error("Upload error:", error);
-        // Provide helpful error message for MIME type issues
-        let errorMessage = error.message;
-        if (error.message.includes("mime") || error.message.includes("type")) {
-          errorMessage = `El servidor no acepta este formato de vídeo. Verifica que video/quicktime esté habilitado en el bucket.`;
-        }
-        setUploadProgress({ status: "error", progress: 0, message: "Error al subir: " + errorMessage });
+        console.error("Upload error FULL:", error);
+
+        const debug =
+          `status=${(error as any)?.statusCode ?? (error as any)?.status ?? "n/a"} ` +
+          `message=${error.message ?? "n/a"} ` +
+          `name=${(error as any)?.name ?? "n/a"}`;
+
+        setUploadProgress({
+          status: "error",
+          progress: 0,
+          message: "Error al subir (debug): " + debug,
+        });
+
         return { url: null, error };
       }
 
