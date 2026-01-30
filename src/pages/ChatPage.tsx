@@ -103,7 +103,7 @@ export default function ChatPage() {
         x: 0
       }} transition={{
         delay: index * 0.05
-      }} onClick={() => handleSelectChat(chat)} className="w-full glass-card p-4 hover:bg-card/60 transition-colors my-[15px] rounded-full border-transparent shadow-none flex items-center justify-start gap-[16px] pt-[10px] pb-[10px]">
+      }} onClick={() => handleSelectChat(chat)} className="w-full glass-card p-4 hover:bg-card/60 transition-colors my-[15px] rounded-full border-transparent shadow-none flex items-center justify-start gap-[16px] pt-[10px] pb-[10px] mt-[10px] mb-[10px]">
               <ProfilePhotoWithStatus url={(chat.otherParticipant as any)?.profile_photo_url || null} nick={chat.is_group ? chat.name || "Grupo" : chat.otherParticipant?.nick || "Usuario"} isOnline={!chat.is_group && isOnline((chat.otherParticipant as any)?.last_seen_at ?? null)} size="lg" showBorder={true} />
 
               <div className="flex-1 text-left min-w-0">
