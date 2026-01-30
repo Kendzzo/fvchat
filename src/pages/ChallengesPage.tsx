@@ -395,8 +395,8 @@ export default function ChallengesPage() {
                 className="text-center p-4 rounded-xl border border-border/50 bg-white"
               >
                 <div className="mb-2 flex items-center justify-center px-[10px] py-[10px]">
-                  {"image_url" in reward && reward.image_url ? (
-                    <img src={reward.image_url} alt={reward.name} className="w-16 h-16 object-contain" />
+                  {"image_url" in reward && (reward as { image_url?: string | null }).image_url ? (
+                    <img src={(reward as { image_url?: string | null }).image_url as string} alt={reward.name} className="w-16 h-16 object-contain" />
                   ) : (
                     <div className="text-4xl">{reward.emoji}</div>
                   )}
