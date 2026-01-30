@@ -7,7 +7,7 @@ import {
   UserPlus,
   QrCode,
   Grid,
-  Heart,
+  Sticker,
   Shield,
   LogOut,
   ChevronRight,
@@ -23,6 +23,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useFriendships } from "@/hooks/useFriendships";
+import { useUserStickers } from "@/hooks/useUserStickers";
 import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/UserSearch";
 import { FriendRequestsList } from "@/components/FriendRequestsList";
@@ -52,7 +53,8 @@ export default function ProfilePage() {
   const { profile, signOut, isLoading: authLoading, isAdmin, canInteract, refreshProfile } = useAuth();
   const { posts, isLoading: postsLoading } = usePosts();
   const { friends, pendingRequests } = useFriendships();
-  const [activeTab, setActiveTab] = useState<"posts" | "likes">("posts");
+  const { stickers: myStickers, isLoading: stickersLoading } = useUserStickers();
+  const [activeTab, setActiveTab] = useState<"posts" | "stickers">("posts");
   const [showSettings, setShowSettings] = useState(false);
   const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>("main");
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
@@ -302,12 +304,12 @@ export default function ProfilePage() {
             )}
           </button>
           <button
-            onClick={() => setActiveTab("likes")}
-            className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${activeTab === "likes" ? "text-foreground" : "text-muted-foreground"}`}
+            onClick={() => setActiveTab("stickers")}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${activeTab === "stickers" ? "text-foreground" : "text-muted-foreground"}`}
           >
-            <Heart className="w-4 h-4" />
-            Likes
-            {activeTab === "likes" && (
+            <Sticker className="w-4 h-4" />
+            Stickers
+            {activeTab === "stickers" && (
               <motion.div
                 layoutId="profile-tab"
                 className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"
@@ -316,48 +318,94 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Grid */}
-        {postsLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : myPosts.length === 0 ? (
-          <div className="text-center py-8">
-            <Grid className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No tienes publicaciones aún</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-1 border-transparent text-white">
-            {myPosts.map((post, i) => (
-              <motion.div
-                key={post.id}
-                initial={{
-                  opacity: 0,
-                  scale: 0.9,
-                }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                }}
-                transition={{
-                  delay: i * 0.05,
-                }}
-                className="aspect-square rounded-lg overflow-hidden bg-card"
-              >
-                {post.content_url ? (
-                  <img
-                    src={post.content_url}
-                    alt=""
-                    className="w-full h-full object-contain border-0 border-none border-white"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    <Grid className="w-6 h-6" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
+        {/* Grid - Posts Tab */}
+        {activeTab === "posts" && (
+          postsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : myPosts.length === 0 ? (
+            <div className="text-center py-8">
+              <Grid className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">No tienes publicaciones aún</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1 border-transparent text-white">
+              {myPosts.map((post, i) => (
+                <motion.div
+                  key={post.id}
+                  initial={{
+                    opacity: 0,
+                    scale: 0.9,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  transition={{
+                    delay: i * 0.05,
+                  }}
+                  className="aspect-square rounded-lg overflow-hidden bg-card"
+                >
+                  {post.content_url ? (
+                    <img
+                      src={post.content_url}
+                      alt=""
+                      className="w-full h-full object-contain border-0 border-none border-white"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      <Grid className="w-6 h-6" />
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Grid - Stickers Tab */}
+        {activeTab === "stickers" && (
+          stickersLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : myStickers.length === 0 ? (
+            <div className="text-center py-8">
+              <Sticker className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">Aún no tienes stickers</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 border-transparent">
+              {myStickers.map((sticker, i) => (
+                <motion.div
+                  key={sticker.id}
+                  initial={{
+                    opacity: 0,
+                    scale: 0.9,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  transition={{
+                    delay: i * 0.05,
+                  }}
+                  className="aspect-square rounded-xl overflow-hidden bg-card/50 border border-border/30 flex items-center justify-center p-2"
+                >
+                  {sticker.image_url ? (
+                    <img
+                      src={sticker.image_url}
+                      alt={sticker.name}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-4xl">✨</span>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )
         )}
       </div>
     </div>

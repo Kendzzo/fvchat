@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.seed-stickers]
 verify_jwt = false
+
+[functions.assign-starter-stickers]
+verify_jwt = false
