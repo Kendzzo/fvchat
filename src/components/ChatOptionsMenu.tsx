@@ -53,7 +53,10 @@ export const ChatOptionsMenu = memo(function ChatOptionsMenu({ chat, otherUserId
 
   const handleViewProfile = useCallback(() => {
     if (otherUserId) {
+      console.log('[ChatOptionsMenu] Navigating to profile:', otherUserId);
       navigate(`/u/${otherUserId}`);
+    } else {
+      console.warn('[ChatOptionsMenu] No otherUserId available');
     }
     setOpen(false);
   }, [otherUserId, navigate]);

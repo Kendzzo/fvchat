@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminUsers } from '@/hooks/useAdminUsers';
 import { useAdminModeration } from '@/hooks/useAdminModeration';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -119,12 +119,28 @@ export default function AdminPage() {
     }
   };
 
+  const navigate = useNavigate();
+
+  const handleCloseAdmin = () => {
+    navigate('/app/profile');
+  };
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Shield className="w-8 h-8 text-primary" />
-          <h1 className="text-2xl font-bold">Panel de Administración</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className="w-8 h-8 text-primary" />
+            <h1 className="text-2xl font-bold">Panel de Administración</h1>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={handleCloseAdmin}
+            className="flex items-center gap-2"
+          >
+            <X className="w-4 h-4" />
+            Cerrar
+          </Button>
         </div>
 
         {/* Stats */}
