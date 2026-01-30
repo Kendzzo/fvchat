@@ -14,24 +14,18 @@ const SIZE_CLASSES = {
   sm: "w-8 h-8 text-xs",
   md: "w-10 h-10 text-sm",
   lg: "w-14 h-14 text-base",
-  xl: "w-30 h-30 text-lg",
+  xl: "w-30 h-30 text-lg"
 };
 const BORDER_CLASSES = {
   xs: "p-[1px]",
   sm: "p-[1px]",
   md: "p-[2px]",
   lg: "p-[2px]",
-  xl: "p-[3px]",
+  xl: "p-[3px]"
 };
 
 // Color palette for initials fallback
-const GRADIENT_COLORS = [
-  "from-primary to-secondary",
-  "from-secondary to-accent",
-  "from-accent to-primary",
-  "from-purple-500 to-blue-500",
-  "from-orange-500 to-red-500",
-];
+const GRADIENT_COLORS = ["from-primary to-secondary", "from-secondary to-accent", "from-accent to-primary", "from-purple-500 to-blue-500", "from-orange-500 to-red-500"];
 
 /**
  * ProfilePhoto - Universal profile photo component for VFC
@@ -53,7 +47,7 @@ export function ProfilePhoto({
   showBorder = true,
   className = "",
   onClick,
-  editable = false,
+  editable = false
 }: ProfilePhotoProps) {
   const sizeClass = SIZE_CLASSES[size];
   const borderClass = BORDER_CLASSES[size];
@@ -71,76 +65,31 @@ export function ProfilePhoto({
     const fallback = target.nextElementSibling as HTMLElement;
     if (fallback) fallback.classList.remove("hidden");
   };
-  const content = url ? (
-    <>
-      <img
-        src={url}
-        alt={`Foto de ${nick || "usuario"}`}
-        className="w-full h-full rounded-full object-fill border-8 border-none shadow-card"
-        loading="lazy"
-        onError={handleImageError}
-      />
-      <div
-        className={cn(
-          "w-full h-full rounded-full flex items-center justify-center font-bold hidden",
-          `bg-gradient-to-br ${gradientColor} text-white`,
-        )}
-      >
+  const content = url ? <>
+      <img src={url} alt={`Foto de ${nick || "usuario"}`} className="w-full h-full rounded-full object-fill border-8 border-none shadow-card border-white" loading="lazy" onError={handleImageError} />
+      <div className={cn("w-full h-full rounded-full flex items-center justify-center font-bold hidden", `bg-gradient-to-br ${gradientColor} text-white`)}>
         {initials}
       </div>
-    </>
-  ) : (
-    <div
-      className={cn(
-        "w-full h-full rounded-full flex items-center justify-center font-bold mx-0 gap-0",
-        `bg-gradient-to-br ${gradientColor} text-white`,
-      )}
-    >
+    </> : <div className={cn("w-full h-full rounded-full flex items-center justify-center font-bold mx-0 gap-0", `bg-gradient-to-br ${gradientColor} text-white`)}>
       {initials}
-    </div>
-  );
+    </div>;
   const Component = onClick ? "button" : "div";
   if (showBorder) {
-    return (
-      <Component
-        onClick={onClick}
-        className={cn(
-          "relative bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0 py-[5px] ml-0 pl-[16px] text-base opacity-100 shadow-none font-light text-center mr-0 border-none rounded-full border-4 border-white",
-          borderClass,
-          className,
-          onClick && "cursor-pointer hover:scale-105 transition-transform",
-        )}
-      >
+    return <Component onClick={onClick} className={cn("relative bg-gradient-to-r from-primary via-secondary to-accent flex-shrink-0 py-[5px] ml-0 pl-[16px] text-base opacity-100 shadow-none font-light text-center mr-0 border-none rounded-full border-4 border-white", borderClass, className, onClick && "cursor-pointer hover:scale-105 transition-transform")}>
         <div className={cn(sizeClass, "rounded-full bg-card overflow-hidden flex items-center justify-center")}>
           {content}
         </div>
-        {editable && (
-          <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center shadow-lg">
+        {editable && <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center shadow-lg">
             <Camera className="text-secondary-foreground w-[20px] h-[20px]" />
-          </div>
-        )}
-      </Component>
-    );
+          </div>}
+      </Component>;
   }
-  return (
-    <Component
-      onClick={onClick}
-      className={cn(
-        "relative",
-        sizeClass,
-        "rounded-full bg-card overflow-hidden flex items-center justify-center flex-shrink-0",
-        className,
-        onClick && "cursor-pointer hover:scale-105 transition-transform",
-      )}
-    >
+  return <Component onClick={onClick} className={cn("relative", sizeClass, "rounded-full bg-card overflow-hidden flex items-center justify-center flex-shrink-0", className, onClick && "cursor-pointer hover:scale-105 transition-transform")}>
       {content}
-      {editable && (
-        <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center shadow-lg">
+      {editable && <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center shadow-lg">
           <Camera className="w-3 h-3 text-secondary-foreground" />
-        </div>
-      )}
-    </Component>
-  );
+        </div>}
+    </Component>;
 }
 
 /**
@@ -152,17 +101,13 @@ export function ProfilePhotoWithStatus({
   isOnline = false,
   size = "md",
   showBorder = true,
-  className = "",
+  className = ""
 }: ProfilePhotoProps & {
   isOnline?: boolean;
 }) {
   const statusSize = size === "xs" || size === "sm" ? "w-2 h-2" : "w-3 h-3";
-  return (
-    <div className="relative flex-shrink-0">
+  return <div className="relative flex-shrink-0">
       <ProfilePhoto url={url} nick={nick} size={size} showBorder={showBorder} className={className} />
-      {isOnline && (
-        <div className={cn(statusSize, "absolute bottom-0 right-0 bg-green-500 rounded-full border-2 border-card")} />
-      )}
-    </div>
-  );
+      {isOnline && <div className={cn(statusSize, "absolute bottom-0 right-0 bg-green-500 rounded-full border-2 border-card")} />}
+    </div>;
 }
