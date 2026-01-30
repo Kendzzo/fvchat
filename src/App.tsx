@@ -16,6 +16,8 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 // Avatar pages removed - using profile photos now
 import PublicProfilePage from "./pages/PublicProfilePage";
+import ParentApprovePage from "./pages/ParentApprovePage";
+import ParentDashboardPage from "./pages/ParentDashboardPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +68,10 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Parent Routes - PUBLIC, no auth required */}
+      <Route path="/parent" element={<ParentDashboardPage />} />
+      <Route path="/parent/approve" element={<ParentApprovePage />} />
+      
       {/* Auth Routes - redirect to app if already logged in */}
       <Route path="/" element={<PublicRoute><SplashPage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />

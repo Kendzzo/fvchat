@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft, Check, AlertCircle, Shield, Mail, Loader2 } from "lucide-react";
 import vfcLogo from "@/assets/vfc-logo.png";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const currentYear = new Date().getFullYear();
 const validYears = Array.from({ length: 11 }, (_, i) => currentYear - 16 + i); // 2010-2020
@@ -119,6 +120,17 @@ export default function RegisterPage() {
         }
         setIsLoading(false);
         return;
+      }
+
+      // Get the newly created user to send parent approval email
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Send parent approval email in the background
+        supabase.functions.invoke("send-parent-approval-email", {
+          body: { child_user_id: user.id }
+        }).catch(err => {
+          console.error("Error sending parent approval email:", err);
+        });
       }
 
       setStep(4);
@@ -454,6 +466,20 @@ export default function RegisterPage() {
                   Tutor: {tutorEmail}
                 </li>
               </ul>
+            </div>
+
+            {/* Parental approval notice */}
+            <div className="p-4 rounded-xl bg-warning/10 border border-warning/30 text-sm text-left mt-4">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-foreground font-medium mb-1">Pendiente de aprobación</p>
+                  <p className="text-muted-foreground text-xs">
+                    Hemos enviado un email a tu tutor ({tutorEmail}) para aprobar tu cuenta.
+                    Podrás ver publicaciones, pero para chatear y publicar necesitarás su aprobación.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <motion.button
