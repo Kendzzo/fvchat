@@ -105,8 +105,8 @@ serve(async (req) => {
     // Generate links
     // Use the published URL or fallback to a preview URL pattern
     const baseUrl = "https://fvchat.lovable.app";
-    const approveUrl = `${APP_URL}/#/parent/approve?token=${token}&child=${child_user_id}`;
-    const dashboardUrl = `${APP_URL}/#/parent?token=${token}`;
+    const approveUrl = `${baseUrl}/#/parent/approve?token=${token}&child=${child_user_id}`;
+    const dashboardUrl = `${baseUrl}/#/parent?token=${token}`;
 
     // Log notification for audit (using tutor_notifications table)
     await supabase.from("tutor_notifications").insert({
