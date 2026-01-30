@@ -81,16 +81,16 @@ export default function SplashPage() {
         scale: 1.02
       }} whileTap={{
         scale: 0.98
-      }} onClick={() => navigate("/register")} className="btn-gaming py-4 rounded-2xl text-foreground font-gaming text-lg">
-          ¡Empezar!
+      }} onClick={() => navigate("/login")} className="btn-gaming py-4 rounded-2xl text-foreground font-gaming text-lg">
+          Entrar
         </motion.button>
 
         <motion.button whileHover={{
         scale: 1.02
       }} whileTap={{
         scale: 0.98
-      }} onClick={() => navigate("/login")} className="py-4 rounded-2xl border-2 font-gaming text-lg transition-all text-white border-white">
-          Ya tengo cuenta
+      }} onClick={() => navigate("/register")} className="py-4 rounded-2xl border-2 font-gaming text-lg transition-all text-white border-white">
+          Registrarme
         </motion.button>
       </motion.div>
 
