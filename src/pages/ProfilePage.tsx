@@ -144,7 +144,7 @@ export default function ProfilePage() {
               nick={profile?.nick || ""}
               size="xl"
               showBorder={true}
-              className="w-10 h-10"
+              className="w-40 h-40"
               onClick={() => setShowPhotoEditor(true)}
               editable={true}
             />
