@@ -8,7 +8,9 @@ const corsHeaders = {
 
 interface ModerationRequest {
   text: string;
-  surface: 'chat' | 'post' | 'comment';
+  surface: 'chat' | 'post' | 'comment' | 'nick' | 'group_name';
+  context?: string[];  // Previous messages for context (chat)
+  targetUserId?: string;  // For bullying detection
 }
 
 interface ModerationResult {
@@ -149,16 +151,26 @@ function localFilter(text: string): ModerationResult | null {
   return null; // Pass to Layer 2 (AI)
 }
 
-// Layer 2: AI moderation using Lovable AI
-async function aiModeration(text: string, surface: string): Promise<ModerationResult> {
+// Layer 2: AI moderation using Lovable AI with context
+async function aiModeration(
+  text: string, 
+  surface: string, 
+  context?: string[]
+): Promise<ModerationResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   
   if (!LOVABLE_API_KEY) {
-    console.log("LOVABLE_API_KEY not configured, skipping AI moderation");
+    console.log("[moderate-content] LOVABLE_API_KEY not configured, skipping AI moderation");
     return { allowed: true, categories: [], severity: null, reason: '' };
   }
 
   try {
+    // Build context string for chat
+    let contextInfo = "";
+    if (context && context.length > 0 && surface === "chat") {
+      contextInfo = `\n\nPrevious messages for context:\n${context.slice(-5).map((m, i) => `${i + 1}. "${m}"`).join("\n")}`;
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -175,16 +187,22 @@ Analyze the following message and determine if it should be blocked.
 
 Block content that contains:
 - Profanity, insults, or offensive language (in Spanish, Catalan, or English)
-- Bullying, harassment, or humiliation
+- Bullying, harassment, or humiliation (especially repeated patterns targeting the same person)
 - Violence or threats
 - Sexual content or innuendo
 - Personal data (phone numbers, addresses, emails, social media handles)
 - Dangerous requests (meeting in person, sharing location)
+- Attempts to move conversation to other platforms (WhatsApp, Instagram, etc.)
+- Persistent unwanted contact or spam-like behavior
+
+Consider the CONTEXT of previous messages when evaluating chat content.
+Look for patterns of bullying where the same sender repeatedly targets the same person.
+${contextInfo}
 
 Respond ONLY with a JSON object (no markdown, no explanation):
 {
   "allowed": boolean,
-  "categories": ["profanity"|"bullying"|"violence"|"sexual"|"personal_data"|"dangerous_request"],
+  "categories": ["profanity"|"bullying"|"violence"|"sexual"|"personal_data"|"dangerous_request"|"spam"|"platform_evasion"],
   "severity": "low"|"medium"|"high",
   "reason": "Brief explanation in Spanish, max 50 chars"
 }
@@ -203,7 +221,7 @@ If the content is safe, respond with:
     });
 
     if (!response.ok) {
-      console.error("AI moderation request failed:", response.status);
+      console.error("[moderate-content] AI moderation request failed:", response.status);
       // Fail open for availability, but log for review
       return { allowed: true, categories: [], severity: null, reason: '' };
     }
@@ -225,9 +243,38 @@ If the content is safe, respond with:
 
     return { allowed: true, categories: [], severity: null, reason: '' };
   } catch (error) {
-    console.error("AI moderation error:", error);
+    console.error("[moderate-content] AI moderation error:", error);
     // Fail open for availability
     return { allowed: true, categories: [], severity: null, reason: '' };
+  }
+}
+
+// Check for bullying patterns in recent history
+async function checkBullyingPattern(
+  adminClient: any,
+  senderId: string,
+  targetUserId?: string
+): Promise<{ isBullying: boolean; count: number }> {
+  if (!targetUserId) return { isBullying: false, count: 0 };
+
+  try {
+    // Check blocked events from this sender to this target in last 7 days
+    const { count } = await adminClient
+      .from("moderation_events")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", senderId)
+      .eq("allowed", false)
+      .contains("categories", ["profanity", "bullying"])
+      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    // If 3+ blocked insults in 7 days, flag as bullying pattern
+    return { 
+      isBullying: (count || 0) >= 3, 
+      count: count || 0 
+    };
+  } catch (error) {
+    console.error("[moderate-content] Bullying check error:", error);
+    return { isBullying: false, count: 0 };
   }
 }
 
@@ -235,6 +282,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  console.log("[moderate-content] start");
 
   try {
     // Get auth token
@@ -291,7 +340,7 @@ serve(async (req) => {
     }
 
     // Parse request
-    const { text, surface }: ModerationRequest = await req.json();
+    const { text, surface, context, targetUserId }: ModerationRequest = await req.json();
 
     if (!text || typeof text !== "string") {
       return new Response(JSON.stringify({ error: "Invalid text" }), {
@@ -300,15 +349,30 @@ serve(async (req) => {
       });
     }
 
+    console.log("[moderate-content] surface:", surface, "text length:", text.length);
+
     // Layer 1: Local filter
     let result = localFilter(text);
 
-    // Layer 2: AI moderation (if local filter passed)
+    // Layer 2: AI moderation with context (if local filter passed)
     if (!result) {
-      result = await aiModeration(text, surface);
+      result = await aiModeration(text, surface, context);
     }
 
-    // Log moderation event and handle strikes
+    // Additional: Check for bullying patterns
+    if (result.allowed && surface === "chat" && targetUserId) {
+      const bullyingCheck = await checkBullyingPattern(adminClient, userId, targetUserId);
+      if (bullyingCheck.isBullying) {
+        result = {
+          allowed: false,
+          categories: ["bullying"],
+          severity: "high",
+          reason: "Comportamiento inapropiado repetitivo detectado",
+        };
+      }
+    }
+
+    // Log moderation event ALWAYS (allowed or blocked)
     const textSnippet = text.length > 120 ? text.substring(0, 117) + '...' : text;
 
     await adminClient.from("moderation_events").insert({
@@ -358,6 +422,8 @@ serve(async (req) => {
           });
         }
 
+        console.log("[moderate-content] User suspended:", userId);
+
         return new Response(JSON.stringify({
           allowed: false,
           suspended: true,
@@ -385,6 +451,8 @@ serve(async (req) => {
       });
     }
 
+    console.log("[moderate-content] allowed");
+
     return new Response(JSON.stringify({
       allowed: true,
       suspended: false,
@@ -394,7 +462,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Moderation error:", error);
+    console.error("[moderate-content] Error:", error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : "Unknown error" 
     }), {

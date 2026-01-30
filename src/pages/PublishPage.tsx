@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Video, X, Sparkles, Users, Lock, AlertCircle, Loader2, CheckCircle, Sticker } from "lucide-react";
+import { Camera, Video, X, Sparkles, Users, Lock, AlertCircle, Loader2, CheckCircle, Sticker, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useMediaUpload } from "@/hooks/useMediaUpload";
 import { useModeration } from "@/hooks/useModeration";
+import { useImageModeration } from "@/hooks/useImageModeration";
 import { useStickers } from "@/hooks/useStickers";
 import { Progress } from "@/components/ui/progress";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
@@ -20,6 +21,7 @@ export default function PublishPage() {
   const { createPost } = usePosts();
   const { uploadMedia, uploadProgress, resetProgress } = useMediaUpload();
   const { checkContent, isChecking, suspensionInfo, formatSuspensionTime, checkSuspension } = useModeration();
+  const { moderateImageFile, isChecking: isModeratingImage } = useImageModeration();
   const { getAvailableStickers } = useStickers();
   const availableStickers = getAvailableStickers();
 
@@ -38,6 +40,7 @@ export default function PublishPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [imageModerationError, setImageModerationError] = useState<string | null>(null);
   
   // Sticker overlay state
   const [placedStickers, setPlacedStickers] = useState<PlacedSticker[]>([]);
@@ -70,12 +73,26 @@ export default function PublishPage() {
     resetProgress();
     setWarning("");
     setUploadedUrl(null);
+    setImageModerationError(null);
 
     // Create preview
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
     setSelectedFile(file);
     setMediaType(type);
+
+    // MODERATION: Check image before upload (photos only)
+    if (type === 'photo') {
+      console.log("[PublishPage] Moderating image before upload...");
+      const modResult = await moderateImageFile(file, "post");
+      
+      if (!modResult.allowed) {
+        console.log("[PublishPage] Image failed moderation:", modResult.reason);
+        setImageModerationError(modResult.reason || "Imagen no permitida");
+        // Keep preview but don't upload
+        return;
+      }
+    }
 
     // Upload file
     const {
@@ -289,6 +306,22 @@ export default function PublishPage() {
               <span className="text-xs text-muted-foreground">Máx. 10 seg</span>
             </motion.button>
           </div>
+
+          {/* Image Moderation Error */}
+          {imageModerationError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl bg-destructive/20 border border-destructive/30 text-destructive text-sm flex items-start gap-3"
+            >
+              <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Imagen no permitida</p>
+                <p className="text-xs mt-1 opacity-80">{imageModerationError}</p>
+                <p className="text-xs mt-2">Por favor, elige otra imagen.</p>
+              </div>
+            </motion.div>
+          )}
 
           {warning && <motion.div initial={{
         opacity: 0,
