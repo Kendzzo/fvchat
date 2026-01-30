@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Sticker } from "@/hooks/useStickers";
 export default function ChatPage() {
   const { user, canInteract } = useAuth();
-  const { chats, isLoading, refreshChats } = useChats();
+  const { chats, isLoading, refreshChats, createChat } = useChats();
   const { markChatAsRead } = useUnreadMessages();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
@@ -55,7 +55,13 @@ export default function ChatPage() {
 }
   return (
     <div className="min-h-screen bg-primary-foreground my-0 py-0">
-      <NewChatModal open={showNewChatModal} onOpenChange={setShowNewChatModal} onChatCreated={handleChatCreated} />
+      <New<NewChatModal
+  open={showNewChatModal}
+  onOpenChange={setShowNewChatModal}
+  onChatCreated={handleChatCreated}
+  chats={chats}
+  createChat={createChat}
+/>
 
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 opacity-100 border-transparent bg-[#1b0637] py-[11px] pt-0">
