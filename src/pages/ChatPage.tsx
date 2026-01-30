@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Sticker } from "@/hooks/useStickers";
 export default function ChatPage() {
   const { user, canInteract } = useAuth();
-  const { chats, isLoading, refreshChats, createChat } = useChats();
+  const { chats, isLoading, refreshChats, createChat, markChatAsReadLocal } = useChats();
   const { markChatAsRead } = useUnreadMessages();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
@@ -31,6 +31,7 @@ export default function ChatPage() {
   );
   
   const selectedChat = chats.find(c => c.id === selectedChatId) || null;
+  
   const handleNewChatClick = () => {
     if (!canInteract) {
       toast.error("Cuenta pendiente de aprobación parental");
@@ -38,21 +39,31 @@ export default function ChatPage() {
     }
     setShowNewChatModal(true);
   };
+  
   const handleChatCreated = (chat: Chat) => {
     setSelectedChatId(chat.id);
   };
+  
   const handleSelectChat = async (chat: Chat) => {
-  setSelectedChatId(chat.id);
-  await markChatAsRead(chat.id);
-};
+    setSelectedChatId(chat.id);
+    // Mark as read both locally and in DB
+    markChatAsReadLocal(chat.id);
+    await markChatAsRead(chat.id);
+  };
+  const handleMarkRead = async (chatId: string) => {
+    markChatAsReadLocal(chatId);
+    await markChatAsRead(chatId);
+  };
+
   if (selectedChat) {
-  return (
-    <ChatDetail
-      chat={selectedChat}
-      onBack={() => setSelectedChatId(null)}
-    />
-  );
-}
+    return (
+      <ChatDetail
+        chat={selectedChat}
+        onBack={() => setSelectedChatId(null)}
+        onMarkRead={handleMarkRead}
+      />
+    );
+  }
   return (
     <div className="min-h-screen bg-primary-foreground my-0 py-0">
       <NewChatModal
@@ -167,10 +178,9 @@ export default function ChatPage() {
 }
 
 // Chat Detail Component
-function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
+function ChatDetail({ chat, onBack, onMarkRead }: { chat: Chat; onBack: () => void; onMarkRead: (chatId: string) => Promise<void> }) {
   const { user } = useAuth();
   const { messages, isLoading, sendMessage, sendSticker } = useMessages(chat.id);
-  const { markChatAsRead } = useUnreadMessages();
   const { checkContent, isChecking, suspensionInfo, formatSuspensionTime, checkSuspension } = useModeration();
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -222,8 +232,8 @@ function ChatDetail({ chat, onBack }: { chat: Chat; onBack: () => void }) {
 
   // Mark as read when entering
   useEffect(() => {
-    markChatAsRead(chat.id);
-  }, [chat.id, markChatAsRead]);
+    onMarkRead(chat.id);
+  }, [chat.id, onMarkRead]);
   const isSuspended = suspensionInfo.suspended && suspensionInfo.until && suspensionInfo.until > new Date();
   const handleSend = async () => {
     if ((!messageText.trim() && !pendingMedia) || isSending || isChecking) return;

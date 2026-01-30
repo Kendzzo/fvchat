@@ -3,6 +3,7 @@ import { Home, MessageCircle, PlusCircle, Swords, User, Plus } from "lucide-reac
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { usePendingCount } from "@/hooks/usePendingCount";
 import { usePresence } from "@/hooks/usePresence";
 
 const navItems = [
@@ -38,6 +39,7 @@ export default function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { unreadCount } = useUnreadMessages();
+  const { pendingCount } = usePendingCount();
   
   // Initialize presence heartbeat
   usePresence();
@@ -55,7 +57,8 @@ export default function MainLayout() {
           {navItems.map(item => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
-            const showBadge = item.path === "/app/chat" && unreadCount > 0;
+            const showChatBadge = item.path === "/app/chat" && unreadCount > 0;
+            const showProfileBadge = item.path === "/app/profile" && pendingCount > 0;
 
             return (
               <button 
@@ -93,10 +96,19 @@ export default function MainLayout() {
                       )} />
                       
                       {/* Badge for unread messages */}
-                      {showBadge && (
+                      {showChatBadge && (
                         <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 flex items-center justify-center px-1">
                           <span className="text-[10px] font-bold text-white">
                             {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Badge for pending friend requests */}
+                      {showProfileBadge && (
+                        <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 flex items-center justify-center px-1">
+                          <span className="text-[10px] font-bold text-white">
+                            {pendingCount > 99 ? '99+' : pendingCount}
                           </span>
                         </div>
                       )}
