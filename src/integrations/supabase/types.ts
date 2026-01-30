@@ -689,6 +689,7 @@ export type Database = {
           last_seen_at: string | null
           nick: string
           parent_approved: boolean
+          profile_photo_completed: boolean
           profile_photo_updated_at: string | null
           profile_photo_url: string | null
           suspended_until: string | null
@@ -707,6 +708,7 @@ export type Database = {
           last_seen_at?: string | null
           nick: string
           parent_approved?: boolean
+          profile_photo_completed?: boolean
           profile_photo_updated_at?: string | null
           profile_photo_url?: string | null
           suspended_until?: string | null
@@ -725,6 +727,7 @@ export type Database = {
           last_seen_at?: string | null
           nick?: string
           parent_approved?: boolean
+          profile_photo_completed?: boolean
           profile_photo_updated_at?: string | null
           profile_photo_url?: string | null
           suspended_until?: string | null

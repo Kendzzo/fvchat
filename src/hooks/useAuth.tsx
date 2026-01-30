@@ -9,8 +9,9 @@ interface Profile {
   age_group: string;
   avatar_data: Record<string, unknown>;
   avatar_snapshot_url: string | null;
-  profile_photo_url: string | null; // New: real profile photo
+  profile_photo_url: string | null;
   profile_photo_updated_at: string | null;
+  profile_photo_completed: boolean; // New: mandatory selfie completed
   tutor_email: string;
   account_status: string;
   language_infractions_count: number;

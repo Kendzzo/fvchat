@@ -9,6 +9,7 @@ import { useUserStickers } from "@/hooks/useUserStickers";
 import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/UserSearch";
 import { FriendRequestsList } from "@/components/FriendRequestsList";
+import { FriendsListSection } from "@/components/FriendsListSection";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { ProfilePhotoEditor } from "@/components/ProfilePhotoEditor";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -213,6 +214,11 @@ export default function ProfilePage() {
             <QrCode className="w-[30px] h-[30px] bg-white" />
           </motion.button>
         </div>
+
+        {/* Friends List Section - Instagram style */}
+        {profile && (
+          <FriendsListSection userId={profile.id} isOwnProfile={true} />
+        )}
 
         {/* Tabs */}
         <div className="flex border-b border-border/30">
