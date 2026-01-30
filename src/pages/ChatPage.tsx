@@ -108,10 +108,10 @@ export default function ChatPage() {
 
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold truncate text-white">
+                  <span className="font-semibold truncate text-white text-base">
                     {chat.is_group ? chat.name : chat.otherParticipant?.nick || "Usuario"}
                   </span>
-                  <span className="text-xs text-white border-none rounded-full mr-[20px]">
+                  <span className="text-xs text-white border-none rounded-full mr-[20px] mt-0 pt-px text-center">
                     {chat.lastMessageTime ? formatDistanceToNow(new Date(chat.lastMessageTime), {
                 addSuffix: false,
                 locale: es
