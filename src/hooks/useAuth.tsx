@@ -27,7 +27,12 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   canInteract: boolean; // New: determines if user can chat, comment, add friends
-  signUp: (nick: string, password: string, birthYear: number, tutorEmail: string) => Promise<{ error: Error | null }>;
+  signUp: (
+    nick: string,
+    password: string,
+    birthYear: number,
+    tutorEmail: string
+  ) => Promise<{ error: Error | null; userId: string | null }>;
   signIn: (nick: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -164,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string, 
     birthYear: number, 
     tutorEmail: string
-  ): Promise<{ error: Error | null }> => {
+  ): Promise<{ error: Error | null; userId: string | null }> => {
     try {
       const normalizedNick = normalizeNick(nick);
       const technicalEmail = createTechnicalEmail(nick);
@@ -187,9 +192,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (signUpError) {
         // Handle "already registered" error
         if (signUpError.message.includes('already registered')) {
-          return { error: new Error('Nick ya usado. Elige otro.') };
+          return { error: new Error('Nick ya usado. Elige otro.'), userId: null };
         }
-        return { error: signUpError };
+        return { error: signUpError, userId: null };
       }
 
       if (data.user) {
@@ -209,10 +214,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (profileError) {
           // If nick already exists (unique constraint), show clear error
           if (profileError.code === '23505') {
-            return { error: new Error('Nick ya usado. Elige otro.') };
+            return { error: new Error('Nick ya usado. Elige otro.'), userId: null };
           }
           console.error('Error creating profile:', profileError);
-          return { error: new Error(profileError.message) };
+          return { error: new Error(profileError.message), userId: null };
         }
 
         // Create user role
@@ -232,9 +237,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(profileData);
       }
 
-      return { error: null };
+      return { error: null, userId: data.user?.id ?? null };
     } catch (err) {
-      return { error: err as Error };
+      return { error: err as Error, userId: null };
     }
   };
 

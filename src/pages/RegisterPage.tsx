@@ -5,6 +5,7 @@ import { ArrowLeft, Check, AlertCircle, Shield, Mail, Loader2 } from "lucide-rea
 import vfcLogo from "@/assets/vfc-logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const currentYear = new Date().getFullYear();
 const validYears = Array.from({ length: 11 }, (_, i) => currentYear - 16 + i); // 2010-2020
@@ -105,7 +106,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const { error: signUpError } = await signUp(
+      const { error: signUpError, userId } = await signUp(
         nick,
         password,
         parseInt(birthYear),
@@ -122,28 +123,34 @@ export default function RegisterPage() {
         return;
       }
 
-      // Get the newly created user to send parent approval email
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        console.log("[Register] User created, invoking send-parent-approval-email for:", user.id);
+      // Invoke backend email function using the userId returned by signUp (do NOT rely on getUser/session timing)
+      if (userId) {
+        console.log("[Register] User created, invoking send-parent-approval-email for:", userId);
         
         // Send parent approval email - await to ensure it executes and log any errors
         try {
           const { data, error: fnError } = await supabase.functions.invoke("send-parent-approval-email", {
-            body: { child_user_id: user.id }
+            body: { child_user_id: userId }
           });
           
           if (fnError) {
             console.error("[Register] Edge function error:", fnError);
+            toast({
+              title: "Aviso",
+              description: "No se pudo notificar al tutor. Reintenta más tarde.",
+            });
           } else {
             console.log("[Register] Parent approval email response:", data);
           }
         } catch (fnErr) {
           console.error("[Register] Failed to invoke edge function:", fnErr);
+          toast({
+            title: "Aviso",
+            description: "No se pudo notificar al tutor. Reintenta más tarde.",
+          });
         }
       } else {
-        console.warn("[Register] No user found after signUp - cannot send parent email");
+        console.warn("[Register] No userId returned after signUp - cannot send parent email");
       }
 
       // Redirect to selfie onboarding
