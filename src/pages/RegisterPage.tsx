@@ -124,18 +124,32 @@ export default function RegisterPage() {
 
       // Get the newly created user to send parent approval email
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (user) {
-        // Send parent approval email in the background
-        supabase.functions.invoke("send-parent-approval-email", {
-          body: { child_user_id: user.id }
-        }).catch(err => {
-          console.error("Error sending parent approval email:", err);
-        });
+        console.log("[Register] User created, invoking send-parent-approval-email for:", user.id);
+        
+        // Send parent approval email - await to ensure it executes and log any errors
+        try {
+          const { data, error: fnError } = await supabase.functions.invoke("send-parent-approval-email", {
+            body: { child_user_id: user.id }
+          });
+          
+          if (fnError) {
+            console.error("[Register] Edge function error:", fnError);
+          } else {
+            console.log("[Register] Parent approval email response:", data);
+          }
+        } catch (fnErr) {
+          console.error("[Register] Failed to invoke edge function:", fnErr);
+        }
+      } else {
+        console.warn("[Register] No user found after signUp - cannot send parent email");
       }
 
       // Redirect to selfie onboarding
       navigate("/onboarding/selfie", { replace: true });
     } catch (err) {
+      console.error("[Register] Registration error:", err);
       setError("Error al crear la cuenta");
     } finally {
       setIsLoading(false);
