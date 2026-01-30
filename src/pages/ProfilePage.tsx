@@ -1,7 +1,25 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Edit3, UserPlus, QrCode, Grid, Heart, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, FileText, User } from "lucide-react";
+import {
+  Settings,
+  Edit3,
+  UserPlus,
+  QrCode,
+  Grid,
+  Heart,
+  Shield,
+  LogOut,
+  ChevronRight,
+  Lock,
+  Bell,
+  HelpCircle,
+  Loader2,
+  Users,
+  AlertCircle,
+  FileText,
+  User,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useFriendships } from "@/hooks/useFriendships";
@@ -19,29 +37,24 @@ import { SecurityScreen } from "@/components/settings/SecurityScreen";
 import { RulesScreen } from "@/components/settings/RulesScreen";
 import { HelpScreen } from "@/components/settings/HelpScreen";
 
-type SettingsScreen = 'main' | 'edit-profile' | 'account-info' | 'notifications' | 'privacy' | 'security' | 'rules' | 'help';
+type SettingsScreen =
+  | "main"
+  | "edit-profile"
+  | "account-info"
+  | "notifications"
+  | "privacy"
+  | "security"
+  | "rules"
+  | "help";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const {
-    profile,
-    signOut,
-    isLoading: authLoading,
-    isAdmin,
-    canInteract,
-    refreshProfile
-  } = useAuth();
-  const {
-    posts,
-    isLoading: postsLoading
-  } = usePosts();
-  const {
-    friends,
-    pendingRequests
-  } = useFriendships();
+  const { profile, signOut, isLoading: authLoading, isAdmin, canInteract, refreshProfile } = useAuth();
+  const { posts, isLoading: postsLoading } = usePosts();
+  const { friends, pendingRequests } = useFriendships();
   const [activeTab, setActiveTab] = useState<"posts" | "likes">("posts");
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>('main');
+  const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>("main");
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
 
   const handleLogout = async () => {
@@ -50,60 +63,61 @@ export default function ProfilePage() {
   };
 
   const handleBackToSettings = () => {
-    setSettingsScreen('main');
+    setSettingsScreen("main");
   };
 
   const handleCloseSettings = () => {
     setShowSettings(false);
-    setSettingsScreen('main');
+    setSettingsScreen("main");
   };
 
-  const myPosts = posts.filter(p => p.author_id === profile?.id);
+  const myPosts = posts.filter((p) => p.author_id === profile?.id);
   const totalLikes = myPosts.reduce((sum, post) => sum + post.likes_count, 0);
 
   if (authLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>;
+      </div>
+    );
   }
 
   // Render specific settings screens
   if (showSettings) {
     switch (settingsScreen) {
-      case 'edit-profile':
+      case "edit-profile":
         return <EditProfileScreen onBack={handleBackToSettings} />;
-      case 'account-info':
+      case "account-info":
         return <AccountInfoScreen onBack={handleBackToSettings} />;
-      case 'notifications':
+      case "notifications":
         return <NotificationsScreen onBack={handleBackToSettings} />;
-      case 'privacy':
+      case "privacy":
         return <PrivacyScreen onBack={handleBackToSettings} />;
-      case 'security':
+      case "security":
         return <SecurityScreen onBack={handleBackToSettings} />;
-      case 'rules':
+      case "rules":
         return <RulesScreen onBack={handleBackToSettings} />;
-      case 'help':
+      case "help":
         return <HelpScreen onBack={handleBackToSettings} />;
       default:
-        return (
-          <SettingsView 
-            onBack={handleCloseSettings} 
-            onLogout={handleLogout}
-            onNavigate={setSettingsScreen}
-          />
-        );
+        return <SettingsView onBack={handleCloseSettings} onLogout={handleLogout} onNavigate={setSettingsScreen} />;
     }
   }
 
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 py-3 px-px my-0">
         <div className="text-white px-[16px] py-0 flex items-center justify-between">
           <h1 className="text-xl font-gaming font-bold">@{profile?.nick || "Usuario"}</h1>
           <div className="flex items-center gap-2">
-            <motion.button whileTap={{
-            scale: 0.9
-          }} onClick={() => setShowSettings(true)} className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors">
+            <motion.button
+              whileTap={{
+                scale: 0.9,
+              }}
+              onClick={() => setShowSettings(true)}
+              className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Settings className="text-white w-[25px] h-[25px]" />
             </motion.button>
           </div>
@@ -112,19 +126,36 @@ export default function ProfilePage() {
 
       <div className="p-4 space-y-6 bg-[#3d2f6f] rounded-md border-solid">
         {/* Profile Card */}
-        <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} className="glass-card p-6 text-center border-success-foreground bg-white py-0 px-[22px]">
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 20,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          className="glass-card p-6 text-center border-success-foreground bg-white py-0 px-[22px]"
+        >
           {/* Avatar */}
           <div className="relative inline-block mb-4 mt-[20px] rounded-sm border-solid border-white">
-            <ProfilePhoto url={profile?.profile_photo_url || profile?.avatar_snapshot_url} nick={profile?.nick || ''} size="xl" showBorder={true} className="w-28 h-28 animate-pulse-glow" onClick={() => setShowPhotoEditor(true)} editable={true} />
+            <ProfilePhoto
+              url={profile?.profile_photo_url || profile?.avatar_snapshot_url}
+              nick={profile?.nick || ""}
+              size="xl"
+              showBorder={true}
+              className="w-60 h-60 animate-pulse-glow"
+              onClick={() => setShowPhotoEditor(true)}
+              editable={true}
+            />
             {/* Photo Editor Modal */}
-            <ProfilePhotoEditor isOpen={showPhotoEditor} onClose={() => setShowPhotoEditor(false)} currentPhotoUrl={profile?.profile_photo_url || profile?.avatar_snapshot_url} onPhotoUpdated={refreshProfile} />
-            
+            <ProfilePhotoEditor
+              isOpen={showPhotoEditor}
+              onClose={() => setShowPhotoEditor(false)}
+              currentPhotoUrl={profile?.profile_photo_url || profile?.avatar_snapshot_url}
+              onPhotoUpdated={refreshProfile}
+            />
+
             {/* Level Badge */}
             <div className="absolute -top-2 -right-2 px-3 py-1 rounded-full bg-warning text-warning-foreground text-xs font-bold z-10">
               Lvl 1
@@ -132,24 +163,27 @@ export default function ProfilePage() {
           </div>
 
           {/* Nick & Age Group */}
-          <h2 className="text-2xl font-gaming font-bold gradient-text mb-1">
-            @{profile?.nick || "Usuario"}
-          </h2>
-          <p className="text-sm text-muted-foreground mb-2">
-            Grupo de edad: {profile?.age_group || "13-16"}
-          </p>
+          <h2 className="text-2xl font-gaming font-bold gradient-text mb-1">@{profile?.nick || "Usuario"}</h2>
+          <p className="text-sm text-muted-foreground mb-2">Grupo de edad: {profile?.age_group || "13-16"}</p>
 
           {/* Parental Approval Status */}
-          {profile?.parent_approved ? <Badge className="bg-success/20 text-success mb-4">
-              ✓ Cuenta aprobada
-            </Badge> : <Badge variant="secondary" className="bg-warning/20 text-warning mb-4">
+          {profile?.parent_approved ? (
+            <Badge className="bg-success/20 text-success mb-4">✓ Cuenta aprobada</Badge>
+          ) : (
+            <Badge variant="secondary" className="bg-warning/20 text-warning mb-4">
               <AlertCircle className="w-3 h-3 mr-1" />
               Pendiente de aprobación
-            </Badge>}
+            </Badge>
+          )}
           <div className="flex items-center justify-center mb-6 gap-[10px]">
-            {["🌟", "🎮", "💪"].map((badge, i) => <div key={i} className="w-10 h-10 rounded-xl bg-card border border-border/50 items-center justify-center text-xl flex flex-row">
+            {["🌟", "🎮", "💪"].map((badge, i) => (
+              <div
+                key={i}
+                className="w-10 h-10 rounded-xl bg-card border border-border/50 items-center justify-center text-xl flex flex-row"
+              >
                 {badge}
-              </div>)}
+              </div>
+            ))}
           </div>
 
           {/* Stats */}
@@ -170,34 +204,47 @@ export default function ProfilePage() {
         </motion.div>
 
         {/* Admin Button */}
-        {isAdmin && <motion.button whileHover={{
-        scale: 1.02
-      }} whileTap={{
-        scale: 0.98
-      }} onClick={() => navigate('/admin')} className="w-full py-3 rounded-xl bg-gradient-to-r from-warning to-destructive font-medium flex items-center justify-center gap-2 text-white">
+        {isAdmin && (
+          <motion.button
+            whileHover={{
+              scale: 1.02,
+            }}
+            whileTap={{
+              scale: 0.98,
+            }}
+            onClick={() => navigate("/admin")}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-warning to-destructive font-medium flex items-center justify-center gap-2 text-white"
+          >
             <Shield className="w-5 h-5" />
             Panel de Administración
-          </motion.button>}
+          </motion.button>
+        )}
 
         {/* Friend Requests Section */}
-        {pendingRequests.length > 0 && <div className="glass-card p-4">
+        {pendingRequests.length > 0 && (
+          <div className="glass-card p-4">
             <FriendRequestsList />
-          </div>}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3">
           <Sheet>
             <SheetTrigger asChild>
-              <motion.button whileHover={{
-              scale: 1.02
-            }} whileTap={{
-              scale: 0.98
-            }} className={`flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white ${!canInteract ? 'opacity-50' : ''}`}>
+              <motion.button
+                whileHover={{
+                  scale: 1.02,
+                }}
+                whileTap={{
+                  scale: 0.98,
+                }}
+                className={`flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white ${!canInteract ? "opacity-50" : ""}`}
+              >
                 <UserPlus className="w-5 h-5" />
                 Añadir amigos
-                {pendingRequests.length > 0 && <Badge className="ml-1 bg-destructive text-white text-xs">
-                    {pendingRequests.length}
-                  </Badge>}
+                {pendingRequests.length > 0 && (
+                  <Badge className="ml-1 bg-destructive text-white text-xs">{pendingRequests.length}</Badge>
+                )}
               </motion.button>
             </SheetTrigger>
             <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl">
@@ -210,69 +257,118 @@ export default function ProfilePage() {
               <div className="mt-4 space-y-6">
                 {/* Pending Requests */}
                 {pendingRequests.length > 0 && <FriendRequestsList />}
-                
+
                 {/* Search */}
-                {canInteract ? <UserSearch /> : <div className="text-center py-6">
+                {canInteract ? (
+                  <UserSearch />
+                ) : (
+                  <div className="text-center py-6">
                     <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
                     <p className="text-muted-foreground">Cuenta pendiente de aprobación parental</p>
-                    <p className="text-sm text-muted-foreground mt-2">No puedes buscar amigos hasta que tu tutor apruebe tu cuenta.</p>
-                  </div>}
+                    <p className="text-sm text-muted-foreground mt-2">
+                      No puedes buscar amigos hasta que tu tutor apruebe tu cuenta.
+                    </p>
+                  </div>
+                )}
               </div>
             </SheetContent>
           </Sheet>
-          <motion.button whileHover={{
-          scale: 1.02
-        }} whileTap={{
-          scale: 0.98
-        }} className="py-3 px-4 rounded-xl border-2 border-border/50 text-muted-foreground hover:text-foreground transition-colors">
+          <motion.button
+            whileHover={{
+              scale: 1.02,
+            }}
+            whileTap={{
+              scale: 0.98,
+            }}
+            className="py-3 px-4 rounded-xl border-2 border-border/50 text-muted-foreground hover:text-foreground transition-colors"
+          >
             <QrCode className="w-[30px] h-[30px] bg-white" />
           </motion.button>
         </div>
 
         {/* Tabs */}
         <div className="flex border-b border-border/30">
-          <button onClick={() => setActiveTab("posts")} className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}>
+          <button
+            onClick={() => setActiveTab("posts")}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${activeTab === "posts" ? "text-foreground" : "text-muted-foreground"}`}
+          >
             <Grid className="w-4 h-4" />
             Mis posts
-            {activeTab === "posts" && <motion.div layoutId="profile-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
+            {activeTab === "posts" && (
+              <motion.div
+                layoutId="profile-tab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"
+              />
+            )}
           </button>
-          <button onClick={() => setActiveTab("likes")} className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${activeTab === "likes" ? "text-foreground" : "text-muted-foreground"}`}>
+          <button
+            onClick={() => setActiveTab("likes")}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${activeTab === "likes" ? "text-foreground" : "text-muted-foreground"}`}
+          >
             <Heart className="w-4 h-4" />
             Likes
-            {activeTab === "likes" && <motion.div layoutId="profile-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary" />}
+            {activeTab === "likes" && (
+              <motion.div
+                layoutId="profile-tab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary"
+              />
+            )}
           </button>
         </div>
 
         {/* Grid */}
-        {postsLoading ? <div className="flex items-center justify-center py-8">
+        {postsLoading ? (
+          <div className="flex items-center justify-center py-8">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div> : myPosts.length === 0 ? <div className="text-center py-8">
+          </div>
+        ) : myPosts.length === 0 ? (
+          <div className="text-center py-8">
             <Grid className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">No tienes publicaciones aún</p>
-          </div> : <div className="grid grid-cols-3 gap-1 border-transparent text-white">
-            {myPosts.map((post, i) => <motion.div key={post.id} initial={{
-          opacity: 0,
-          scale: 0.9
-        }} animate={{
-          opacity: 1,
-          scale: 1
-        }} transition={{
-          delay: i * 0.05
-        }} className="aspect-square rounded-lg overflow-hidden bg-card">
-                {post.content_url ? <img src={post.content_url} alt="" className="w-full h-full object-contain border-0 border-none border-white" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-1 border-transparent text-white">
+            {myPosts.map((post, i) => (
+              <motion.div
+                key={post.id}
+                initial={{
+                  opacity: 0,
+                  scale: 0.9,
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                }}
+                transition={{
+                  delay: i * 0.05,
+                }}
+                className="aspect-square rounded-lg overflow-hidden bg-card"
+              >
+                {post.content_url ? (
+                  <img
+                    src={post.content_url}
+                    alt=""
+                    className="w-full h-full object-contain border-0 border-none border-white"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <Grid className="w-6 h-6" />
-                  </div>}
-              </motion.div>)}
-          </div>}
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>;
+    </div>
+  );
 }
 
 // Settings View
 function SettingsView({
   onBack,
   onLogout,
-  onNavigate
+  onNavigate,
 }: {
   onBack: () => void;
   onLogout: () => void;
@@ -284,38 +380,38 @@ function SettingsView({
     {
       icon: Edit3,
       label: "Editar perfil",
-      action: () => onNavigate('edit-profile')
+      action: () => onNavigate("edit-profile"),
     },
     {
       icon: User,
       label: "Información de la cuenta",
-      action: () => onNavigate('account-info')
+      action: () => onNavigate("account-info"),
     },
     {
       icon: Bell,
       label: "Notificaciones",
-      action: () => onNavigate('notifications')
+      action: () => onNavigate("notifications"),
     },
     {
       icon: Lock,
       label: "Privacidad",
-      action: () => onNavigate('privacy')
+      action: () => onNavigate("privacy"),
     },
     {
       icon: Shield,
       label: "Seguridad",
-      action: () => onNavigate('security')
+      action: () => onNavigate("security"),
     },
     {
       icon: FileText,
       label: "Normas y seguridad",
-      action: () => onNavigate('rules')
+      action: () => onNavigate("rules"),
     },
     {
       icon: HelpCircle,
       label: "Ayuda y soporte",
-      action: () => onNavigate('help')
-    }
+      action: () => onNavigate("help"),
+    },
   ];
 
   return (
@@ -339,7 +435,7 @@ function SettingsView({
           <div className="flex items-center gap-4">
             <ProfilePhoto
               url={profile?.profile_photo_url || profile?.avatar_snapshot_url}
-              nick={profile?.nick || ''}
+              nick={profile?.nick || ""}
               size="lg"
               showBorder={true}
             />
