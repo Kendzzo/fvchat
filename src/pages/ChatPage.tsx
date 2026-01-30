@@ -25,6 +25,7 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [pendingChatId, setPendingChatId] = useState<string | null>(null);
   const filteredChats = chats.filter((chat) =>
     (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase()),
   );
@@ -35,21 +36,19 @@ export default function ChatPage() {
     }
     setShowNewChatModal(true);
   };
-  const handleChatCreated = (chatId: string) => {
-    // Find the chat in the updated list (it should be there due to optimistic update)
-    const chat = chats.find((c) => c.id === chatId);
+  const handleChatCreated = async (chatId: string) => {
+    setPendingChatId(chatId);
+    if (refreshChats) await refreshChats();
+  };
+  useEffect(() => {
+    if (!pendingChatId) return;
+
+    const chat = chats.find((c) => c.id === pendingChatId);
     if (chat) {
       setSelectedChat(chat);
-    } else {
-      // If not found yet, refresh and try again
-      setTimeout(() => {
-        const retryChat = chats.find((c) => c.id === chatId);
-        if (retryChat) {
-          setSelectedChat(retryChat);
-        }
-      }, 300);
+      setPendingChatId(null);
     }
-  };
+  }, [pendingChatId, chats]);
   const handleSelectChat = async (chat: Chat) => {
     setSelectedChat(chat);
     // Mark as read when opening
