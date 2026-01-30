@@ -103,12 +103,12 @@ export default function ChatPage() {
         x: 0
       }} transition={{
         delay: index * 0.05
-      }} onClick={() => handleSelectChat(chat)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors my-[20px]">
+      }} onClick={() => handleSelectChat(chat)} className="w-full glass-card p-4 flex items-center gap-4 hover:bg-card/60 transition-colors my-[15px]">
               <ProfilePhotoWithStatus url={(chat.otherParticipant as any)?.profile_photo_url || null} nick={chat.is_group ? chat.name || "Grupo" : chat.otherParticipant?.nick || "Usuario"} isOnline={!chat.is_group && isOnline((chat.otherParticipant as any)?.last_seen_at ?? null)} size="md" showBorder={true} />
 
               <div className="flex-1 text-left min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold truncate">
+                  <span className="font-semibold truncate text-white">
                     {chat.is_group ? chat.name : chat.otherParticipant?.nick || "Usuario"}
                   </span>
                   <span className="text-xs text-white">

@@ -70,7 +70,7 @@ export function ProfilePhoto({
       <div className={cn("w-full h-full rounded-full flex items-center justify-center font-bold hidden", `bg-gradient-to-br ${gradientColor} text-white`)}>
         {initials}
       </div>
-    </> : <div className={cn("w-full h-full rounded-full flex items-center justify-center font-bold", `bg-gradient-to-br ${gradientColor} text-white`)}>
+    </> : <div className={cn("w-full h-full rounded-full flex items-center justify-center font-bold mx-0 gap-0", `bg-gradient-to-br ${gradientColor} text-white`)}>
       {initials}
     </div>;
   const Component = onClick ? 'button' : 'div';
