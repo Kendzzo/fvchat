@@ -1,138 +1,81 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const FUNCTION = "send-parent-approval-email";
-const VERSION = "2026-01-30";
-
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-function maskEmail(email: string): string {
-  const [user, domain] = email.split('@');
-  if (!user || !domain) return '(invalid)';
-  const userMasked = user.length <= 2 ? `${user[0] ?? ''}*` : `${user.slice(0, 2)}***`;
-  const domainParts = domain.split('.');
-  const domainName = domainParts[0] || domain;
-  const domainMasked = domainName.length <= 2 ? `${domainName[0] ?? ''}*` : `${domainName.slice(0, 2)}***`;
-  const tld = domainParts.slice(1).join('.') || '***';
-  return `${userMasked}@${domainMasked}.${tld}`;
-}
-
-function prefix(value: string, len = 10): string {
-  if (!value) return '';
-  return value.slice(0, len);
-}
 
 // Generate cryptographically secure token
 function generateSecureToken(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 // Hash token for storage
 async function hashToken(token: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(token);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  return hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const { child_user_id } = await req.json();
 
-    console.log(`[${FUNCTION}] start`, { version: VERSION, child_user_id });
-
     if (!child_user_id) {
-      return new Response(
-        JSON.stringify({ error: 'child_user_id is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "child_user_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Create Supabase client with service role
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const resendFrom = Deno.env.get('RESEND_FROM') || 'onboarding@resend.dev';
 
     // Get child profile
     const { data: childProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, nick, tutor_email, parent_approved')
-      .eq('id', child_user_id)
+      .from("profiles")
+      .select("id, nick, tutor_email, parent_approved")
+      .eq("id", child_user_id)
       .single();
 
     if (profileError || !childProfile) {
-      console.error('Error fetching child profile:', profileError);
-      return new Response(
-        JSON.stringify({ error: 'Child profile not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("Error fetching child profile:", profileError);
+      return new Response(JSON.stringify({ error: "Child profile not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    console.log(`[${FUNCTION}] profile_found`, {
-      child_user_id,
-      child_nick: childProfile.nick,
-      tutor_email_masked: maskEmail(childProfile.tutor_email),
-      parent_approved: childProfile.parent_approved,
-      has_resend_api_key: !!resendApiKey,
-      resend_from: resendFrom,
-    });
 
     // Check if already approved
     if (childProfile.parent_approved) {
-      console.log(`[${FUNCTION}] already_approved`, { child_user_id });
-      return new Response(
-        JSON.stringify({ ok: true, already_approved: true }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ ok: true, already_approved: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const tutorEmail = childProfile.tutor_email;
 
-    if (!tutorEmail || tutorEmail.trim().length === 0) {
-      console.error(`[${FUNCTION}] missing_tutor_email`, { child_user_id, child_nick: childProfile.nick });
-      // Even if empty string, we can still store the record for audit (tutor_email column is NOT NULL).
-      await supabase
-        .from('tutor_notifications')
-        .insert({
-          user_id: child_user_id,
-          tutor_email: tutorEmail ?? '',
-          type: 'approval',
-          status: 'failed',
-          payload: {
-            child_user_id,
-            child_nick: childProfile.nick,
-            provider: 'resend',
-            provider_error: 'Missing tutor_email on profile',
-          },
-        });
-
-      return new Response(
-        JSON.stringify({ ok: false, sent: false, fallback: true, provider_error: 'Missing tutor_email on profile' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Check for existing active token for this tutor
     const { data: existingToken } = await supabase
-      .from('tutor_access_tokens')
-      .select('id, token_hash')
-      .eq('tutor_email', tutorEmail)
-      .eq('is_revoked', false)
-      .order('created_at', { ascending: false })
+      .from("tutor_access_tokens")
+      .select("id, token_hash")
+      .eq("tutor_email", tutorEmail)
+      .eq("is_revoked", false)
+      .order("created_at", { ascending: false })
       .limit(1)
       .single();
 
@@ -144,70 +87,39 @@ serve(async (req) => {
       token = generateSecureToken();
       tokenHash = await hashToken(token);
 
-      console.log(`[${FUNCTION}] token_reused_record_updated`, {
-        tutor_email_masked: maskEmail(tutorEmail),
-        token_hash_prefix: prefix(tokenHash, 12),
-      });
-      
       await supabase
-        .from('tutor_access_tokens')
+        .from("tutor_access_tokens")
         .update({ token_hash: tokenHash, last_used_at: new Date().toISOString() })
-        .eq('id', existingToken.id);
+        .eq("id", existingToken.id);
     } else {
       // Create new token
       token = generateSecureToken();
       tokenHash = await hashToken(token);
 
-      console.log(`[${FUNCTION}] token_created`, {
-        tutor_email_masked: maskEmail(tutorEmail),
-        token_hash_prefix: prefix(tokenHash, 12),
+      await supabase.from("tutor_access_tokens").insert({
+        tutor_email: tutorEmail,
+        token_hash: tokenHash,
       });
-      
-      await supabase
-        .from('tutor_access_tokens')
-        .insert({
-          tutor_email: tutorEmail,
-          token_hash: tokenHash
-        });
     }
 
     // Generate links
     // Use the published URL or fallback to a preview URL pattern
-    const baseUrl = 'https://fvchat.lovable.app';
-    const approveUrl = `${baseUrl}/parent/approve?token=${token}&child=${child_user_id}`;
-    const dashboardUrl = `${baseUrl}/parent?token=${token}`;
+    const baseUrl = "https://fvchat.lovable.app";
+    const approveUrl = `${APP_URL}/#/parent/approve?token=${token}&child=${child_user_id}`;
+    const dashboardUrl = `${APP_URL}/#/parent?token=${token}`;
 
-    console.log(`[${FUNCTION}] links_generated`, {
-      approve_url_prefix: `${baseUrl}/parent/approve?token=${prefix(token, 10)}...`,
-      dashboard_url_prefix: `${baseUrl}/parent?token=${prefix(token, 10)}...`,
+    // Log notification for audit (using tutor_notifications table)
+    await supabase.from("tutor_notifications").insert({
+      user_id: child_user_id,
+      tutor_email: tutorEmail,
+      type: "approval_request",
+      status: "queued",
+      payload: {
+        child_nick: childProfile.nick,
+        approve_url: approveUrl,
+        dashboard_url: dashboardUrl,
+      },
     });
-
-    // ALWAYS record an audit notification (so we never fail silently)
-    const notificationPayloadBase = {
-      child_user_id,
-      child_nick: childProfile.nick,
-      approve_url: approveUrl,
-      dashboard_url: dashboardUrl,
-      provider: 'resend',
-    };
-
-    const { data: insertedNotification, error: insertNotifError } = await supabase
-      .from('tutor_notifications')
-      .insert({
-        user_id: child_user_id,
-        tutor_email: tutorEmail,
-        type: 'approval',
-        status: 'queued',
-        payload: notificationPayloadBase,
-      })
-      .select('id')
-      .single();
-
-    if (insertNotifError) {
-      console.error(`[${FUNCTION}] tutor_notifications_insert_failed`, { error: insertNotifError });
-    } else {
-      console.log(`[${FUNCTION}] tutor_notifications_inserted`, { id: insertedNotification?.id });
-    }
 
     // Email content in Spanish
     const emailSubject = `VFC Kids Connect - Aprobación de registro para @${childProfile.nick}`;
@@ -273,134 +185,72 @@ serve(async (req) => {
 </html>
     `;
 
-    // Hard validation: missing RESEND_API_KEY => fallback (do not even try)
-    if (!resendApiKey) {
-      const providerError = 'RESEND_API_KEY not configured';
-      console.error(`[${FUNCTION}] resend_missing_api_key`, { provider_error: providerError });
-      console.log(`[${FUNCTION}] fallback_links`, {
-        approve_url_prefix: `${baseUrl}/parent/approve?token=${prefix(token, 10)}...`,
-        dashboard_url_prefix: `${baseUrl}/parent?token=${prefix(token, 10)}...`,
-      });
+    // Try to send email via Resend if available
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
-      // Update latest notification for this user/type
-      await supabase
-        .from('tutor_notifications')
-        .update({
-          status: 'failed',
-          error: providerError,
-          payload: {
-            ...notificationPayloadBase,
-            provider_status: null,
-            provider_error: providerError,
+    if (resendApiKey) {
+      try {
+        const resendResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
           },
-        })
-        .eq('user_id', child_user_id)
-        .eq('type', 'approval')
-        .order('created_at', { ascending: false })
-        .limit(1);
+          body: JSON.stringify({
+            from: "VFC Kids Connect <noreply@vfc.app>",
+            to: [tutorEmail],
+            subject: emailSubject,
+            html: emailHtml,
+          }),
+        });
 
-      return new Response(
-        JSON.stringify({ ok: false, sent: false, fallback: true, provider_error: providerError, approve_url: approveUrl, dashboard_url: dashboardUrl }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        if (resendResponse.ok) {
+          // Update notification status
+          await supabase
+            .from("tutor_notifications")
+            .update({ status: "sent", sent_at: new Date().toISOString() })
+            .eq("user_id", child_user_id)
+            .eq("type", "approval_request")
+            .order("created_at", { ascending: false })
+            .limit(1);
 
-    console.log(`[${FUNCTION}] resend_attempt`, {
-      to_masked: maskEmail(tutorEmail),
-      from: resendFrom,
-    });
+          console.log("Email sent successfully to:", tutorEmail);
+        } else {
+          const errorText = await resendResponse.text();
+          console.error("Resend error:", errorText);
 
-    let resendStatus: number | null = null;
-    let resendErrorText: string | null = null;
-
-    try {
-      const resendResponse = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: resendFrom,
-          to: [tutorEmail],
-          subject: emailSubject,
-          html: emailHtml,
-        }),
-      });
-
-      resendStatus = resendResponse.status;
-      const resendBody = await resendResponse.text();
-
-      if (resendResponse.ok) {
-        console.log(`[${FUNCTION}] resend_success`, { status: resendStatus, body_preview: resendBody.slice(0, 200) });
-
-        await supabase
-          .from('tutor_notifications')
-          .update({
-            status: 'sent',
-            sent_at: new Date().toISOString(),
-            payload: {
-              ...notificationPayloadBase,
-              provider_status: resendStatus,
-              provider_error: null,
-            },
-          })
-          .eq('user_id', child_user_id)
-          .eq('type', 'approval')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        return new Response(
-          JSON.stringify({ ok: true, sent: true, fallback: false }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          await supabase
+            .from("tutor_notifications")
+            .update({ status: "failed", error: errorText })
+            .eq("user_id", child_user_id)
+            .eq("type", "approval_request")
+            .order("created_at", { ascending: false })
+            .limit(1);
+        }
+      } catch (emailError) {
+        console.error("Email sending error:", emailError);
       }
-
-      resendErrorText = resendBody;
-      console.error(`[${FUNCTION}] resend_failed`, { status: resendStatus, error: resendErrorText });
-    } catch (emailError) {
-      resendErrorText = emailError instanceof Error ? emailError.message : String(emailError);
-      console.error(`[${FUNCTION}] resend_exception`, { error: resendErrorText });
+    } else {
+      console.log("RESEND_API_KEY not configured. Email queued but not sent.");
+      console.log("Approve URL:", approveUrl);
+      console.log("Dashboard URL:", dashboardUrl);
     }
 
-    // Fallback: persist detailed provider error + links
-    const providerError = resendErrorText || 'Unknown Resend error';
-    console.log(`[${FUNCTION}] fallback`, {
-      provider_status: resendStatus,
-      provider_error_preview: providerError.slice(0, 250),
-    });
-    console.log(`[${FUNCTION}] fallback_links`, {
-      approve_url_prefix: `${baseUrl}/parent/approve?token=${prefix(token, 10)}...`,
-      dashboard_url_prefix: `${baseUrl}/parent?token=${prefix(token, 10)}...`,
-    });
-
-    await supabase
-      .from('tutor_notifications')
-      .update({
-        status: 'failed',
-        error: providerError,
-        payload: {
-          ...notificationPayloadBase,
-          provider_status: resendStatus,
-          provider_error: providerError,
-        },
-      })
-      .eq('user_id', child_user_id)
-      .eq('type', 'approval')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
     return new Response(
-      JSON.stringify({ ok: false, sent: false, fallback: true, provider_error: providerError, approve_url: approveUrl, dashboard_url: dashboardUrl }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        ok: true,
+        email_sent: !!resendApiKey,
+        approve_url: approveUrl,
+        dashboard_url: dashboardUrl,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error: unknown) {
-    console.error('Error in send-parent-approval-email:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("Error in send-parent-approval-email:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
