@@ -92,7 +92,7 @@ export default function HomePage() {
         <div className="bg-gradient-to-b from-[#2d1b4e] to-[#251542] px-4 pt-3 pb-2 py-0">
           <div className="flex items-center gap-3 ml-[10px]">
             {/* VFC Logo */}
-            <img src={vfcLogo} alt="VFC" className="h-21 w-auto object-contain" />
+            <img src={vfcLogo} alt="VFC" className="h-20 w-auto object-contain" />
             {/* Title */}
             <span className="text-white text-xl font-semibold tracking-wide ml-[20px]">Publicaciones</span>
           </div>
