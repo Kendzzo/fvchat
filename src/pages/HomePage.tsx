@@ -88,9 +88,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen pb-20 bg-[#e9e7fd]">
       {/* Header - Dark purple with logo and title */}
-      <div className="sticky top-0 z-40">
+      <header className="sticky top-0 z-40">
         {/* Main header bar */}
-        <div className="bg-gradient-to-b from-[#2d1b4e] to-[#251542] px-4 pt-3 pb-2 py-0">
+        <div className="bg-gradient-to-b from-[#2d1b4e] to-[#251542] px-4 pt-3 pb-2">
           <div className="flex items-center gap-3 ml-[10px]">
             {/* VFC Logo */}
             <img src={vfcLogo} alt="VFC" className="h-20 w-auto object-contain" />
@@ -101,81 +101,79 @@ export default function HomePage() {
 
         {/* Green indicator line */}
         <div className="bg-[#251542] px-4 pb-1"></div>
-      </div>
 
-      {/* Stories Row - Light purple background #e8e6ff */}
-      <div
-        className="px-4 py-4 overflow-x-auto bg-purple-50"
-        style={{
-          backgroundColor: "#e8e6ff",
-        }}
-      >
-        <div className="flex gap-5 min-w-max">
-          {/* Tu historia */}
-          <button onClick={() => navigate("/app/publish")} className="flex flex-col items-center gap-2 min-w-[72px]">
-            <div className="w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400">
-              <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                <Plus className="w-7 h-7 text-gray-600" strokeWidth={2.5} />
-              </div>
-            </div>
-            <span className="font-bold text-base text-black">Tu historia</span>
-          </button>
-
-          {/* Friends Stories */}
-          {friendsLoading ? (
-            <>
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex flex-col items-center gap-2 min-w-[72px]">
-                  <Skeleton className="w-[68px] h-[68px] rounded-full" />
-                  <Skeleton className="w-12 h-3" />
+        {/* Stories Row - Light purple background #e8e6ff */}
+        <div
+          className="px-4 py-4 overflow-x-auto"
+          style={{ backgroundColor: "#e8e6ff" }}
+        >
+          <div className="flex gap-5 min-w-max">
+            {/* Tu historia */}
+            <button onClick={() => navigate("/app/publish")} className="flex flex-col items-center gap-2 min-w-[72px]">
+              <div className="w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400">
+                <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                  <Plus className="w-7 h-7 text-gray-600" strokeWidth={2.5} />
                 </div>
-              ))}
-            </>
-          ) : friendsWithPosts.length > 0 ? (
-            friendsWithPosts.map(
-              ({ friend }, index) =>
-                friend && (
-                  <button
-                    key={friend.id}
-                    onClick={() => setSelectedFriendId(selectedFriendId === friend.id ? null : friend.id)}
-                    className={`flex flex-col items-center gap-2 min-w-[72px] transition-opacity ${selectedFriendId && selectedFriendId !== friend.id ? "opacity-50" : ""}`}
-                  >
-                    <div
-                      className={`w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400 ${selectedFriendId === friend.id ? "ring-2 ring-purple-600 ring-offset-2" : ""}`}
+              </div>
+              <span className="font-bold text-base text-black">Tu historia</span>
+            </button>
+
+            {/* Friends Stories */}
+            {friendsLoading ? (
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex flex-col items-center gap-2 min-w-[72px]">
+                    <Skeleton className="w-[68px] h-[68px] rounded-full" />
+                    <Skeleton className="w-12 h-3" />
+                  </div>
+                ))}
+              </>
+            ) : friendsWithPosts.length > 0 ? (
+              friendsWithPosts.map(
+                ({ friend }, index) =>
+                  friend && (
+                    <button
+                      key={friend.id}
+                      onClick={() => setSelectedFriendId(selectedFriendId === friend.id ? null : friend.id)}
+                      className={`flex flex-col items-center gap-2 min-w-[72px] transition-opacity ${selectedFriendId && selectedFriendId !== friend.id ? "opacity-50" : ""}`}
                     >
-                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
-                        {friend.profile_photo_url ? (
-                          <img
-                            src={friend.profile_photo_url}
-                            alt={friend.nick}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-2xl">{FRIEND_EMOJIS[index % FRIEND_EMOJIS.length]}</span>
-                        )}
+                      <div
+                        className={`w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400 ${selectedFriendId === friend.id ? "ring-2 ring-purple-600 ring-offset-2" : ""}`}
+                      >
+                        <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                          {friend.profile_photo_url ? (
+                            <img
+                              src={friend.profile_photo_url}
+                              alt={friend.nick}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-2xl">{FRIEND_EMOJIS[index % FRIEND_EMOJIS.length]}</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-gray-700 truncate max-w-[68px]">{friend.nick}</span>
+                    </button>
+                  ),
+              )
+            ) : (
+              // Placeholder friends when no real friends
+              <>
+                {["Amigo1", "Amigo2", "Amigo3", "Amigo4"].map((name, i) => (
+                  <div key={name} className="flex flex-col items-center gap-2 min-w-[72px]">
+                    <div className="w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400">
+                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                        <span className="text-2xl">{FRIEND_EMOJIS[i]}</span>
                       </div>
                     </div>
-                    <span className="text-xs font-medium text-gray-700 truncate max-w-[68px]">{friend.nick}</span>
-                  </button>
-                ),
-            )
-          ) : (
-            // Placeholder friends when no real friends
-            <>
-              {["Amigo1", "Amigo2", "Amigo3", "Amigo4"].map((name, i) => (
-                <div key={name} className="flex flex-col items-center gap-2 min-w-[72px]">
-                  <div className="w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-purple-400 via-purple-500 to-teal-400">
-                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                      <span className="text-2xl">{FRIEND_EMOJIS[i]}</span>
-                    </div>
+                    <span className="font-medium text-sm text-black">{name}</span>
                   </div>
-                  <span className="font-medium text-sm text-black">{name}</span>
-                </div>
-              ))}
-            </>
-          )}
+                ))}
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* Filter Banner */}
       {selectedFriend && (
@@ -193,8 +191,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Feed */}
-      <div className="space-y-4 p-4 min-h-[60vh] pt-0 pb-0 bg-[#e9e7fd]">
+      {/* Feed - Posts only, no Stories inside */}
+      <div className="space-y-4 p-4 min-h-[60vh] bg-[#e9e7fd]">
         {postsLoading ? (
           <>
             {[1, 2, 3].map((i) => (
