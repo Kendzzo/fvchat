@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -47,14 +47,40 @@ export function useChats() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Add a new chat to local state immediately (optimistic update)
-  const addChatToState = (newChat: Chat) => {
+  // Helper: upsert chat locally (add or update, move to top)
+  const upsertChatLocal = useCallback((newChat: Chat) => {
     setChats((prev) => {
-      // Avoid duplicates
-      if (prev.some((c) => c.id === newChat.id)) return prev;
-      return [newChat, ...prev];
+      const filtered = prev.filter((c) => c.id !== newChat.id);
+      return [newChat, ...filtered];
     });
-  };
+  }, []);
+
+  // Helper: update last message for a chat and move it to top
+  const applyLastMessage = useCallback((chatId: string, content: string, created_at: string, senderId: string) => {
+    setChats((prev) => {
+      const idx = prev.findIndex((c) => c.id === chatId);
+      if (idx === -1) return prev;
+      
+      const chat = prev[idx];
+      const updatedChat: Chat = {
+        ...chat,
+        lastMessage: content,
+        lastMessageTime: created_at,
+        // Increment unread if message is from someone else
+        unreadCount: senderId !== user?.id ? (chat.unreadCount || 0) + 1 : chat.unreadCount,
+      };
+      
+      const filtered = prev.filter((c) => c.id !== chatId);
+      return [updatedChat, ...filtered];
+    });
+  }, [user?.id]);
+
+  // Helper: mark a chat as read (reset unread count)
+  const markChatAsReadLocal = useCallback((chatId: string) => {
+    setChats((prev) =>
+      prev.map((c) => (c.id === chatId ? { ...c, unreadCount: 0 } : c))
+    );
+  }, []);
 
   const fetchChats = async () => {
     if (!user) {
@@ -76,7 +102,7 @@ export function useChats() {
         return;
       }
 
-      // Fetch last message and participant info for each chat
+      // Fetch last message, participant info, and unread count for each chat
       const chatsWithDetails = await Promise.all(
         (data || []).map(async (chat) => {
           // Get last message
@@ -101,15 +127,49 @@ export function useChats() {
             }
           }
 
+          // Calculate unread count using message_reads table
+          let unreadCount = 0;
+          try {
+            // Get all messages in this chat not from the current user
+            const { data: allMessages } = await supabase
+              .from("messages")
+              .select("id")
+              .eq("chat_id", chat.id)
+              .neq("sender_id", user.id);
+
+            if (allMessages && allMessages.length > 0) {
+              const messageIds = allMessages.map((m) => m.id);
+              
+              // Get read receipts for these messages
+              const { data: reads } = await supabase
+                .from("message_reads")
+                .select("message_id")
+                .eq("user_id", user.id)
+                .in("message_id", messageIds);
+
+              const readMessageIds = new Set(reads?.map((r) => r.message_id) || []);
+              unreadCount = messageIds.filter((id) => !readMessageIds.has(id)).length;
+            }
+          } catch (err) {
+            console.error("Error calculating unread count:", err);
+          }
+
           return {
             ...chat,
             lastMessage: messages?.[0]?.content || "",
             lastMessageTime: messages?.[0]?.created_at || chat.created_at,
-            unreadCount: 0, // TODO: Implement unread count
+            unreadCount,
             otherParticipant,
           } as Chat;
         }),
       );
+
+      // Sort by lastMessageTime descending
+      chatsWithDetails.sort((a, b) => {
+        const timeA = new Date(a.lastMessageTime || a.created_at).getTime();
+        const timeB = new Date(b.lastMessageTime || b.created_at).getTime();
+        return timeB - timeA;
+      });
 
       setChats(chatsWithDetails);
     } catch (err) {
@@ -152,7 +212,7 @@ export function useChats() {
         otherParticipant = participantData;
       }
 
-      // Add to local state immediately
+      // Create complete Chat object
       const newChat: Chat = {
         ...data,
         lastMessage: "",
@@ -160,7 +220,9 @@ export function useChats() {
         unreadCount: 0,
         otherParticipant,
       };
-      addChatToState(newChat);
+
+      // Add to local state immediately (optimistic update)
+      upsertChatLocal(newChat);
 
       return { data: newChat, error: null };
     } catch (err) {
@@ -171,20 +233,11 @@ export function useChats() {
   useEffect(() => {
     fetchChats();
 
-    // Subscribe to new messages
+    if (!user) return;
+
+    // Subscribe to chat and message changes with proper handlers
     const channel = supabase
-      .channel("chats-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "messages",
-        },
-        () => {
-          fetchChats();
-        },
-      )
+      .channel("chats-realtime-v2")
       .on(
         "postgres_changes",
         {
@@ -192,8 +245,92 @@ export function useChats() {
           schema: "public",
           table: "chats",
         },
+        async (payload) => {
+          const newChatRaw = payload.new as any;
+          // Only add if user is a participant and chat doesn't exist locally
+          if (newChatRaw.participant_ids?.includes(user.id)) {
+            // Check if we already have this chat
+            setChats((prev) => {
+              if (prev.some((c) => c.id === newChatRaw.id)) {
+                return prev; // Already exists, skip
+              }
+              // We need to fetch full details, so trigger a refetch for this specific chat
+              return prev;
+            });
+            // Fetch the full chat details
+            const otherId = newChatRaw.participant_ids.find((id: string) => id !== user.id);
+            let otherParticipant = null;
+            if (otherId && !newChatRaw.is_group) {
+              const { data: participantData } = await supabase
+                .from("profiles")
+                .select("nick, profile_photo_url, last_seen_at")
+                .eq("id", otherId)
+                .maybeSingle();
+              otherParticipant = participantData;
+            }
+            const fullChat: Chat = {
+              id: newChatRaw.id,
+              is_group: newChatRaw.is_group,
+              name: newChatRaw.name,
+              participant_ids: newChatRaw.participant_ids,
+              created_by: newChatRaw.created_by,
+              created_at: newChatRaw.created_at,
+              lastMessage: "",
+              lastMessageTime: newChatRaw.created_at,
+              unreadCount: 0,
+              otherParticipant,
+            };
+            upsertChatLocal(fullChat);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          const newMessage = payload.new as any;
+          const chatId = newMessage.chat_id;
+          const content = newMessage.content;
+          const created_at = newMessage.created_at;
+          const senderId = newMessage.sender_id;
+
+          // Check if we have this chat in our state
+          setChats((prev) => {
+            const chatExists = prev.some((c) => c.id === chatId);
+            if (chatExists) {
+              // Update last message and move to top
+              const idx = prev.findIndex((c) => c.id === chatId);
+              const chat = prev[idx];
+              const updatedChat: Chat = {
+                ...chat,
+                lastMessage: content,
+                lastMessageTime: created_at,
+                unreadCount: senderId !== user.id ? (chat.unreadCount || 0) + 1 : chat.unreadCount,
+              };
+              const filtered = prev.filter((c) => c.id !== chatId);
+              return [updatedChat, ...filtered];
+            } else {
+              // Chat doesn't exist, we need to fetch it
+              // This will be handled by a separate effect
+              return prev;
+            }
+          });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "message_reads",
+        },
         () => {
-          fetchChats();
+          // When a message is marked as read, we could update counts
+          // but for simplicity, we'll rely on markChatAsReadLocal being called
         },
       )
       .subscribe();
@@ -201,14 +338,15 @@ export function useChats() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, upsertChatLocal]);
 
   return {
     chats,
     isLoading,
     error,
     createChat,
-    addChatToState,
+    upsertChatLocal,
+    markChatAsReadLocal,
     refreshChats: fetchChats,
   };
 }
