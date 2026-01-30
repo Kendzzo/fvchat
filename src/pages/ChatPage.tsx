@@ -36,9 +36,8 @@ export default function ChatPage() {
     }
     setShowNewChatModal(true);
   };
-  const handleChatCreated = async (chatId: string) => {
-    setPendingChatId(chatId);
-    if (refreshChats) await refreshChats();
+  const handleChatCreated = (chat: Chat) => {
+    setSelectedChat(chat);
   };
   useEffect(() => {
     if (!pendingChatId) return;
