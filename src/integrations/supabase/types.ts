@@ -687,6 +687,9 @@ export type Database = {
           id: string
           language_infractions_count: number
           last_seen_at: string | null
+          legal_accepted: boolean
+          legal_accepted_at: string | null
+          legal_version: string | null
           nick: string
           parent_approved: boolean
           profile_photo_completed: boolean
@@ -706,6 +709,9 @@ export type Database = {
           id: string
           language_infractions_count?: number
           last_seen_at?: string | null
+          legal_accepted?: boolean
+          legal_accepted_at?: string | null
+          legal_version?: string | null
           nick: string
           parent_approved?: boolean
           profile_photo_completed?: boolean
@@ -725,6 +731,9 @@ export type Database = {
           id?: string
           language_infractions_count?: number
           last_seen_at?: string | null
+          legal_accepted?: boolean
+          legal_accepted_at?: string | null
+          legal_version?: string | null
           nick?: string
           parent_approved?: boolean
           profile_photo_completed?: boolean

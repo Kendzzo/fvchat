@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import { Search, Plus, Send, Loader2, AlertCircle, Sparkles, Users } from "lucide-react";
+import { Search, Plus, Send, Loader2, AlertCircle, Sparkles, Users, Shield } from "lucide-react";
 import { useChats, useMessages, Chat } from "@/hooks/useChats";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
@@ -15,6 +15,7 @@ import { ModerationWarning } from "@/components/ModerationWarning";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { ProfilePhoto, ProfilePhotoWithStatus } from "@/components/ProfilePhoto";
 import { StickerPicker } from "@/components/StickerPicker";
+import { LegalGate } from "@/components/LegalGate";
 import { formatLastSeen, isOnline } from "@/hooks/usePresence";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function ChatPage() {
-  const { user, canInteract } = useAuth();
+  const { user, profile, canInteract, refreshProfile } = useAuth();
   const {
     chats,
     isLoading,
@@ -40,6 +41,17 @@ export default function ChatPage() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [showLegalGate, setShowLegalGate] = useState(false);
+  
+  // Check if legal terms are accepted
+  const legalAccepted = (profile as any)?.legal_accepted === true;
+  
+  // Show legal gate if not accepted when trying to interact
+  useEffect(() => {
+    if (!legalAccepted && canInteract && user) {
+      setShowLegalGate(true);
+    }
+  }, [legalAccepted, canInteract, user]);
   
   const filteredChats = chats.filter(chat => 
     (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -81,8 +93,22 @@ export default function ChatPage() {
     return <ChatDetail chat={selectedChat} onBack={() => setSelectedChatId(null)} onMarkRead={handleMarkRead} />;
   }
 
+  const handleLegalAccepted = async () => {
+    await refreshProfile();
+    setShowLegalGate(false);
+  };
+
   return (
     <div className="min-h-screen bg-primary-foreground my-0 py-0">
+      {/* Legal Gate Modal */}
+      {user && (
+        <LegalGate 
+          isOpen={showLegalGate} 
+          onAccepted={handleLegalAccepted} 
+          userId={user.id}
+        />
+      )}
+
       <NewChatModal 
         open={showNewChatModal} 
         onOpenChange={setShowNewChatModal} 
