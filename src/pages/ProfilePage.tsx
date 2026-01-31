@@ -20,7 +20,8 @@ import { PrivacyScreen } from "@/components/settings/PrivacyScreen";
 import { SecurityScreen } from "@/components/settings/SecurityScreen";
 import { RulesScreen } from "@/components/settings/RulesScreen";
 import { HelpScreen } from "@/components/settings/HelpScreen";
-type SettingsScreen = "main" | "edit-profile" | "account-info" | "notifications" | "privacy" | "security" | "rules" | "help";
+import { LegalScreen } from "@/components/settings/LegalScreen";
+type SettingsScreen = "main" | "edit-profile" | "account-info" | "notifications" | "privacy" | "security" | "rules" | "legal" | "help";
 export default function ProfilePage() {
   const navigate = useNavigate();
   const {
@@ -81,6 +82,8 @@ export default function ProfilePage() {
         return <SecurityScreen onBack={handleBackToSettings} />;
       case "rules":
         return <RulesScreen onBack={handleBackToSettings} />;
+      case "legal":
+        return <LegalScreen onBack={handleBackToSettings} />;
       case "help":
         return <HelpScreen onBack={handleBackToSettings} />;
       default:
@@ -312,8 +315,13 @@ function SettingsView({
     action: () => onNavigate("security")
   }, {
     icon: FileText,
-    label: "Normas y seguridad",
+    label: "Normas de la comunidad",
     action: () => onNavigate("rules")
+  }, {
+    icon: Shield,
+    label: "Privacidad, Normas y Seguridad",
+    action: () => onNavigate("legal"),
+    highlight: true
   }, {
     icon: HelpCircle,
     label: "Ayuda y soporte",

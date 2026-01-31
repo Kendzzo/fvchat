@@ -346,6 +346,13 @@ export default function RegisterPage() {
                   <li>• Aprobará las solicitudes de amistad</li>
                   <li>• Recibirá alertas si hay problemas</li>
                 </ul>
+                <a 
+                  href="#" 
+                  onClick={(e) => { e.preventDefault(); window.open('/legal-info', '_blank'); }}
+                  className="text-xs text-primary underline mt-2 inline-block"
+                >
+                  Ver Privacidad, Normas y Seguridad
+                </a>
               </div>
 
               <div className="space-y-2">

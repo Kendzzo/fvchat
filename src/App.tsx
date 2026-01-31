@@ -18,6 +18,7 @@ import AdminPage from "./pages/AdminPage";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import ParentApprovePage from "./pages/ParentApprovePage";
 import ParentDashboardPage from "./pages/ParentDashboardPage";
+import LegalInfoPage from "./pages/LegalInfoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -106,6 +107,9 @@ function AppRoutes() {
       {/* Parent Routes - PUBLIC, no auth required */}
       <Route path="/parent" element={<ParentDashboardPage />} />
       <Route path="/parent/approve" element={<ParentApprovePage />} />
+      
+      {/* Legal Info - PUBLIC, no auth required */}
+      <Route path="/legal-info" element={<LegalInfoPage />} />
       
       {/* Auth Routes - redirect to app if already logged in */}
       <Route path="/" element={<PublicRoute><SplashPage /></PublicRoute>} />
