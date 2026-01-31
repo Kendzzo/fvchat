@@ -1,11 +1,19 @@
 import { useRef, useState } from "react";
-import { Image, Mic, Loader2, X, Square, Circle } from "lucide-react";
+import { Image, Mic, Loader2, X, Square, Circle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useImageModeration } from "@/hooks/useImageModeration";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+import {
+  robustUpload,
+  formatUploadError,
+  isPermissionError,
+  compressImageIfNeeded,
+  getBestAudioMimeType,
+  getAudioExtension,
+} from "@/lib/uploadUtils";
 
 interface ChatMediaUploadProps {
   onMediaReady: (url: string, type: "image" | "audio") => void;
@@ -15,24 +23,14 @@ interface ChatMediaUploadProps {
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
 
-const isAbortedStorageError = (err: unknown) => {
-  const anyErr = err as any;
-  const name = anyErr?.name || anyErr?.value?.name;
-  const message = anyErr?.message || anyErr?.value?.message;
-  const originalName = anyErr?.originalError?.name || anyErr?.value?.originalError?.value?.name;
-  const originalMessage = anyErr?.originalError?.message || anyErr?.value?.originalError?.value?.message;
-  const text = String(message || "") + " " + String(originalMessage || "");
-  return (
-    name === "StorageUnknownError" ||
-    originalName === "AbortError" ||
-    text.toLowerCase().includes("aborted")
-  );
-};
-
 /**
- * ChatMediaUpload - For images and audio in chat
- * Videos are NOT allowed in chat - they go through PublishPage only
- * Images are moderated before upload
+ * ChatMediaUpload - Ultra-stable media upload for chat
+ * Features:
+ * - Retry logic for transient errors (aborted, network issues)
+ * - Timeout handling
+ * - Image compression for large files
+ * - Cross-browser audio recording
+ * - Prevents modal close during upload
  */
 export function ChatMediaUpload({
   onMediaReady,
@@ -43,13 +41,16 @@ export function ChatMediaUpload({
   
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [showAudioModal, setShowAudioModal] = useState(false);
   
   // Audio recording states
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const [audioUploadError, setAudioUploadError] = useState<string | null>(null);
   
   // Audio recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -58,6 +59,7 @@ export function ChatMediaUpload({
 
   const handleImageClick = () => {
     if (disabled || isUploading || isModeratingImage) return;
+    setUploadError(null);
     imageInputRef.current?.click();
   };
 
@@ -67,7 +69,18 @@ export function ChatMediaUpload({
       console.log("[CHAT][AUDIO_CLICK] Blocked - returning early");
       return;
     }
-    console.log("[CHAT][AUDIO_CLICK] Opening audio modal");
+    
+    // Check if audio recording is supported
+    const mimeType = getBestAudioMimeType();
+    if (!mimeType) {
+      console.error("[CHAT][AUDIO_CLICK] No supported audio MIME type");
+      toast.error("Tu navegador no soporta grabación de audio");
+      return;
+    }
+    
+    setAudioMimeType(mimeType);
+    setAudioUploadError(null);
+    console.log("[CHAT][AUDIO_CLICK] Opening audio modal with MIME:", mimeType);
     setShowAudioModal(true);
   };
 
@@ -76,61 +89,81 @@ export function ChatMediaUpload({
       toast.error("No autenticado");
       return;
     }
+    
+    console.log("[CHAT][UPLOAD_START]", {
+      kind: "image",
+      size: file.size,
+      mime: file.type,
+      name: file.name,
+    });
+    
     if (file.size > MAX_IMAGE_SIZE) {
+      console.log("[CHAT][UPLOAD_FAIL] Image too large:", file.size);
       toast.error("La imagen debe ser menor a 10MB");
       return;
     }
 
     setIsUploading(true);
+    setUploadError(null);
 
     try {
-      // MODERATION: Check image before uploading
-      console.log("[CHAT][UPLOAD_IMAGE] Moderating image before upload...");
-      const modResult = await moderateImageFile(file, "chat");
+      // Compress if needed (>6MB)
+      const { blob: processedBlob, compressed } = await compressImageIfNeeded(file);
       
-      if (!modResult.allowed) {
-        console.log("[CHAT][UPLOAD_IMAGE] Image failed moderation:", modResult.reason);
-        toast.error(modResult.reason || "Imagen no permitida");
-        return;
-      }
-
-      const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const fileName = `${user.id}/chat/${Date.now()}.${fileExt}`;
-      
-      console.log("[CHAT][UPLOAD_IMAGE] Uploading to storage:", fileName);
-      const { error: uploadError } = await supabase.storage.from("content").upload(fileName, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type || "image/jpeg"
-      });
-      
-      if (uploadError) {
-        console.error("[CHAT][UPLOAD_IMAGE] Storage error:", uploadError);
-        if (isAbortedStorageError(uploadError)) {
-          console.error("[CHAT][UPLOAD_MEDIA_ERROR]", uploadError);
-          toast.error("No se pudo subir la imagen. Intenta de nuevo.");
+      // MODERATION: Check image before uploading (with timeout, non-blocking if fails)
+      console.log("[CHAT][MODERATION_START_ASYNC] Checking image...");
+      try {
+        const modResult = await moderateImageFile(file, "chat");
+        if (!modResult.allowed) {
+          console.log("[CHAT][MODERATION_RESULT]", { allowed: false, reason: modResult.reason });
+          toast.error(modResult.reason || "Imagen no permitida");
+          setIsUploading(false);
           return;
         }
-        if (uploadError.message?.includes("policy") || uploadError.message?.includes("403")) {
-          toast.error("Permiso denegado (Storage/RLS). Revisar políticas de Supabase.");
-        } else {
-          toast.error("Error al subir imagen");
-        }
-        return;
+        console.log("[CHAT][MODERATION_RESULT]", { allowed: true });
+      } catch (modErr) {
+        console.error("[CHAT][MODERATION_FAIL] Non-blocking:", modErr);
+        // Fail open - continue with upload
       }
+
+      const fileExt = compressed ? "jpg" : (file.name.split(".").pop()?.toLowerCase() || "jpg");
+      const fileName = `${user.id}/chat/images/${Date.now()}.${fileExt}`;
+      
+      console.log("[CHAT][DB_INSERT_START]", { type: "image", path: fileName });
+      
+      // Use robust upload with retry
+      await robustUpload(async () => {
+        const { error: uploadError } = await supabase.storage
+          .from("content")
+          .upload(fileName, processedBlob, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: compressed ? "image/jpeg" : (file.type || "image/jpeg"),
+          });
+        
+        if (uploadError) {
+          throw uploadError;
+        }
+        
+        return true;
+      }, "image-upload");
       
       const { data: urlData } = supabase.storage.from("content").getPublicUrl(fileName);
-      console.log("[CHAT][UPLOAD_IMAGE] Success:", urlData.publicUrl.slice(0, 50) + "...");
+      console.log("[CHAT][UPLOAD_OK]", { publicUrl: urlData.publicUrl.slice(0, 60) + "..." });
+      
       onMediaReady(urlData.publicUrl, "image");
-      toast.success("Imagen adjuntada");
+      toast.success("Imagen lista para enviar");
+      setUploadError(null);
     } catch (error) {
-      console.error("[CHAT][UPLOAD_IMAGE] Exception:", error);
-      if (isAbortedStorageError(error)) {
-        console.error("[CHAT][UPLOAD_MEDIA_ERROR]", error);
-        toast.error("No se pudo subir la imagen. Intenta de nuevo.");
-        return;
-      }
-      toast.error("Error al subir imagen");
+      console.error("[CHAT][UPLOAD_FAIL]", {
+        status: (error as any)?.status,
+        name: (error as any)?.name,
+        message: (error as any)?.message,
+      });
+      
+      const errorMsg = formatUploadError(error, "image");
+      setUploadError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsUploading(false);
     }
@@ -144,20 +177,19 @@ export function ChatMediaUpload({
 
   // Audio recording functions
   const startRecording = async () => {
+    const mimeType = audioMimeType || getBestAudioMimeType();
+    if (!mimeType) {
+      toast.error("Tu navegador no soporta grabación de audio");
+      return;
+    }
+    
     try {
-      console.log("[CHAT][UPLOAD_AUDIO] Requesting microphone access...");
+      console.log("[CHAT][AUDIO_RECORD_START] Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       chunksRef.current = [];
 
-      // Try to use webm with opus codec, fallback to default
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") 
-        ? "audio/webm;codecs=opus" 
-        : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : "audio/mp4";
-      
-      console.log("[CHAT][UPLOAD_AUDIO] Using MIME type:", mimeType);
+      console.log("[CHAT][AUDIO_RECORD] Using MIME type:", mimeType);
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
 
@@ -172,14 +204,15 @@ export function ChatMediaUpload({
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
-        console.log("[CHAT][UPLOAD_AUDIO] Recording stopped, blob size:", blob.size);
+        console.log("[CHAT][AUDIO_RECORD_STOP] Recording stopped, blob size:", blob.size);
       };
 
       mediaRecorder.start();
       setIsRecording(true);
-      console.log("[CHAT][UPLOAD_AUDIO] Recording started");
+      setAudioUploadError(null);
+      console.log("[CHAT][AUDIO_RECORD] Recording started");
     } catch (error) {
-      console.error("[CHAT][UPLOAD_AUDIO] Microphone access error:", error);
+      console.error("[CHAT][AUDIO_RECORD_FAIL] Microphone access error:", error);
       toast.error("No se pudo acceder al micrófono");
     }
   };
@@ -194,7 +227,7 @@ export function ChatMediaUpload({
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
-      console.log("[CHAT][UPLOAD_AUDIO] Recording stopped by user");
+      console.log("[CHAT][AUDIO_RECORD] Recording stopped by user");
     }
   };
 
@@ -204,11 +237,12 @@ export function ChatMediaUpload({
     }
     setAudioBlob(null);
     setAudioUrl(null);
+    setAudioUploadError(null);
     chunksRef.current = [];
   };
 
   const uploadAudio = async () => {
-    if (!user || !audioBlob) {
+    if (!user || !audioBlob || !audioMimeType) {
       toast.error("No hay audio para enviar");
       return;
     }
@@ -218,58 +252,76 @@ export function ChatMediaUpload({
       return;
     }
 
+    console.log("[CHAT][UPLOAD_START]", {
+      kind: "audio",
+      size: audioBlob.size,
+      mime: audioMimeType,
+    });
+
     setIsUploadingAudio(true);
+    setAudioUploadError(null);
 
     try {
-      const extension = audioBlob.type.includes("webm") ? "webm" : "m4a";
+      const extension = getAudioExtension(audioMimeType);
       const fileName = `${user.id}/chat/audio/${Date.now()}.${extension}`;
       
-      console.log("[CHAT][UPLOAD_AUDIO] Uploading to storage:", fileName);
-      const { error: uploadError } = await supabase.storage.from("content").upload(fileName, audioBlob, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: audioBlob.type
-      });
+      console.log("[CHAT][DB_INSERT_START]", { type: "audio", path: fileName });
       
-      if (uploadError) {
-        console.error("[CHAT][UPLOAD_AUDIO] Storage error:", uploadError);
-        if (isAbortedStorageError(uploadError)) {
-          console.error("[CHAT][UPLOAD_MEDIA_ERROR]", uploadError);
-          toast.error("No se pudo subir el audio. Intenta de nuevo.");
-          return;
+      // Use robust upload with retry
+      await robustUpload(async () => {
+        const { error: uploadError } = await supabase.storage
+          .from("content")
+          .upload(fileName, audioBlob, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: audioMimeType,
+          });
+        
+        if (uploadError) {
+          throw uploadError;
         }
-        if (uploadError.message?.includes("policy") || uploadError.message?.includes("403")) {
-          toast.error("Permiso denegado (Storage/RLS). Revisar políticas de Supabase.");
-        } else {
-          toast.error("Error al subir audio");
-        }
-        return;
-      }
+        
+        return true;
+      }, "audio-upload");
       
       const { data: urlData } = supabase.storage.from("content").getPublicUrl(fileName);
-      console.log("[CHAT][UPLOAD_AUDIO] Success:", urlData.publicUrl.slice(0, 50) + "...");
+      console.log("[CHAT][UPLOAD_OK]", { publicUrl: urlData.publicUrl.slice(0, 60) + "..." });
       
       onMediaReady(urlData.publicUrl, "audio");
-      toast.success("Audio adjuntado");
-      closeAudioModal();
+      toast.success("Audio listo para enviar");
+      
+      // Cleanup and close modal on success
+      resetAudio();
+      setShowAudioModal(false);
     } catch (error) {
-      console.error("[CHAT][UPLOAD_AUDIO] Exception:", error);
-      if (isAbortedStorageError(error)) {
-        console.error("[CHAT][UPLOAD_MEDIA_ERROR]", error);
-        toast.error("No se pudo subir el audio. Intenta de nuevo.");
-        return;
-      }
-      toast.error("Error al subir audio");
+      console.error("[CHAT][UPLOAD_FAIL]", {
+        status: (error as any)?.status,
+        name: (error as any)?.name,
+        message: (error as any)?.message,
+      });
+      
+      const errorMsg = formatUploadError(error, "audio");
+      setAudioUploadError(errorMsg);
+      toast.error(errorMsg);
+      // Keep modal open and allow retry
     } finally {
       setIsUploadingAudio(false);
     }
   };
 
   const closeAudioModal = () => {
+    // CRITICAL: Prevent closing while uploading
+    if (isUploadingAudio) {
+      console.log("[CHAT][AUDIO_MODAL] Blocked close during upload");
+      toast.info("Espera a que termine la subida...");
+      return;
+    }
+    
     // Stop recording if active
     if (isRecording) {
       stopRecording();
     }
+    
     // Cleanup
     resetAudio();
     if (streamRef.current) {
@@ -347,6 +399,13 @@ export function ChatMediaUpload({
                   </button>
                 </div>
 
+                {/* Error display */}
+                {audioUploadError && (
+                  <div className="mb-4 p-3 rounded-lg bg-destructive/20 text-destructive text-sm flex items-center gap-2">
+                    <span>{audioUploadError}</span>
+                  </div>
+                )}
+
                 <div className="text-center py-6">
                   {!audioUrl ? (
                     // Recording UI
@@ -399,6 +458,11 @@ export function ChatMediaUpload({
                         >
                           {isUploadingAudio ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : audioUploadError ? (
+                            <>
+                              <RefreshCw className="w-4 h-4" />
+                              Reintentar
+                            </>
                           ) : (
                             "Adjuntar"
                           )}

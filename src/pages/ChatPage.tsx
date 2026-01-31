@@ -343,43 +343,62 @@ function ChatDetail({
 
       // 1) Media first - but NEVER block text if media fails
       if (pendingMedia) {
-        console.log("[CHAT][SEND_MEDIA]", { type: pendingMedia.type });
-        const { error } = await sendMessage(pendingMedia.url, pendingMedia.type);
+        console.log("[CHAT][DB_INSERT_START]", { type: pendingMedia.type, chatId: chat.id });
+        const { error, data } = await sendMessage(pendingMedia.url, pendingMedia.type);
         if (error) {
-          console.error("[CHAT][SEND_MEDIA_ERROR]", error);
-          toast.error("No se pudo enviar el archivo");
+          console.error("[CHAT][DB_INSERT_FAIL]", { 
+            status: (error as any)?.status,
+            message: error.message 
+          });
+          // Check if permission error
+          if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("401")) {
+            toast.error("Permiso denegado (DB/RLS). Revisar políticas de messages.");
+          } else {
+            toast.error("No se pudo enviar el archivo");
+          }
           // Keep pendingMedia so user can retry
         } else {
           mediaSentOk = true;
           setPendingMedia(null);
-          console.log("[CHAT][SEND_MEDIA_SUCCESS]");
+          console.log("[CHAT][DB_INSERT_OK]", { messageId: data?.id });
         }
       }
 
       // 2) Text: ALWAYS send (even if media failed) - moderation is POST-SEND async
       if (textToSend) {
-        console.log("[CHAT][SEND_TEXT]", { preview: textToSend.slice(0, 30) });
+        console.log("[CHAT][DB_INSERT_START]", { type: "text", chatId: chat.id, preview: textToSend.slice(0, 30) });
         const { error, data } = await sendMessage(textToSend, "text");
         if (error) {
-          console.error("[CHAT][SEND_TEXT_ERROR]", error);
-          toast.error("No se pudo enviar el mensaje");
+          console.error("[CHAT][DB_INSERT_FAIL]", { 
+            status: (error as any)?.status,
+            message: error.message 
+          });
+          // Check if permission error
+          if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("401")) {
+            toast.error("Permiso denegado (DB/RLS). Revisar políticas de messages.");
+          } else {
+            toast.error("No se pudo enviar el mensaje");
+          }
         } else {
           textSentOk = true;
           setMessageText("");
-          console.log("[CHAT][SEND_TEXT_SUCCESS]");
+          console.log("[CHAT][DB_INSERT_OK]", { messageId: data?.id });
           
-          // ASYNC post-send moderation (non-blocking)
+          // ASYNC post-send moderation (non-blocking) with timeout
           void (async () => {
             try {
-              console.log("[CHAT][MODERATION] Checking async...");
+              console.log("[CHAT][MODERATION_START_ASYNC]", { messageId: data?.id });
               const modResult = await checkContent(textToSend, "chat");
+              console.log("[CHAT][MODERATION_RESULT]", { 
+                allowed: modResult.allowed, 
+                reason: modResult.reason 
+              });
               if (!modResult.allowed) {
-                console.log("[CHAT][MODERATION] Flagged:", modResult.reason);
                 setModerationError({
                   reason: modResult.reason || "Contenido no permitido",
                   strikes: modResult.strikes,
                 });
-                // Optionally: could mark message as hidden via update here
+                // TODO: could mark message as hidden via update here
               }
             } catch (modErr) {
               console.error("[CHAT][MODERATION_FAIL]", modErr);
@@ -391,7 +410,7 @@ function ChatDetail({
 
       // Fallback refetch for realtime issues
       if (mediaSentOk || textSentOk) {
-        void refreshMessages();
+        setTimeout(() => void refreshMessages(), 300);
       }
     } catch (err) {
       console.error("[CHAT][SEND_ERROR]", err);
@@ -658,10 +677,10 @@ function ChatDetail({
               scale: 0.9,
             }}
             onClick={handleSend}
-            disabled={!canInteract || (!messageText.trim() && !pendingMedia) || isSending || isChecking || isSuspended}
+            disabled={!canInteract || (!messageText.trim() && !pendingMedia) || isSending || isSuspended}
             className="p-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground px-[14px] py-[14px] mb-[5px] opacity-100 disabled:opacity-50"
           >
-            {isSending || isChecking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </motion.button>
         </div>
       </div>
