@@ -254,6 +254,9 @@ function ChatDetail({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null);
+  
+  // Lock to prevent duplicate sends
+  const sendLock = useRef(false);
 
   // Get other user ID for 1:1 chats
   const otherUserId = !chat.is_group ? chat.participant_ids.find((id) => id !== user?.id) || null : null;
@@ -292,72 +295,121 @@ function ChatDetail({
   useEffect(() => {
     onMarkRead(chat.id);
   }, [chat.id, onMarkRead]);
+
   const isSuspended = suspensionInfo.suspended && suspensionInfo.until && suspensionInfo.until > new Date();
+
   const handleSend = async () => {
-    if ((!messageText.trim() && !pendingMedia) || isSending || isChecking) return;
+    // Prevent duplicate sends
+    if (sendLock.current) {
+      console.log("[CHAT][SEND_TEXT] Blocked: sendLock active");
+      return;
+    }
+    
+    if ((!messageText.trim() && !pendingMedia) || isSending || isChecking) {
+      console.log("[CHAT][SEND_TEXT] Blocked: no content or already sending", { hasText: !!messageText.trim(), hasPendingMedia: !!pendingMedia, isSending, isChecking });
+      return;
+    }
 
     // Check suspension first
     if (isSuspended) {
+      console.log("[CHAT][SEND_TEXT] Blocked: user suspended");
       return;
     }
-    setModerationError(null);
 
-    // Check text content with moderation (if there's text)
-    if (messageText.trim()) {
-      const result = await checkContent(messageText, "chat");
-      if (!result.allowed) {
-        setModerationError({
-          reason: result.reason || "Contenido no permitido",
-          strikes: result.strikes,
-        });
-        return;
-      }
-    }
+    sendLock.current = true;
+    setModerationError(null);
     setIsSending(true);
+
     try {
+      // Check text content with moderation (if there's text)
+      if (messageText.trim()) {
+        console.log("[CHAT][SEND_TEXT] Checking moderation...");
+        const result = await checkContent(messageText, "chat");
+        if (!result.allowed) {
+          console.log("[CHAT][SEND_TEXT] Moderation blocked:", result.reason);
+          setModerationError({
+            reason: result.reason || "Contenido no permitido",
+            strikes: result.strikes,
+          });
+          return;
+        }
+      }
+
+      // Send media first if exists
       if (pendingMedia) {
-        // Send media message
+        console.log("[CHAT][SEND_MEDIA] Sending media:", pendingMedia.type);
         const { error } = await sendMessage(pendingMedia.url, pendingMedia.type);
         if (error) {
+          console.error("[CHAT][SEND_MEDIA] Error:", error);
           toast.error("Error al enviar media");
-        } else {
-          setPendingMedia(null);
+          // Don't clear pendingMedia on error
+          return;
         }
+        console.log("[CHAT][SEND_MEDIA] Success");
+        setPendingMedia(null);
       }
+
+      // Then send text if exists
       if (messageText.trim()) {
+        console.log("[CHAT][SEND_TEXT] Sending text:", messageText.slice(0, 20) + "...");
         const { error } = await sendMessage(messageText.trim());
         if (error) {
+          console.error("[CHAT][SEND_TEXT] Error:", error);
           toast.error("Error al enviar mensaje");
-        } else {
-          setMessageText("");
+          // Don't clear text on error
+          return;
         }
+        console.log("[CHAT][SEND_TEXT] Success");
+        setMessageText("");
       }
+    } catch (err) {
+      console.error("[CHAT][SEND_TEXT] Exception:", err);
+      toast.error("Error inesperado al enviar");
     } finally {
       setIsSending(false);
+      sendLock.current = false;
     }
   };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
+
   const handleMediaReady = (url: string, type: "image" | "video" | "audio") => {
+    console.log("[CHAT][MEDIA_READY]", type, url.slice(0, 50) + "...");
     setPendingMedia({
       url,
       type,
     });
   };
+
   const handleStickerSelect = async (sticker: Sticker) => {
-    if (isSuspended || isSending) return;
+    if (isSuspended || isSending || sendLock.current) {
+      console.log("[CHAT][SEND_STICKER] Blocked");
+      return;
+    }
+    
+    sendLock.current = true;
     setIsSending(true);
+    
     try {
+      console.log("[CHAT][SEND_STICKER] Sending:", sticker.name);
       const { error } = await sendSticker(sticker.id, sticker.image_url);
       if (error) {
+        console.error("[CHAT][SEND_STICKER] Error:", error);
         toast.error("Error al enviar sticker");
+      } else {
+        console.log("[CHAT][SEND_STICKER] Success");
       }
+    } catch (err) {
+      console.error("[CHAT][SEND_STICKER] Exception:", err);
+      toast.error("Error al enviar sticker");
     } finally {
       setIsSending(false);
+      sendLock.current = false;
     }
   };
   const presenceText = otherUserLastSeen
@@ -423,6 +475,7 @@ function ChatDetail({
           messages.map((msg) => {
             const isMine = msg.sender_id === user?.id;
             const isSticker = msg.sticker_id && msg.sticker;
+            const isAudio = msg.type === "audio";
             const isMedia = msg.type === "image" || msg.type === "photo" || msg.type === "video";
             return (
               <motion.div
@@ -439,7 +492,23 @@ function ChatDetail({
               >
                 <div className={isSticker ? "p-1" : isMine ? "chat-bubble-sent" : "chat-bubble-received"}>
                   {isSticker ? (
-                    <img src={msg.sticker!.image_url} alt={msg.sticker!.name} className="w-32 h-32 object-contain" />
+                    <img 
+                      src={msg.sticker!.image_url} 
+                      alt={msg.sticker!.name} 
+                      className="w-32 h-32 object-contain"
+                      style={{ imageRendering: "auto" }}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.src.includes("?v=")) {
+                          target.src = msg.sticker!.image_url + "?v=1";
+                        } else {
+                          console.error("[CHAT] Sticker load failed:", msg.sticker!.image_url);
+                          toast.error("Sticker no disponible");
+                        }
+                      }}
+                    />
+                  ) : isAudio ? (
+                    <audio src={msg.content} controls className="max-w-[240px]" />
                   ) : isMedia ? (
                     msg.type === "video" ? (
                       <video src={msg.content} controls className="max-w-[200px] rounded-lg" playsInline />
