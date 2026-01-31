@@ -123,9 +123,9 @@ export default function RegisterPage() {
         return;
       }
 
-      // Invoke backend email function using the userId returned by signUp (do NOT rely on getUser/session timing)
+      // Invoke backend functions using the userId returned by signUp
       if (userId) {
-        console.log("[Register] User created, invoking send-parent-approval-email for:", userId);
+        console.log("[Register] User created, invoking backend functions for:", userId);
         
         // Send parent approval email - await to ensure it executes and log any errors
         try {
@@ -149,8 +149,25 @@ export default function RegisterPage() {
             description: "No se pudo notificar al tutor. Reintenta más tarde.",
           });
         }
+
+        // Assign starter stickers to new user
+        try {
+          console.log("[Register] Assigning starter stickers to user:", userId);
+          const { data: stickerData, error: stickerError } = await supabase.functions.invoke("assign-starter-stickers", {
+            body: { user_id: userId }
+          });
+          
+          if (stickerError) {
+            console.error("[Register] Sticker assignment error:", stickerError);
+          } else {
+            console.log("[Register] Stickers assigned:", stickerData);
+          }
+        } catch (stickerErr) {
+          console.error("[Register] Failed to assign stickers:", stickerErr);
+          // Don't block registration if sticker assignment fails
+        }
       } else {
-        console.warn("[Register] No userId returned after signUp - cannot send parent email");
+        console.warn("[Register] No userId returned after signUp - cannot invoke backend functions");
       }
 
       // Redirect to selfie onboarding
