@@ -48,7 +48,7 @@ export default function SplashPage() {
         <h1 className="text-2xl font-gaming font-bold gradient-text mb-2">
           Vídeos · Fotos · Chat
         </h1>
-        <p className="text-muted-foreground text-sm">Esta si es tu red social, Bro..!  </p>
+        <p className="text-sm text-white">La Red Social Que Más Mola...Bro       </p>
       </motion.div>
 
       {/* Safe Badge */}
