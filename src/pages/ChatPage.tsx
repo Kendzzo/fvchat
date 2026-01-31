@@ -301,27 +301,25 @@ function ChatDetail({
   const handleSend = async () => {
     // Prevent duplicate sends
     if (sendLock.current) {
-      console.log("[CHAT][SEND_TEXT] Blocked: sendLock active");
+      console.log("[CHAT][SEND] Blocked: sendLock active");
       return;
     }
 
     if (!messageText.trim() && !pendingMedia) {
-      console.log("[CHAT][SEND_TEXT_ATTEMPT] Blocked: no content", {
-        hasText: !!messageText.trim(),
-        hasPendingMedia: !!pendingMedia,
-      });
+      console.log("[CHAT][SEND] Blocked: no content");
       return;
     }
 
-    if (isSending || isChecking) {
-      console.log("[CHAT][SEND_TEXT_ATTEMPT] Blocked: busy", { isSending, isChecking });
+    // NEVER block by isChecking - moderation is async post-send
+    if (isSending) {
+      console.log("[CHAT][SEND] Blocked: already sending");
       toast.error("Enviando... espera un momento");
       return;
     }
 
     // Check suspension first
     if (isSuspended) {
-      console.log("[CHAT][SEND_TEXT] Blocked: user suspended");
+      console.log("[CHAT][SEND] Blocked: user suspended");
       toast.error("No puedes enviar mensajes mientras estás suspendido");
       return;
     }
@@ -331,62 +329,69 @@ function ChatDetail({
     setIsSending(true);
 
     try {
-      // Check text content with moderation (if there's text)
-      if (messageText.trim()) {
-        console.log("[CHAT][SEND_TEXT] Checking moderation...");
-        const result = await checkContent(messageText, "chat");
-        if (!result.allowed) {
-          console.log("[CHAT][SEND_TEXT] Moderation blocked:", result.reason);
-          setModerationError({
-            reason: result.reason || "Contenido no permitido",
-            strikes: result.strikes,
-          });
-          return;
-        }
-      }
-
-      // 1) Media: intentar primero, pero NUNCA bloquear el texto si falla
       let mediaSentOk = false;
       let textSentOk = false;
+      const textToSend = messageText.trim();
+
+      // 1) Media first - but NEVER block text if media fails
       if (pendingMedia) {
-        console.log("[CHAT][SEND_MEDIA]", { type: pendingMedia.type, url: pendingMedia.url?.slice(0, 80) });
+        console.log("[CHAT][SEND_MEDIA]", { type: pendingMedia.type });
         const { error } = await sendMessage(pendingMedia.url, pendingMedia.type);
         if (error) {
-          console.error("[CHAT][UPLOAD_MEDIA_ERROR]", error);
+          console.error("[CHAT][SEND_MEDIA_ERROR]", error);
           toast.error("No se pudo enviar el archivo");
-          // NO limpiar pendingMedia si falla
+          // Keep pendingMedia so user can retry
         } else {
           mediaSentOk = true;
           setPendingMedia(null);
+          console.log("[CHAT][SEND_MEDIA_SUCCESS]");
         }
       }
 
-      // 2) Texto: si hay texto, enviarlo SIEMPRE (aunque media haya fallado)
-      if (messageText.trim()) {
-        console.log("[CHAT][SEND_TEXT_ATTEMPT]", { textPreview: messageText.trim().slice(0, 50) });
-        const { error } = await sendMessage(messageText.trim(), "text");
+      // 2) Text: ALWAYS send (even if media failed) - moderation is POST-SEND async
+      if (textToSend) {
+        console.log("[CHAT][SEND_TEXT]", { preview: textToSend.slice(0, 30) });
+        const { error, data } = await sendMessage(textToSend, "text");
         if (error) {
-          console.error("[CHAT][ERROR]", error);
+          console.error("[CHAT][SEND_TEXT_ERROR]", error);
           toast.error("No se pudo enviar el mensaje");
-          // NO limpiar el texto si falla
         } else {
-          console.log("[CHAT][SEND_TEXT_SUCCESS]");
           textSentOk = true;
           setMessageText("");
+          console.log("[CHAT][SEND_TEXT_SUCCESS]");
+          
+          // ASYNC post-send moderation (non-blocking)
+          void (async () => {
+            try {
+              console.log("[CHAT][MODERATION] Checking async...");
+              const modResult = await checkContent(textToSend, "chat");
+              if (!modResult.allowed) {
+                console.log("[CHAT][MODERATION] Flagged:", modResult.reason);
+                setModerationError({
+                  reason: modResult.reason || "Contenido no permitido",
+                  strikes: modResult.strikes,
+                });
+                // Optionally: could mark message as hidden via update here
+              }
+            } catch (modErr) {
+              console.error("[CHAT][MODERATION_FAIL]", modErr);
+              // Fail open - message already sent
+            }
+          })();
         }
       }
 
-      // Fallback (sin romper realtime): tras éxito, forzar refetch para evitar UI vacía si realtime falla
+      // Fallback refetch for realtime issues
       if (mediaSentOk || textSentOk) {
         void refreshMessages();
       }
     } catch (err) {
-      console.error("[CHAT][ERROR]", err);
+      console.error("[CHAT][SEND_ERROR]", err);
       toast.error("No se pudo enviar el mensaje");
     } finally {
       setIsSending(false);
       sendLock.current = false;
-      console.log("[CHAT][RESET_STATE_AFTER_ERROR]", { isSending: false, sendLock: false });
+      console.log("[CHAT][SEND_COMPLETE]");
     }
   };
 
