@@ -42,35 +42,48 @@ export function useModeration() {
         return { allowed: false, suspended: false, reason: 'Sesión expirada' };
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moderate-content`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ text, surface }),
-        }
-      );
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      if (!response.ok) {
-        console.error('Moderation request failed:', response.status);
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moderate-content`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ text, surface }),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.error('Moderation request failed:', response.status);
+          // Fail open for availability
+          return { allowed: true, suspended: false };
+        }
+
+        const result: ModerationResult = await response.json();
+
+        // Update suspension state
+        if (result.suspended && result.suspended_until) {
+          setSuspensionInfo({
+            suspended: true,
+            until: new Date(result.suspended_until),
+          });
+        }
+
+        return result;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        console.error('Moderation fetch error (timeout or network):', fetchError);
         // Fail open for availability
         return { allowed: true, suspended: false };
       }
-
-      const result: ModerationResult = await response.json();
-
-      // Update suspension state
-      if (result.suspended && result.suspended_until) {
-        setSuspensionInfo({
-          suspended: true,
-          until: new Date(result.suspended_until),
-        });
-      }
-
-      return result;
     } catch (error) {
       console.error('Moderation error:', error);
       // Fail open for availability
