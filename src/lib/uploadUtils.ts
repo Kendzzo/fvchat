@@ -3,29 +3,28 @@
  * for chat media (images and audio)
  */
 
-const MAX_UPLOAD_TIME = 25000; // 25 seconds total max
-const RETRY_DELAYS = [600, 1400]; // Backoff delays in ms
+const RETRY_DELAYS = [800, 1600]; // Backoff delays in ms
 
 /**
  * Checks if an error is transient and should be retried
+ * NOTE: StorageUnknownError is NOT automatically transient - it often hides real errors
  */
 export function isTransientError(err: unknown): boolean {
   const anyErr = err as any;
-  const name = anyErr?.name || anyErr?.value?.name || "";
-  const message = anyErr?.message || anyErr?.value?.message || "";
+  const name = (anyErr?.name || anyErr?.value?.name || "").toLowerCase();
+  const message = (anyErr?.message || anyErr?.value?.message || "").toLowerCase();
   const status = anyErr?.status || anyErr?.statusCode || 0;
-  const originalName = anyErr?.originalError?.name || "";
-  const originalMessage = anyErr?.originalError?.message || "";
+  const originalName = (anyErr?.originalError?.name || "").toLowerCase();
+  const originalMessage = (anyErr?.originalError?.message || "").toLowerCase();
   
   const fullText = `${name} ${message} ${originalName} ${originalMessage}`.toLowerCase();
   
-  // Transient errors that should be retried
-  if (name === "StorageUnknownError") return true;
-  if (originalName === "AbortError") return true;
+  // Only retry truly transient errors
+  if (originalName === "aborterror") return true;
   if (fullText.includes("aborted")) return true;
   if (fullText.includes("canceled")) return true;
-  if (fullText.includes("network")) return true;
   if (fullText.includes("failed to fetch")) return true;
+  if (fullText.includes("network")) return true;
   if (status === 0) return true;
   if (status >= 500 && status < 600) return true;
   
@@ -141,19 +140,15 @@ export async function withRetry<T>(
 }
 
 /**
- * Comprehensive upload wrapper with timeout and retry
+ * Robust upload wrapper - NO timeout (supabase.storage.upload is not abortable)
+ * Using withTimeout causes phantom uploads + overlapping retries => aborted/slowness
  */
 export async function robustUpload<T>(
   uploadFn: () => Promise<T>,
   label: string
 ): Promise<T> {
-  const startTime = Date.now();
-  
-  return withRetry(
-    () => withTimeout(uploadFn(), MAX_UPLOAD_TIME, label),
-    label,
-    3
-  );
+  // Only use retry, max 2 attempts - no timeout wrapper
+  return withRetry(uploadFn, label, 2);
 }
 
 /**
