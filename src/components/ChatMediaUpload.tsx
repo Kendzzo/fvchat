@@ -48,7 +48,12 @@ export function ChatMediaUpload({
   };
 
   const handleAudioClick = () => {
-    if (disabled || isUploading) return;
+    console.log("[CHAT][AUDIO_CLICK] Button clicked, disabled:", disabled, "isUploading:", isUploading);
+    if (disabled || isUploading) {
+      console.log("[CHAT][AUDIO_CLICK] Blocked - returning early");
+      return;
+    }
+    console.log("[CHAT][AUDIO_CLICK] Opening audio modal");
     setShowAudioModal(true);
   };
 
@@ -274,104 +279,108 @@ export function ChatMediaUpload({
         <Mic className="w-5 h-5 text-white" />
       </button>
 
-      {/* Audio modal - Portal to body (fix iOS) */}
-      <AnimatePresence>
-        {showAudioModal && createPortal(
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              onClick={closeAudioModal} 
-              className="fixed inset-0 bg-black/50 z-[9999]" 
-            />
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.95, opacity: 0 }} 
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[10000] w-11/12 max-w-sm" 
-              role="dialog" 
-              aria-modal="true"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-lg">Nota de voz</h3>
-                <button onClick={closeAudioModal} aria-label="Cerrar">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="text-center py-6">
-                {!audioUrl ? (
-                  // Recording UI
-                  <>
-                    <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${isRecording ? "bg-destructive/20 animate-pulse" : "bg-muted"}`}>
-                      <Mic className={`w-10 h-10 ${isRecording ? "text-destructive" : "text-muted-foreground"}`} />
-                    </div>
-                    
-                    {isRecording ? (
-                      <>
-                        <p className="text-sm text-muted-foreground mb-4">Grabando...</p>
-                        <button
-                          onClick={stopRecording}
-                          className="w-full py-3 rounded-xl bg-destructive text-destructive-foreground font-medium flex items-center justify-center gap-2"
-                        >
-                          <Square className="w-4 h-4" />
-                          Detener
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-muted-foreground mb-4">Pulsa para grabar</p>
-                        <button
-                          onClick={startRecording}
-                          className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium flex items-center justify-center gap-2"
-                        >
-                          <Circle className="w-4 h-4" />
-                          Grabar
-                        </button>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  // Preview UI
-                  <>
-                    <audio src={audioUrl} controls className="w-full mb-4" />
-                    
-                    <div className="flex gap-2">
-                      <button
-                        onClick={resetAudio}
-                        disabled={isUploadingAudio}
-                        className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-medium disabled:opacity-50"
-                      >
-                        Regrabar
-                      </button>
-                      <button
-                        onClick={uploadAudio}
-                        disabled={isUploadingAudio}
-                        className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-                      >
-                        {isUploadingAudio ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          "Adjuntar"
-                        )}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <button 
+      {/* Audio modal - Portal to body with AnimatePresence inside */}
+      {createPortal(
+        <AnimatePresence>
+          {showAudioModal && (
+            <>
+              <motion.div 
+                key="audio-overlay"
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
                 onClick={closeAudioModal} 
-                className="w-full py-3 rounded-xl bg-muted text-muted-foreground font-medium mt-2"
+                className="fixed inset-0 bg-black/50 z-[9999]" 
+              />
+              <motion.div 
+                key="audio-modal"
+                initial={{ scale: 0.95, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.95, opacity: 0 }} 
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[10000] w-11/12 max-w-sm" 
+                role="dialog" 
+                aria-modal="true"
               >
-                Cerrar
-              </button>
-            </motion.div>
-          </>,
-          document.body
-        )}
-      </AnimatePresence>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold text-lg">Nota de voz</h3>
+                  <button onClick={closeAudioModal} aria-label="Cerrar">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="text-center py-6">
+                  {!audioUrl ? (
+                    // Recording UI
+                    <>
+                      <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${isRecording ? "bg-destructive/20 animate-pulse" : "bg-muted"}`}>
+                        <Mic className={`w-10 h-10 ${isRecording ? "text-destructive" : "text-muted-foreground"}`} />
+                      </div>
+                      
+                      {isRecording ? (
+                        <>
+                          <p className="text-sm text-muted-foreground mb-4">Grabando...</p>
+                          <button
+                            onClick={stopRecording}
+                            className="w-full py-3 rounded-xl bg-destructive text-destructive-foreground font-medium flex items-center justify-center gap-2"
+                          >
+                            <Square className="w-4 h-4" />
+                            Detener
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground mb-4">Pulsa para grabar</p>
+                          <button
+                            onClick={startRecording}
+                            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium flex items-center justify-center gap-2"
+                          >
+                            <Circle className="w-4 h-4" />
+                            Grabar
+                          </button>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    // Preview UI
+                    <>
+                      <audio src={audioUrl} controls className="w-full mb-4" />
+                      
+                      <div className="flex gap-2">
+                        <button
+                          onClick={resetAudio}
+                          disabled={isUploadingAudio}
+                          className="flex-1 py-3 rounded-xl bg-muted text-muted-foreground font-medium disabled:opacity-50"
+                        >
+                          Regrabar
+                        </button>
+                        <button
+                          onClick={uploadAudio}
+                          disabled={isUploadingAudio}
+                          className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {isUploadingAudio ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Adjuntar"
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button 
+                  onClick={closeAudioModal} 
+                  className="w-full py-3 rounded-xl bg-muted text-muted-foreground font-medium mt-2"
+                >
+                  Cerrar
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
