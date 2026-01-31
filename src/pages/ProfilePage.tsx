@@ -8,6 +8,7 @@ import { useFriendships } from "@/hooks/useFriendships";
 import { useUserStickers } from "@/hooks/useUserStickers";
 import { Badge } from "@/components/ui/badge";
 import { UserSearch } from "@/components/UserSearch";
+import { toast } from "sonner";
 import { FriendRequestsList } from "@/components/FriendRequestsList";
 import { FriendsListSection } from "@/components/FriendsListSection";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
@@ -181,6 +182,10 @@ export default function ProfilePage() {
               scale: 1.02
             }} whileTap={{
               scale: 0.98
+            }} onClick={() => {
+              if (!canInteract) {
+                toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+              }
             }} className={`flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white ${!canInteract ? "opacity-50" : ""}`}>
                 <UserPlus className="w-5 h-5" />
                 Añadir amigos

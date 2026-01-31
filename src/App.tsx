@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
 import SplashPage from "./pages/SplashPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -20,12 +21,24 @@ import ParentApprovePage from "./pages/ParentApprovePage";
 import ParentDashboardPage from "./pages/ParentDashboardPage";
 import LegalInfoPage from "./pages/LegalInfoPage";
 import NotFound from "./pages/NotFound";
+import { IntroCarousel } from "./components/IntroCarousel";
 
 const queryClient = new QueryClient();
 
-// Protected route component with selfie guard
+// Protected route component with selfie guard and intro
 function ProtectedRoute({ children, requireAvatar = true }: { children: React.ReactNode; requireAvatar?: boolean }) {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, canInteract, refreshProfile } = useAuth();
+  const [showIntro, setShowIntro] = useState(false);
+  
+  // Check if intro should be shown
+  useEffect(() => {
+    if (profile) {
+      const profileData = profile as any;
+      if (profileData?.intro_completed === false) {
+        setShowIntro(true);
+      }
+    }
+  }, [profile]);
   
   if (isLoading) {
     return (
@@ -47,6 +60,20 @@ function ProtectedRoute({ children, requireAvatar = true }: { children: React.Re
   const profileData = profile as any;
   if (profile && profileData?.profile_photo_completed === false) {
     return <Navigate to="/onboarding/selfie" replace />;
+  }
+
+  // Show intro carousel if not completed
+  if (showIntro && user && profile) {
+    return (
+      <IntroCarousel
+        userId={user.id}
+        canInteract={canInteract}
+        onComplete={() => {
+          setShowIntro(false);
+          refreshProfile();
+        }}
+      />
+    );
   }
   
   return <>{children}</>;

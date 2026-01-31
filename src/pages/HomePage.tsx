@@ -6,15 +6,16 @@ import { CommentSection } from "@/components/CommentSection";
 import { PostStickerRenderer } from "@/components/PostStickerRenderer";
 import { PostOptionsMenu } from "@/components/PostOptionsMenu";
 import { PostMedia } from "@/components/PostMedia";
-import { Heart, X, Plus, MessageCircle, Swords } from "lucide-react";
+import { Heart, X, Plus, MessageCircle, Swords, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import vfcLogo from "@/assets/vfc-logo.png";
 
 // Emoji placeholders for friends without avatars
 const FRIEND_EMOJIS = ["🎮", "🎨", "🛹", "⚽", "🎸", "🎯", "🌟", "🦋", "🚀", "🎭"];
 export default function HomePage() {
-  const { profile } = useAuth();
+  const { profile, canInteract } = useAuth();
   const { posts, isLoading: postsLoading, toggleLike } = usePosts();
   const { friends, isLoading: friendsLoading } = useFriendships();
   const navigate = useNavigate();
@@ -87,6 +88,14 @@ export default function HomePage() {
   };
   return (
     <div className="min-h-screen pb-20 bg-[#e9e7fd]">
+      {/* Read-only mode banner */}
+      {!canInteract && (
+        <div className="bg-warning/20 px-4 py-3 flex items-center gap-2 text-warning border-b border-warning/30">
+          <Shield className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm">🛡️ Tu cuenta está pendiente de aprobación del tutor</span>
+        </div>
+      )}
+
       {/* Header - Dark purple with logo and title */}
       <header className="sticky top-0 z-40">
         {/* Main header bar */}
@@ -282,8 +291,14 @@ export default function HomePage() {
                 <div className="flex items-center gap-4">
                   {/* Like button */}
                   <button
-                    onClick={() => toggleLike(post.id)}
-                    className="flex items-center gap-1 text-gray-700 hover:text-red-500 transition-colors"
+                    onClick={() => {
+                      if (!canInteract) {
+                        toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+                        return;
+                      }
+                      toggleLike(post.id);
+                    }}
+                    className={`flex items-center gap-1 text-gray-700 hover:text-red-500 transition-colors ${!canInteract ? "opacity-50" : ""}`}
                   >
                     <Heart className={`w-6 h-6 ${post.isLiked ? "fill-red-500 text-red-500" : ""}`} />
                   </button>

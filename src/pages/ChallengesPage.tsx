@@ -19,6 +19,7 @@ import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { ChallengeParticipateModal } from "@/components/challenges/ChallengeParticipateModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Shield } from "lucide-react";
 
 // Define sticker type for daily rewards
 interface DailyRewardSticker {
@@ -50,7 +51,7 @@ export default function ChallengesPage() {
     ensureTodayChallenge,
     refreshChallenge,
   } = useChallenges();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, canInteract } = useAuth();
   const [showParticipate, setShowParticipate] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [dailyStickers, setDailyStickers] = useState<DailyRewardSticker[]>([]);
@@ -275,11 +276,21 @@ export default function ChallengesPage() {
                   whileTap={{
                     scale: 0.98,
                   }}
-                  onClick={() => setShowParticipate(true)}
-                  disabled={(todayChallenge.my_entries_count || 0) >= 3}
+                  onClick={() => {
+                    if (!canInteract) {
+                      toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+                      return;
+                    }
+                    setShowParticipate(true);
+                  }}
+                  disabled={!canInteract || (todayChallenge.my_entries_count || 0) >= 3}
                   className="btn-gaming w-full py-4 rounded-2xl text-foreground font-gaming text-lg disabled:opacity-50"
                 >
-                  {(todayChallenge.my_entries_count || 0) >= 3 ? "Ya has participado 3 veces" : "¡Participar ahora!"}
+                  {!canInteract 
+                    ? "🔒 Pendiente de aprobación" 
+                    : (todayChallenge.my_entries_count || 0) >= 3 
+                      ? "Ya has participado 3 veces" 
+                      : "¡Participar ahora!"}
                 </motion.button>
               </div>
             </motion.div>

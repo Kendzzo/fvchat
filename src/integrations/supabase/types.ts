@@ -685,6 +685,7 @@ export type Database = {
           birth_year: number
           created_at: string
           id: string
+          intro_completed: boolean
           language_infractions_count: number
           last_seen_at: string | null
           legal_accepted: boolean
@@ -707,6 +708,7 @@ export type Database = {
           birth_year: number
           created_at?: string
           id: string
+          intro_completed?: boolean
           language_infractions_count?: number
           last_seen_at?: string | null
           legal_accepted?: boolean
@@ -729,6 +731,7 @@ export type Database = {
           birth_year?: number
           created_at?: string
           id?: string
+          intro_completed?: boolean
           language_infractions_count?: number
           last_seen_at?: string | null
           legal_accepted?: boolean
