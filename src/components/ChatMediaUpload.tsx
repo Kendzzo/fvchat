@@ -323,8 +323,8 @@ export function ChatMediaUpload({
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
                 exit={{ opacity: 0 }} 
-                onClick={closeAudioModal} 
-                className="fixed inset-0 bg-black/50 z-[9999]" 
+                onClick={isUploadingAudio ? undefined : closeAudioModal} 
+                className={`fixed inset-0 bg-black/50 z-[9999] ${isUploadingAudio ? "cursor-not-allowed" : ""}`}
               />
               <motion.div 
                 key="audio-modal"
@@ -337,7 +337,12 @@ export function ChatMediaUpload({
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold text-lg">Nota de voz</h3>
-                  <button onClick={closeAudioModal} aria-label="Cerrar">
+                  <button 
+                    onClick={closeAudioModal} 
+                    disabled={isUploadingAudio}
+                    aria-label="Cerrar"
+                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -404,10 +409,11 @@ export function ChatMediaUpload({
                 </div>
 
                 <button 
-                  onClick={closeAudioModal} 
-                  className="w-full py-3 rounded-xl bg-muted text-muted-foreground font-medium mt-2"
+                  onClick={closeAudioModal}
+                  disabled={isUploadingAudio}
+                  className="w-full py-3 rounded-xl bg-muted text-muted-foreground font-medium mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Cerrar
+                  {isUploadingAudio ? "Subiendo..." : "Cerrar"}
                 </button>
               </motion.div>
             </>

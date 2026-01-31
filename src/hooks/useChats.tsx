@@ -387,13 +387,13 @@ export function useMessages(chatId: string | null) {
   };
 
   // Optimistic message sending for instant feedback
-  const sendMessage = async (content: string, type: Message["type"] = "text", stickerId?: string) => {
+  const sendMessage = async (content: string, type: Message["type"] = "text", stickerId?: string): Promise<{ data?: Message; error: Error | null }> => {
     if (!user || !chatId) {
       console.error("[sendMessage] No user or chatId");
       return { error: new Error("No autenticado o chat no seleccionado") };
     }
 
-    console.log("[sendMessage] Starting send:", { chatId, content: content.slice(0, 50), type, stickerId });
+    console.log("[sendMessage] Starting:", { chatId, contentPreview: content.slice(0, 40), type, stickerId: !!stickerId });
 
     // Create optimistic message for instant UI feedback
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -416,7 +416,7 @@ export function useMessages(chatId: string | null) {
 
     // Add optimistic message immediately
     setMessages((prev) => [...prev, optimisticMessage]);
-    console.log("[sendMessage] Optimistic message added:", tempId);
+    console.log("[sendMessage] Optimistic added:", tempId);
 
     try {
       const insertData = {
@@ -426,7 +426,6 @@ export function useMessages(chatId: string | null) {
         type,
         sticker_id: stickerId || null,
       };
-      console.log("[sendMessage] Inserting:", insertData);
       
       const { data, error: insertError } = await supabase
         .from("messages")
@@ -439,22 +438,22 @@ export function useMessages(chatId: string | null) {
         .single();
 
       if (insertError) {
-        console.error("[sendMessage] Insert error:", insertError);
+        console.error("[sendMessage][DB_INSERT_FAIL]", insertError);
         // Remove optimistic message on error
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
         return { error: new Error(insertError.message) };
       }
 
-      console.log("[sendMessage] Insert success, message id:", data?.id);
+      console.log("[sendMessage][DB_INSERT_OK]", data?.id);
       
       // Replace optimistic message with real one
       setMessages((prev) => 
         prev.map((m) => (m.id === tempId ? (data as Message) : m))
       );
 
-      return { data, error: null };
+      return { data: data as Message, error: null };
     } catch (err) {
-      console.error("[sendMessage] Exception:", err);
+      console.error("[sendMessage][EXCEPTION]", err);
       // Remove optimistic message on error
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       return { error: err as Error };
