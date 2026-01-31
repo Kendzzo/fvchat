@@ -210,8 +210,8 @@ export default function ProfilePage() {
           scale: 1.02
         }} whileTap={{
           scale: 0.98
-        }} className="py-3 px-4 rounded-xl border-2 border-border/50 text-muted-foreground hover:text-foreground transition-colors">
-            <QrCode className="w-[30px] h-[30px] bg-white" />
+        }} className="py-3 px-4 rounded-xl border-2 text-muted-foreground hover:text-foreground transition-colors border-transparent">
+            <QrCode className="bg-transparent text-black w-[35px] h-[35px]" />
           </motion.button>
         </div>
 
