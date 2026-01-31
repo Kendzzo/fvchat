@@ -30,11 +30,11 @@ interface DailyRewardSticker {
 
 // Generate consistent daily rewards based on date seed
 function getDailyRewardsSeed(date: Date): number {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = date.toISOString().split("T")[0];
   let hash = 0;
   for (let i = 0; i < dateStr.length; i++) {
     const char = dateStr.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return Math.abs(hash);
@@ -71,12 +71,12 @@ export default function ChallengesPage() {
       try {
         // Get all available stickers
         const { data: stickers, error: stickersError } = await supabase
-          .from('stickers')
-          .select('id, name, image_url, rarity')
-          .order('created_at', { ascending: false });
+          .from("stickers")
+          .select("id, name, image_url, rarity")
+          .order("created_at", { ascending: false });
 
         if (stickersError) {
-          console.error('Error fetching stickers:', stickersError);
+          console.error("Error fetching stickers:", stickersError);
           setStickersLoading(false);
           return;
         }
@@ -85,7 +85,7 @@ export default function ChallengesPage() {
           // Use date seed to consistently select 3 stickers for today
           const seed = getDailyRewardsSeed(new Date());
           const selectedIndices = new Set<number>();
-          
+
           // Select 3 unique stickers using the seed
           let seedOffset = 0;
           while (selectedIndices.size < 3 && seedOffset < stickers.length * 2) {
@@ -93,15 +93,17 @@ export default function ChallengesPage() {
             selectedIndices.add(idx);
             seedOffset++;
           }
-          
-          const selectedStickers = Array.from(selectedIndices).slice(0, 3).map(idx => stickers[idx]);
+
+          const selectedStickers = Array.from(selectedIndices)
+            .slice(0, 3)
+            .map((idx) => stickers[idx]);
           setDailyStickers(selectedStickers);
         } else if (stickers && stickers.length > 0) {
           // Use what we have
           setDailyStickers(stickers.slice(0, 3));
         }
       } catch (err) {
-        console.error('Error loading daily stickers:', err);
+        console.error("Error loading daily stickers:", err);
       } finally {
         setStickersLoading(false);
       }
@@ -152,7 +154,7 @@ export default function ChallengesPage() {
             { id: "2", name: "Premio 2º", image_url: null, rarity: "Raro" },
             { id: "3", name: "Premio 3º", image_url: null, rarity: "Común" },
           ];
-          
+
   const handleSubmitEntry = async (contentUrl: string, visibility: "friends" | "public" = "public") => {
     const { error } = await submitEntry(contentUrl, visibility);
     if (error) {
@@ -462,7 +464,7 @@ export default function ChallengesPage() {
                 </div>
                 <p className="font-medium truncate text-secondary-foreground text-base">{reward.name}</p>
                 <p
-                  className={`text-[10px] mt-1 ${reward.rarity === "Legendario" || reward.rarity === "legendary" ? "text-warning" : reward.rarity === "Épico" || reward.rarity === "epic" ? "text-primary" : "text-secondary"}`}
+                  className={`text-[15px] mt-1 ${reward.rarity === "Legendario" || reward.rarity === "legendary" ? "text-warning" : reward.rarity === "Épico" || reward.rarity === "epic" ? "text-primary" : "text-secondary"}`}
                 >
                   {reward.rarity === "epic"
                     ? "Épico"
