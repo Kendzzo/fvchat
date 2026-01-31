@@ -389,10 +389,35 @@ export function useMessages(chatId: string | null) {
     }
   };
 
+  // Optimistic message sending for instant feedback
   const sendMessage = async (content: string, type: Message["type"] = "text", stickerId?: string) => {
     if (!user || !chatId) return { error: new Error("No autenticado o chat no seleccionado") };
 
+    // Create optimistic message for instant UI feedback
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const optimisticMessage: Message = {
+      id: tempId,
+      chat_id: chatId,
+      sender_id: user.id,
+      type,
+      content,
+      is_blocked: false,
+      sticker_id: stickerId || null,
+      created_at: new Date().toISOString(),
+      sender: {
+        nick: "Tú",
+        avatar_data: {},
+        profile_photo_url: null,
+      },
+      sticker: null,
+    };
+
+    // Add optimistic message immediately
+    setMessages((prev) => [...prev, optimisticMessage]);
+
     try {
+      console.log("[sendMessage] Sending message:", { chatId, content, type, stickerId: stickerId || null });
+      
       const { data, error: insertError } = await supabase
         .from("messages")
         .insert({
@@ -402,15 +427,32 @@ export function useMessages(chatId: string | null) {
           type,
           sticker_id: stickerId || null,
         })
-        .select()
+        .select(`
+          *,
+          sender:profiles!messages_sender_id_fkey(nick, avatar_data, profile_photo_url),
+          sticker:stickers(id, name, image_url, rarity)
+        `)
         .single();
 
       if (insertError) {
+        console.error("[sendMessage] Insert error:", insertError);
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
         return { error: new Error(insertError.message) };
       }
 
+      console.log("[sendMessage] Success:", data);
+      
+      // Replace optimistic message with real one
+      setMessages((prev) => 
+        prev.map((m) => (m.id === tempId ? (data as Message) : m))
+      );
+
       return { data, error: null };
     } catch (err) {
+      console.error("[sendMessage] Exception:", err);
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       return { error: err as Error };
     }
   };
@@ -435,7 +477,19 @@ export function useMessages(chatId: string | null) {
             filter: `chat_id=eq.${chatId}`,
           },
           (payload) => {
-            setMessages((prev) => [...prev, payload.new as Message]);
+            const newMessage = payload.new as Message;
+            // Only add if not already present (avoid duplicates from optimistic updates)
+            setMessages((prev) => {
+              // Check if this message already exists (by id or if it's our own message)
+              const exists = prev.some(
+                (m) => m.id === newMessage.id || 
+                (m.id.startsWith('temp-') && 
+                 m.sender_id === newMessage.sender_id && 
+                 m.content === newMessage.content)
+              );
+              if (exists) return prev;
+              return [...prev, newMessage];
+            });
           },
         )
         .subscribe();
