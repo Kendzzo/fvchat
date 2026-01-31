@@ -8,10 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Check, X, Users, Clock, Shield, AlertTriangle, 
-  Ban, Bell, Eye, RefreshCw, Filter
+  Ban, Bell, Eye, RefreshCw, Filter, Sticker, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AdminPage() {
   const { isAdmin, isLoading: authLoading } = useAuth();
@@ -29,8 +30,30 @@ export default function AdminPage() {
 
   const [dateFilter, setDateFilter] = useState<'today' | '7days' | undefined>(undefined);
   const [severityFilter, setSeverityFilter] = useState<string | undefined>(undefined);
+  const [isSeedingStickers, setIsSeedingStickers] = useState(false);
 
   const isLoading = authLoading || usersLoading || moderationLoading;
+
+  const handleSeedStickers = async () => {
+    setIsSeedingStickers(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('seed-stickers', {
+        body: { count: 20 }
+      });
+      
+      if (error) {
+        toast.error(`Error al generar stickers: ${error.message}`);
+      } else {
+        toast.success(`Stickers generados: ${data?.generated || 0}`);
+        console.log('[Admin] Seed stickers result:', data);
+      }
+    } catch (err) {
+      console.error('[Admin] Error seeding stickers:', err);
+      toast.error('Error al generar stickers');
+    } finally {
+      setIsSeedingStickers(false);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -193,6 +216,40 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Sticker Seed Tool */}
+        <Card className="border-secondary/30">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Sticker className="w-6 h-6 text-secondary" />
+                <div>
+                  <h3 className="font-semibold">Generar Stickers IA</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Crea stickers automáticamente para el catálogo
+                  </p>
+                </div>
+              </div>
+              <Button 
+                onClick={handleSeedStickers}
+                disabled={isSeedingStickers}
+                className="gap-2"
+              >
+                {isSeedingStickers ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Sticker className="w-4 h-4" />
+                    Generar 20 Stickers
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Tabs */}
         <Tabs defaultValue="moderation" className="space-y-4">
