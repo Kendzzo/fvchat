@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import { Search, Plus, Send, Loader2, AlertCircle, Sparkles } from "lucide-react";
+import { Search, Plus, Send, Loader2, AlertCircle, Sparkles, Users } from "lucide-react";
 import { useChats, useMessages, Chat } from "@/hooks/useChats";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
@@ -8,6 +8,7 @@ import { useModeration } from "@/hooks/useModeration";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { NewChatModal } from "@/components/NewChatModal";
+import { CreateGroupModal } from "@/components/CreateGroupModal";
 import { ChatOptionsMenu } from "@/components/ChatOptionsMenu";
 import { ChatMediaUpload } from "@/components/ChatMediaUpload";
 import { ModerationWarning } from "@/components/ModerationWarning";
@@ -18,11 +19,15 @@ import { formatLastSeen, isOnline } from "@/hooks/usePresence";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sticker } from "@/hooks/useStickers";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 export default function ChatPage() {
-  const {
-    user,
-    canInteract
-  } = useAuth();
+  const { user, canInteract } = useAuth();
   const {
     chats,
     isLoading,
@@ -30,14 +35,17 @@ export default function ChatPage() {
     createChat,
     markChatAsReadLocal
   } = useChats();
-  const {
-    markChatAsRead
-  } = useUnreadMessages();
+  const { markChatAsRead } = useUnreadMessages();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const filteredChats = chats.filter(chat => (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase()));
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  
+  const filteredChats = chats.filter(chat => 
+    (chat.name || chat.otherParticipant?.nick || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
   const selectedChat = chats.find(c => c.id === selectedChatId) || null;
+
   const handleNewChatClick = () => {
     if (!canInteract) {
       toast.error("Cuenta pendiente de aprobación parental");
@@ -45,34 +53,74 @@ export default function ChatPage() {
     }
     setShowNewChatModal(true);
   };
+
+  const handleNewGroupClick = () => {
+    if (!canInteract) {
+      toast.error("Cuenta pendiente de aprobación parental");
+      return;
+    }
+    setShowCreateGroupModal(true);
+  };
+
   const handleChatCreated = (chat: Chat) => {
     setSelectedChatId(chat.id);
   };
+
   const handleSelectChat = async (chat: Chat) => {
     setSelectedChatId(chat.id);
-    // Mark as read both locally and in DB
     markChatAsReadLocal(chat.id);
     await markChatAsRead(chat.id);
   };
+
   const handleMarkRead = async (chatId: string) => {
     markChatAsReadLocal(chatId);
     await markChatAsRead(chatId);
   };
+
   if (selectedChat) {
     return <ChatDetail chat={selectedChat} onBack={() => setSelectedChatId(null)} onMarkRead={handleMarkRead} />;
   }
-  return <div className="min-h-screen bg-primary-foreground my-0 py-0">
-      <NewChatModal open={showNewChatModal} onOpenChange={setShowNewChatModal} onChatCreated={handleChatCreated} chats={chats} createChat={createChat} />
+
+  return (
+    <div className="min-h-screen bg-primary-foreground my-0 py-0">
+      <NewChatModal 
+        open={showNewChatModal} 
+        onOpenChange={setShowNewChatModal} 
+        onChatCreated={handleChatCreated} 
+        chats={chats} 
+        createChat={createChat} 
+      />
+      <CreateGroupModal
+        open={showCreateGroupModal}
+        onOpenChange={setShowCreateGroupModal}
+        onGroupCreated={handleChatCreated}
+        createChat={createChat}
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b px-4 opacity-100 border-transparent bg-[#1b0637] py-[11px] pt-0">
         <div className="flex items-center justify-between mb-4 my-0 py-0 pb-0 pt-0">
           <h1 className="font-gaming font-bold gradient-text text-3xl">Chat</h1>
-          <motion.button whileTap={{
-          scale: 0.9
-        }} onClick={handleNewChatClick} className={`p-2 rounded-xl bg-card transition-colors text-destructive-foreground ${!canInteract ? "opacity-50" : ""}`}>
-            <Plus className="w-[30px] h-[30px] bg-transparent text-white" />
-          </motion.button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <motion.button 
+                whileTap={{ scale: 0.9 }} 
+                className={`p-2 rounded-xl bg-card transition-colors text-destructive-foreground ${!canInteract ? "opacity-50" : ""}`}
+              >
+                <Plus className="w-[30px] h-[30px] bg-transparent text-white" />
+              </motion.button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleNewChatClick} className="gap-2">
+                <Send className="w-4 h-4" />
+                Nuevo chat
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleNewGroupClick} className="gap-2">
+                <Users className="w-4 h-4" />
+                Nuevo grupo
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {!canInteract && <div className="mb-3 p-2 rounded-lg bg-warning/20 flex items-center gap-2 text-warning text-sm">
@@ -126,7 +174,8 @@ export default function ChatPage() {
                 </div>}
             </motion.button>)}
       </div>
-    </div>;
+    </div>
+  );
 }
 
 // Chat Detail Component

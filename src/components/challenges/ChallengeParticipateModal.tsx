@@ -99,6 +99,9 @@ export function ChallengeParticipateModal({
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       
+      // Dispatch event for usePosts to refresh
+      window.dispatchEvent(new Event('vfc-posts-refresh'));
+      
       // Navigate to Home to see the new post
       toast.success("¡Publicación enviada! Redirigiendo al feed...");
       navigate('/app');
