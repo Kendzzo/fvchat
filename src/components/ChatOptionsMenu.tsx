@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback } from 'react';
+import { useState, useEffect, memo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreVertical, User, VolumeX, Volume2, Ban, Flag, X } from 'lucide-react';
 import {
@@ -24,13 +24,20 @@ export const ChatOptionsMenu = memo(function ChatOptionsMenu({ chat, otherUserId
   const [open, setOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const loadedRef = useRef(false);
 
-  // Load settings only when menu opens
+  // Load settings only when menu opens - using ref to avoid loops
   useEffect(() => {
-    const loadSettings = async () => {
-      if (!open || settingsLoaded || !chat.id) return;
+    if (!open) {
+      // Reset when closed so next open refreshes
+      loadedRef.current = false;
+      return;
+    }
+    
+    if (loadedRef.current || !chat.id) return;
+    loadedRef.current = true;
 
+    const loadSettings = async () => {
       const settings = await getChatSettings(chat.id);
       setIsMuted(settings?.muted || false);
 
@@ -38,18 +45,10 @@ export const ChatOptionsMenu = memo(function ChatOptionsMenu({ chat, otherUserId
         const blocked = await isUserBlocked(otherUserId);
         setIsBlocked(blocked);
       }
-      setSettingsLoaded(true);
     };
 
     loadSettings();
-  }, [open, chat.id, otherUserId, settingsLoaded, getChatSettings, isUserBlocked]);
-
-  // Reset settings loaded when menu closes (for next open to refresh)
-  useEffect(() => {
-    if (!open) {
-      setSettingsLoaded(false);
-    }
-  }, [open]);
+  }, [open, chat.id, otherUserId, getChatSettings, isUserBlocked]);
 
   const handleViewProfile = useCallback(() => {
     if (otherUserId) {
