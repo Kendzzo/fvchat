@@ -84,7 +84,7 @@ export default function ChatPage() {
   };
 
   if (selectedChat) {
-    return <ChatDetail chat={selectedChat} onBack={() => setSelectedChatId(null)} onMarkRead={handleMarkRead} />;
+    return <ChatDetail chat={selectedChat} canInteract={canInteract} onBack={() => setSelectedChatId(null)} onMarkRead={handleMarkRead} />;
   }
 
   const handleLegalAccepted = async () => {
@@ -232,8 +232,10 @@ function ChatDetail({
   chat,
   onBack,
   onMarkRead,
+  canInteract,
 }: {
   chat: Chat;
+  canInteract: boolean;
   onBack: () => void;
   onMarkRead: (chatId: string) => Promise<void>;
 }) {
@@ -299,6 +301,12 @@ function ChatDetail({
   const isSuspended = suspensionInfo.suspended && suspensionInfo.until && suspensionInfo.until > new Date();
 
   const handleSend = async () => {
+    // READ-ONLY mode check first
+    if (!canInteract) {
+      toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
+
     // Prevent duplicate sends
     if (sendLock.current) {
       console.log("[CHAT][SEND] Blocked: sendLock active");
@@ -411,6 +419,12 @@ function ChatDetail({
   };
 
   const handleStickerSelect = async (sticker: Sticker) => {
+    // READ-ONLY mode check first
+    if (!canInteract) {
+      toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
+
     if (isSuspended || isSending || sendLock.current) {
       console.log("[CHAT][SEND_STICKER] Blocked");
       return;
@@ -599,15 +613,28 @@ function ChatDetail({
 
       {/* Input */}
       <div className="sticky bottom-0 p-4 backdrop-blur-xl border-t border-border/30 safe-bottom bg-success-foreground">
+        {/* Read-only mode banner */}
+        {!canInteract && (
+          <div className="mb-3 p-2 rounded-lg bg-warning/20 flex items-center gap-2 text-warning text-sm">
+            <Shield className="w-4 h-4 flex-shrink-0" />
+            <span>🔒 Modo solo lectura - pendiente de aprobación del tutor</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
-          <ChatMediaUpload onMediaReady={handleMediaReady} disabled={isSending || isSuspended} />
+          <ChatMediaUpload onMediaReady={handleMediaReady} disabled={!canInteract || isSending || isSuspended} />
 
           <motion.button
             whileTap={{
               scale: 0.9,
             }}
-            onClick={() => setShowStickerPicker(true)}
-            disabled={isSuspended}
+            onClick={() => {
+              if (!canInteract) {
+                toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+                return;
+              }
+              setShowStickerPicker(true);
+            }}
+            disabled={!canInteract || isSuspended}
             className="p-2 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >
             <Sparkles className="w-[27px] h-[27px] text-white" />
@@ -621,9 +648,9 @@ function ChatDetail({
               setModerationError(null);
             }}
             onKeyPress={handleKeyPress}
-            placeholder={isSuspended ? "Cuenta bloqueada temporalmente" : "Escribe un mensaje..."}
+            placeholder={!canInteract ? "🔒 Modo solo lectura" : isSuspended ? "Cuenta bloqueada temporalmente" : "Escribe un mensaje..."}
             className="input-gaming flex-1 mb-[5px] mt-0 py-[9px]"
-            disabled={isSending || isSuspended}
+            disabled={!canInteract || isSending || isSuspended}
           />
 
           <motion.button
@@ -631,7 +658,7 @@ function ChatDetail({
               scale: 0.9,
             }}
             onClick={handleSend}
-            disabled={(!messageText.trim() && !pendingMedia) || isSending || isChecking || isSuspended}
+            disabled={!canInteract || (!messageText.trim() && !pendingMedia) || isSending || isChecking || isSuspended}
             className="p-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground px-[14px] py-[14px] mb-[5px] opacity-100 disabled:opacity-50"
           >
             {isSending || isChecking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}

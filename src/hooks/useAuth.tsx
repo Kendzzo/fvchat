@@ -11,7 +11,8 @@ interface Profile {
   avatar_snapshot_url: string | null;
   profile_photo_url: string | null;
   profile_photo_updated_at: string | null;
-  profile_photo_completed: boolean; // New: mandatory selfie completed
+  profile_photo_completed: boolean;
+  intro_completed: boolean; // New: intro tutorial completed
   tutor_email: string;
   account_status: string;
   language_infractions_count: number;

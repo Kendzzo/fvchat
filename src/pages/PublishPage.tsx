@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Video, X, Sparkles, Users, Lock, AlertCircle, Loader2, CheckCircle, Sticker, ShieldAlert } from "lucide-react";
+import { Camera, Video, X, Sparkles, Users, Lock, AlertCircle, Loader2, CheckCircle, Sticker, ShieldAlert, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
 import { useMediaUpload } from "@/hooks/useMediaUpload";
 import { useModeration } from "@/hooks/useModeration";
 import { useImageModeration } from "@/hooks/useImageModeration";
 import { useStickers } from "@/hooks/useStickers";
+import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { SuspensionBanner } from "@/components/SuspensionBanner";
 import { ModerationWarning } from "@/components/ModerationWarning";
@@ -17,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function PublishPage() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, canInteract } = useAuth();
   const { createPost } = usePosts();
   const { uploadMedia, uploadProgress, resetProgress } = useMediaUpload();
   const { checkContent, isChecking, suspensionInfo, formatSuspensionTime, checkSuspension } = useModeration();
@@ -60,9 +61,17 @@ export default function PublishPage() {
     setWarning("");
   };
   const handlePhotoClick = () => {
+    if (!canInteract) {
+      toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
     photoInputRef.current?.click();
   };
   const handleVideoClick = () => {
+    if (!canInteract) {
+      toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
     videoInputRef.current?.click();
   };
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'video') => {
@@ -108,6 +117,12 @@ export default function PublishPage() {
     }
   };
   const handlePublish = async () => {
+    // Read-only mode check
+    if (!canInteract) {
+      toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
+
     if (warning || isPublishing || !uploadedUrl || isChecking) return;
 
     // Check suspension first
@@ -249,6 +264,14 @@ export default function PublishPage() {
 
       {/* Content */}
       {step === "select" && <div className="p-6 space-y-6 bg-purple-50 mt-0">
+          {/* Read-only mode banner */}
+          {!canInteract && (
+            <div className="p-3 rounded-xl bg-warning/20 border border-warning/30 flex items-center gap-2 text-warning">
+              <Shield className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm">🔒 Tu cuenta está pendiente de aprobación del tutor. Podrás publicar cuando esté aprobada.</span>
+            </div>
+          )}
+
           <div className="text-center mb-8">
             <h2 className="font-gaming font-bold gradient-text mb-2 text-3xl">
               ¿Qué compartimos hoy?
