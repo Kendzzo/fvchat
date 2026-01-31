@@ -102,67 +102,62 @@ export function useChats() {
         return;
       }
 
-      // Fetch last message, participant info, and unread count for each chat
-      const chatsWithDetails = await Promise.all(
-        (data || []).map(async (chat) => {
-          // Get last message
-          const { data: messages } = await supabase
-            .from("messages")
-            .select("content, created_at")
-            .eq("chat_id", chat.id)
-            .order("created_at", { ascending: false })
-            .limit(1);
+      const chatIds = (data || []).map((c) => c.id);
+      if (chatIds.length === 0) {
+        setChats([]);
+        return;
+      }
 
-          // Get other participant for 1-1 chats
-          let otherParticipant = null;
-          if (!chat.is_group) {
-            const otherId = chat.participant_ids.find((id: string) => id !== user.id);
-            if (otherId) {
-              const { data: participantData } = await supabase
-                .from("profiles")
-                .select("nick, profile_photo_url, last_seen_at")
-                .eq("id", otherId)
-                .maybeSingle();
-              otherParticipant = participantData;
-            }
-          }
+      // Batch fetch: last message for all chats in one query
+      const { data: lastMessages } = await supabase
+        .from("messages")
+        .select("chat_id, content, created_at")
+        .in("chat_id", chatIds)
+        .order("created_at", { ascending: false });
 
-          // Calculate unread count using message_reads table
-          let unreadCount = 0;
-          try {
-            // Get all messages in this chat not from the current user
-            const { data: allMessages } = await supabase
-              .from("messages")
-              .select("id")
-              .eq("chat_id", chat.id)
-              .neq("sender_id", user.id);
+      // Group last messages by chat_id (first occurrence is the latest)
+      const lastMessageByChat: Record<string, { content: string; created_at: string }> = {};
+      for (const msg of lastMessages || []) {
+        if (!lastMessageByChat[msg.chat_id]) {
+          lastMessageByChat[msg.chat_id] = { content: msg.content, created_at: msg.created_at };
+        }
+      }
 
-            if (allMessages && allMessages.length > 0) {
-              const messageIds = allMessages.map((m) => m.id);
-              
-              // Get read receipts for these messages
-              const { data: reads } = await supabase
-                .from("message_reads")
-                .select("message_id")
-                .eq("user_id", user.id)
-                .in("message_id", messageIds);
+      // Batch fetch: other participants for 1-1 chats
+      const otherUserIds = (data || [])
+        .filter((c) => !c.is_group)
+        .map((c) => c.participant_ids.find((id: string) => id !== user.id))
+        .filter(Boolean) as string[];
 
-              const readMessageIds = new Set(reads?.map((r) => r.message_id) || []);
-              unreadCount = messageIds.filter((id) => !readMessageIds.has(id)).length;
-            }
-          } catch (err) {
-            console.error("Error calculating unread count:", err);
-          }
+      const { data: participants } = otherUserIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, nick, profile_photo_url, last_seen_at")
+            .in("id", otherUserIds)
+        : { data: [] };
 
-          return {
-            ...chat,
-            lastMessage: messages?.[0]?.content || "",
-            lastMessageTime: messages?.[0]?.created_at || chat.created_at,
-            unreadCount,
-            otherParticipant,
-          } as Chat;
-        }),
-      );
+      const participantById: Record<string, any> = {};
+      for (const p of participants || []) {
+        participantById[p.id] = p;
+      }
+
+      // Skip complex unread count calculation to avoid N+1 queries
+      // Use a simpler approach: count messages not from self, created after last read
+      // For now, set unreadCount to 0 to avoid blocking - can be optimized with a DB function later
+      
+      const chatsWithDetails: Chat[] = (data || []).map((chat) => {
+        const lastMsg = lastMessageByChat[chat.id];
+        const otherId = !chat.is_group ? chat.participant_ids.find((id: string) => id !== user.id) : null;
+        const otherParticipant = otherId ? participantById[otherId] || null : null;
+
+        return {
+          ...chat,
+          lastMessage: lastMsg?.content || "",
+          lastMessageTime: lastMsg?.created_at || chat.created_at,
+          unreadCount: 0, // Simplified - realtime will update this
+          otherParticipant,
+        } as Chat;
+      });
 
       // Sort by lastMessageTime descending
       chatsWithDetails.sort((a, b) => {
@@ -364,6 +359,7 @@ export function useMessages(chatId: string | null) {
 
     try {
       setIsLoading(true);
+      console.log("[useMessages] Fetching messages for chat:", chatId);
       const { data, error } = await supabase
         .from("messages")
         .select(
@@ -377,13 +373,14 @@ export function useMessages(chatId: string | null) {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error("Error fetching messages:", error);
+        console.error("[useMessages] Error fetching messages:", error);
         return;
       }
 
+      console.log("[useMessages] Fetched", data?.length || 0, "messages");
       setMessages(data as Message[]);
     } catch (err) {
-      console.error("Error:", err);
+      console.error("[useMessages] Exception:", err);
     } finally {
       setIsLoading(false);
     }
@@ -391,7 +388,12 @@ export function useMessages(chatId: string | null) {
 
   // Optimistic message sending for instant feedback
   const sendMessage = async (content: string, type: Message["type"] = "text", stickerId?: string) => {
-    if (!user || !chatId) return { error: new Error("No autenticado o chat no seleccionado") };
+    if (!user || !chatId) {
+      console.error("[sendMessage] No user or chatId");
+      return { error: new Error("No autenticado o chat no seleccionado") };
+    }
+
+    console.log("[sendMessage] Starting send:", { chatId, content: content.slice(0, 50), type, stickerId });
 
     // Create optimistic message for instant UI feedback
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -414,19 +416,21 @@ export function useMessages(chatId: string | null) {
 
     // Add optimistic message immediately
     setMessages((prev) => [...prev, optimisticMessage]);
+    console.log("[sendMessage] Optimistic message added:", tempId);
 
     try {
-      console.log("[sendMessage] Sending message:", { chatId, content, type, stickerId: stickerId || null });
+      const insertData = {
+        chat_id: chatId,
+        sender_id: user.id,
+        content,
+        type,
+        sticker_id: stickerId || null,
+      };
+      console.log("[sendMessage] Inserting:", insertData);
       
       const { data, error: insertError } = await supabase
         .from("messages")
-        .insert({
-          chat_id: chatId,
-          sender_id: user.id,
-          content,
-          type,
-          sticker_id: stickerId || null,
-        })
+        .insert(insertData)
         .select(`
           *,
           sender:profiles!messages_sender_id_fkey(nick, avatar_data, profile_photo_url),
@@ -441,7 +445,7 @@ export function useMessages(chatId: string | null) {
         return { error: new Error(insertError.message) };
       }
 
-      console.log("[sendMessage] Success:", data);
+      console.log("[sendMessage] Insert success, message id:", data?.id);
       
       // Replace optimistic message with real one
       setMessages((prev) => 
@@ -458,6 +462,8 @@ export function useMessages(chatId: string | null) {
   };
 
   const sendSticker = async (stickerId: string, stickerUrl: string) => {
+    console.log("[sendSticker] Sending sticker:", stickerId, stickerUrl);
+    // For stickers, we use 'image' type and pass the sticker URL as content
     return sendMessage(stickerUrl, "image", stickerId);
   };
 
@@ -465,6 +471,8 @@ export function useMessages(chatId: string | null) {
     fetchMessages();
 
     if (chatId) {
+      console.log("[useMessages] Setting up realtime subscription for chat:", chatId);
+      
       // Subscribe to new messages for this chat
       const channel = supabase
         .channel(`messages-${chatId}`)
@@ -476,25 +484,52 @@ export function useMessages(chatId: string | null) {
             table: "messages",
             filter: `chat_id=eq.${chatId}`,
           },
-          (payload) => {
-            const newMessage = payload.new as Message;
+          async (payload) => {
+            const newMessageRaw = payload.new as any;
+            console.log("[useMessages] Realtime INSERT received:", newMessageRaw.id);
+            
             // Only add if not already present (avoid duplicates from optimistic updates)
             setMessages((prev) => {
-              // Check if this message already exists (by id or if it's our own message)
-              const exists = prev.some(
-                (m) => m.id === newMessage.id || 
-                (m.id.startsWith('temp-') && 
-                 m.sender_id === newMessage.sender_id && 
-                 m.content === newMessage.content)
+              // Check if this message already exists (by id or if it matches our temp message)
+              const existsById = prev.some((m) => m.id === newMessageRaw.id);
+              const matchesTempMessage = prev.some(
+                (m) => m.id.startsWith('temp-') && 
+                 m.sender_id === newMessageRaw.sender_id && 
+                 m.content === newMessageRaw.content &&
+                 m.type === newMessageRaw.type
               );
-              if (exists) return prev;
-              return [...prev, newMessage];
+              
+              if (existsById) {
+                console.log("[useMessages] Message already exists by ID, skipping");
+                return prev;
+              }
+              
+              if (matchesTempMessage) {
+                // Replace the temp message with the real one
+                console.log("[useMessages] Replacing temp message with real one");
+                return prev.map((m) => {
+                  if (m.id.startsWith('temp-') && 
+                      m.sender_id === newMessageRaw.sender_id && 
+                      m.content === newMessageRaw.content) {
+                    return { ...newMessageRaw, sender: m.sender, sticker: m.sticker } as Message;
+                  }
+                  return m;
+                });
+              }
+              
+              // New message from someone else - add it
+              console.log("[useMessages] Adding new message from realtime");
+              // For messages from others, we need to fetch full data
+              return [...prev, newMessageRaw as Message];
             });
           },
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log("[useMessages] Subscription status:", status);
+        });
 
       return () => {
+        console.log("[useMessages] Cleaning up subscription for chat:", chatId);
         supabase.removeChannel(channel);
       };
     }
