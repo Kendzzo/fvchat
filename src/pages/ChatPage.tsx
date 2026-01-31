@@ -238,7 +238,7 @@ function ChatDetail({
   onMarkRead: (chatId: string) => Promise<void>;
 }) {
   const { user } = useAuth();
-  const { messages, isLoading, sendMessage, sendSticker } = useMessages(chat.id);
+  const { messages, isLoading, sendMessage, sendSticker, refreshMessages } = useMessages(chat.id);
   const { checkContent, isChecking, suspensionInfo, formatSuspensionTime, checkSuspension } = useModeration();
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -304,15 +304,25 @@ function ChatDetail({
       console.log("[CHAT][SEND_TEXT] Blocked: sendLock active");
       return;
     }
-    
-    if ((!messageText.trim() && !pendingMedia) || isSending || isChecking) {
-      console.log("[CHAT][SEND_TEXT] Blocked: no content or already sending", { hasText: !!messageText.trim(), hasPendingMedia: !!pendingMedia, isSending, isChecking });
+
+    if (!messageText.trim() && !pendingMedia) {
+      console.log("[CHAT][SEND_TEXT_ATTEMPT] Blocked: no content", {
+        hasText: !!messageText.trim(),
+        hasPendingMedia: !!pendingMedia,
+      });
+      return;
+    }
+
+    if (isSending || isChecking) {
+      console.log("[CHAT][SEND_TEXT_ATTEMPT] Blocked: busy", { isSending, isChecking });
+      toast.error("Enviando... espera un momento");
       return;
     }
 
     // Check suspension first
     if (isSuspended) {
       console.log("[CHAT][SEND_TEXT] Blocked: user suspended");
+      toast.error("No puedes enviar mensajes mientras estás suspendido");
       return;
     }
 
@@ -335,39 +345,48 @@ function ChatDetail({
         }
       }
 
-      // Send media first if exists
+      // 1) Media: intentar primero, pero NUNCA bloquear el texto si falla
+      let mediaSentOk = false;
+      let textSentOk = false;
       if (pendingMedia) {
-        console.log("[CHAT][SEND_MEDIA] Sending media:", pendingMedia.type);
+        console.log("[CHAT][SEND_MEDIA]", { type: pendingMedia.type, url: pendingMedia.url?.slice(0, 80) });
         const { error } = await sendMessage(pendingMedia.url, pendingMedia.type);
         if (error) {
-          console.error("[CHAT][SEND_MEDIA] Error:", error);
-          toast.error("Error al enviar media");
-          // Don't clear pendingMedia on error
-          return;
+          console.error("[CHAT][UPLOAD_MEDIA_ERROR]", error);
+          toast.error("No se pudo enviar el archivo");
+          // NO limpiar pendingMedia si falla
+        } else {
+          mediaSentOk = true;
+          setPendingMedia(null);
         }
-        console.log("[CHAT][SEND_MEDIA] Success");
-        setPendingMedia(null);
       }
 
-      // Then send text if exists
+      // 2) Texto: si hay texto, enviarlo SIEMPRE (aunque media haya fallado)
       if (messageText.trim()) {
-        console.log("[CHAT][SEND_TEXT] Sending text:", messageText.slice(0, 20) + "...");
-        const { error } = await sendMessage(messageText.trim());
+        console.log("[CHAT][SEND_TEXT_ATTEMPT]", { textPreview: messageText.trim().slice(0, 50) });
+        const { error } = await sendMessage(messageText.trim(), "text");
         if (error) {
-          console.error("[CHAT][SEND_TEXT] Error:", error);
-          toast.error("Error al enviar mensaje");
-          // Don't clear text on error
-          return;
+          console.error("[CHAT][ERROR]", error);
+          toast.error("No se pudo enviar el mensaje");
+          // NO limpiar el texto si falla
+        } else {
+          console.log("[CHAT][SEND_TEXT_SUCCESS]");
+          textSentOk = true;
+          setMessageText("");
         }
-        console.log("[CHAT][SEND_TEXT] Success");
-        setMessageText("");
+      }
+
+      // Fallback (sin romper realtime): tras éxito, forzar refetch para evitar UI vacía si realtime falla
+      if (mediaSentOk || textSentOk) {
+        void refreshMessages();
       }
     } catch (err) {
-      console.error("[CHAT][SEND_TEXT] Exception:", err);
-      toast.error("Error inesperado al enviar");
+      console.error("[CHAT][ERROR]", err);
+      toast.error("No se pudo enviar el mensaje");
     } finally {
       setIsSending(false);
       sendLock.current = false;
+      console.log("[CHAT][RESET_STATE_AFTER_ERROR]", { isSending: false, sendLock: false });
     }
   };
 
