@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
@@ -7,7 +7,7 @@ export function useChatActions() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const muteChat = async (chatId: string, muted: boolean) => {
+  const muteChat = useCallback(async (chatId: string, muted: boolean) => {
     if (!user) return { error: new Error('No autenticado') };
 
     setIsLoading(true);
@@ -48,9 +48,9 @@ export function useChatActions() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const blockUser = async (blockedUserId: string) => {
+  const blockUser = useCallback(async (blockedUserId: string) => {
     if (!user) return { error: new Error('No autenticado') };
 
     setIsLoading(true);
@@ -79,9 +79,9 @@ export function useChatActions() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const unblockUser = async (blockedUserId: string) => {
+  const unblockUser = useCallback(async (blockedUserId: string) => {
     if (!user) return { error: new Error('No autenticado') };
 
     setIsLoading(true);
@@ -103,9 +103,9 @@ export function useChatActions() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const reportUser = async (reportedUserId: string, chatId?: string, messageId?: string, reason?: string) => {
+  const reportUser = useCallback(async (reportedUserId: string, chatId?: string, messageId?: string, reason?: string) => {
     if (!user) return { error: new Error('No autenticado') };
 
     setIsLoading(true);
@@ -131,9 +131,9 @@ export function useChatActions() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const getChatSettings = async (chatId: string) => {
+  const getChatSettings = useCallback(async (chatId: string) => {
     if (!user) return null;
 
     try {
@@ -149,9 +149,9 @@ export function useChatActions() {
       console.error('Error getting chat settings:', error);
       return null;
     }
-  };
+  }, [user]);
 
-  const isUserBlocked = async (userId: string) => {
+  const isUserBlocked = useCallback(async (userId: string) => {
     if (!user) return false;
 
     try {
@@ -167,7 +167,7 @@ export function useChatActions() {
       console.error('Error checking block status:', error);
       return false;
     }
-  };
+  }, [user]);
 
   return {
     muteChat,
