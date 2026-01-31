@@ -15,6 +15,20 @@ interface ChatMediaUploadProps {
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
 
+const isAbortedStorageError = (err: unknown) => {
+  const anyErr = err as any;
+  const name = anyErr?.name || anyErr?.value?.name;
+  const message = anyErr?.message || anyErr?.value?.message;
+  const originalName = anyErr?.originalError?.name || anyErr?.value?.originalError?.value?.name;
+  const originalMessage = anyErr?.originalError?.message || anyErr?.value?.originalError?.value?.message;
+  const text = String(message || "") + " " + String(originalMessage || "");
+  return (
+    name === "StorageUnknownError" ||
+    originalName === "AbortError" ||
+    text.toLowerCase().includes("aborted")
+  );
+};
+
 /**
  * ChatMediaUpload - For images and audio in chat
  * Videos are NOT allowed in chat - they go through PublishPage only
@@ -92,6 +106,11 @@ export function ChatMediaUpload({
       
       if (uploadError) {
         console.error("[CHAT][UPLOAD_IMAGE] Storage error:", uploadError);
+        if (isAbortedStorageError(uploadError)) {
+          console.error("[CHAT][UPLOAD_MEDIA_ERROR]", uploadError);
+          toast.error("No se pudo subir la imagen. Intenta de nuevo.");
+          return;
+        }
         if (uploadError.message?.includes("policy") || uploadError.message?.includes("403")) {
           toast.error("Permiso denegado (Storage/RLS). Revisar políticas de Supabase.");
         } else {
@@ -106,6 +125,11 @@ export function ChatMediaUpload({
       toast.success("Imagen adjuntada");
     } catch (error) {
       console.error("[CHAT][UPLOAD_IMAGE] Exception:", error);
+      if (isAbortedStorageError(error)) {
+        console.error("[CHAT][UPLOAD_MEDIA_ERROR]", error);
+        toast.error("No se pudo subir la imagen. Intenta de nuevo.");
+        return;
+      }
       toast.error("Error al subir imagen");
     } finally {
       setIsUploading(false);
@@ -209,6 +233,11 @@ export function ChatMediaUpload({
       
       if (uploadError) {
         console.error("[CHAT][UPLOAD_AUDIO] Storage error:", uploadError);
+        if (isAbortedStorageError(uploadError)) {
+          console.error("[CHAT][UPLOAD_MEDIA_ERROR]", uploadError);
+          toast.error("No se pudo subir el audio. Intenta de nuevo.");
+          return;
+        }
         if (uploadError.message?.includes("policy") || uploadError.message?.includes("403")) {
           toast.error("Permiso denegado (Storage/RLS). Revisar políticas de Supabase.");
         } else {
@@ -225,6 +254,11 @@ export function ChatMediaUpload({
       closeAudioModal();
     } catch (error) {
       console.error("[CHAT][UPLOAD_AUDIO] Exception:", error);
+      if (isAbortedStorageError(error)) {
+        console.error("[CHAT][UPLOAD_MEDIA_ERROR]", error);
+        toast.error("No se pudo subir el audio. Intenta de nuevo.");
+        return;
+      }
       toast.error("Error al subir audio");
     } finally {
       setIsUploadingAudio(false);
