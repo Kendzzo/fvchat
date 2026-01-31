@@ -102,7 +102,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <div className="p-4 space-y-6 bg-[#3d2f6f] rounded-md border-solid">
+      <div className="p-4 space-y-6 rounded-md border-solid text-black bg-sidebar-foreground">
         {/* Profile Card */}
         <motion.div initial={{
         opacity: 0,
@@ -110,7 +110,7 @@ export default function ProfilePage() {
       }} animate={{
         opacity: 1,
         y: 0
-      }} className="glass-card p-6 text-center border-success-foreground bg-white py-0 px-[22px]">
+      }} className="glass-card p-6 text-center border-success-foreground bg-white py-0 px-[22px] shadow-sm">
           {/* Avatar */}
           <div className="relative inline-block mb-4 mt-[20px] rounded-sm border-solid border-white">
             <ProfilePhoto url={profile?.profile_photo_url || profile?.avatar_snapshot_url} nick={profile?.nick || ""} size="xl" showBorder={true} className="w-40 h-40" onClick={() => setShowPhotoEditor(true)} editable={true} />
@@ -216,9 +216,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Friends List Section - Instagram style */}
-        {profile && (
-          <FriendsListSection userId={profile.id} isOwnProfile={true} />
-        )}
+        {profile && <FriendsListSection userId={profile.id} isOwnProfile={true} />}
 
         {/* Tabs */}
         <div className="flex border-b border-border/30">
