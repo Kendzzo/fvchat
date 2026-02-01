@@ -56,30 +56,31 @@ export function useChats() {
   }, []);
 
   // Helper: update last message for a chat and move it to top
-  const applyLastMessage = useCallback((chatId: string, content: string, created_at: string, senderId: string) => {
-    setChats((prev) => {
-      const idx = prev.findIndex((c) => c.id === chatId);
-      if (idx === -1) return prev;
-      
-      const chat = prev[idx];
-      const updatedChat: Chat = {
-        ...chat,
-        lastMessage: content,
-        lastMessageTime: created_at,
-        // Increment unread if message is from someone else
-        unreadCount: senderId !== user?.id ? (chat.unreadCount || 0) + 1 : chat.unreadCount,
-      };
-      
-      const filtered = prev.filter((c) => c.id !== chatId);
-      return [updatedChat, ...filtered];
-    });
-  }, [user?.id]);
+  const applyLastMessage = useCallback(
+    (chatId: string, content: string, created_at: string, senderId: string) => {
+      setChats((prev) => {
+        const idx = prev.findIndex((c) => c.id === chatId);
+        if (idx === -1) return prev;
+
+        const chat = prev[idx];
+        const updatedChat: Chat = {
+          ...chat,
+          lastMessage: content,
+          lastMessageTime: created_at,
+          // Increment unread if message is from someone else
+          unreadCount: senderId !== user?.id ? (chat.unreadCount || 0) + 1 : chat.unreadCount,
+        };
+
+        const filtered = prev.filter((c) => c.id !== chatId);
+        return [updatedChat, ...filtered];
+      });
+    },
+    [user?.id],
+  );
 
   // Helper: mark a chat as read (reset unread count)
   const markChatAsReadLocal = useCallback((chatId: string) => {
-    setChats((prev) =>
-      prev.map((c) => (c.id === chatId ? { ...c, unreadCount: 0 } : c))
-    );
+    setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, unreadCount: 0 } : c)));
   }, []);
 
   const fetchChats = async () => {
@@ -129,12 +130,10 @@ export function useChats() {
         .map((c) => c.participant_ids.find((id: string) => id !== user.id))
         .filter(Boolean) as string[];
 
-      const { data: participants } = otherUserIds.length > 0
-        ? await supabase
-            .from("profiles")
-            .select("id, nick, profile_photo_url, last_seen_at")
-            .in("id", otherUserIds)
-        : { data: [] };
+      const { data: participants } =
+        otherUserIds.length > 0
+          ? await supabase.from("profiles").select("id, nick, profile_photo_url, last_seen_at").in("id", otherUserIds)
+          : { data: [] };
 
       const participantById: Record<string, any> = {};
       for (const p of participants || []) {
@@ -144,7 +143,7 @@ export function useChats() {
       // Skip complex unread count calculation to avoid N+1 queries
       // Use a simpler approach: count messages not from self, created after last read
       // For now, set unreadCount to 0 to avoid blocking - can be optimized with a DB function later
-      
+
       const chatsWithDetails: Chat[] = (data || []).map((chat) => {
         const lastMsg = lastMessageByChat[chat.id];
         const otherId = !chat.is_group ? chat.participant_ids.find((id: string) => id !== user.id) : null;
@@ -387,7 +386,17 @@ export function useMessages(chatId: string | null) {
   };
 
   // Optimistic message sending using Edge Function for guaranteed DB insert
-  const sendMessage = async (content: string, type: Message["type"] = "text", stickerId?: string): Promise<{ data?: Message; error: Error | null }> => {
+  const sendMessage = async (
+    content: string,
+    type: Message["type"] = "text",
+    stickerId?: string,
+  ): Promise<{ data?: Message; error: Error | null }> => {
+    console.log("[SEND] Start", {
+      chatId,
+      type,
+      hasContent: !!content,
+      stickerId: stickerId || null,
+    });
     if (!user || !chatId) {
       console.error("[sendMessage] No user or chatId");
       return { error: new Error("No autenticado o chat no seleccionado") };
@@ -395,7 +404,13 @@ export function useMessages(chatId: string | null) {
 
     // Generate client temp ID for reconciliation
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log("[sendMessage] Starting:", { chatId, contentPreview: content.slice(0, 40), type, stickerId: !!stickerId, tempId });
+    console.log("[sendMessage] Starting:", {
+      chatId,
+      contentPreview: content.slice(0, 40),
+      type,
+      stickerId: !!stickerId,
+      tempId,
+    });
 
     // Create optimistic message for instant UI feedback
     const optimisticMessage: Message = {
@@ -421,7 +436,9 @@ export function useMessages(chatId: string | null) {
 
     try {
       // Get auth token
+      console.log("[SEND] Getting session token...");
       const { data: sessionData } = await supabase.auth.getSession();
+      console.log("[SEND] Token exists:", !!sessionData.session?.access_token);
       const token = sessionData.session?.access_token;
 
       if (!token) {
@@ -446,48 +463,51 @@ export function useMessages(chatId: string | null) {
 
       // Call Edge Function for guaranteed DB insert
       console.log("[sendMessage] Calling chat-send-message Edge Function...");
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-send-message`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            chat_id: chatId,
-            client_temp_id: tempId,
-            content_type: stickerId ? "sticker" : contentType,
-            content_text: contentText,
-            content_url: contentUrl,
-            sticker_id: stickerId || undefined,
-          }),
-        }
-      );
 
-      const result = await response.json();
+      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-send-message`;
+      console.log("📡 [SEND][4] Edge URL:", fnUrl);
 
-      if (!response.ok || !result.ok) {
-        console.error("[sendMessage][EDGE_FUNCTION_FAIL]", { 
-          status: response.status, 
-          error: result.error,
-          details: result.details 
-        });
-        // Remove optimistic message on error
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
-        return { error: new Error(result.error || "Error al enviar mensaje") };
+      const response = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          client_temp_id: tempId,
+          content_type: stickerId ? "sticker" : contentType,
+          content_text: contentText,
+          content_url: contentUrl,
+          sticker_id: stickerId || undefined,
+        }),
+      });
+
+      console.log("📡 [SEND][4] Response status:", response.status);
+      console.log("📡 [SEND][4] Response ok:", response.ok);
+
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch (e) {
+        console.error("📡 [SEND][4] Response JSON parse failed", e);
       }
+      console.log("📡 [SEND][4] Response body:", result);
 
       console.log("[sendMessage][EDGE_FUNCTION_OK]", result.message?.id);
-      
+
       // Replace optimistic message with real one from server
       const realMessage = result.message as Message;
-      setMessages((prev) => 
-        prev.map((m) => (m.id === tempId ? { 
-          ...realMessage, 
-          sender: optimisticMessage.sender, // Keep our sender info for display
-          sticker: optimisticMessage.sticker 
-        } : m))
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                ...realMessage,
+                sender: optimisticMessage.sender, // Keep our sender info for display
+                sticker: optimisticMessage.sticker,
+              }
+            : m,
+        ),
       );
 
       return { data: realMessage, error: null };
@@ -510,7 +530,7 @@ export function useMessages(chatId: string | null) {
 
     if (chatId) {
       console.log("[useMessages] Setting up realtime subscription for chat:", chatId);
-      
+
       // Subscribe to new messages for this chat
       const channel = supabase
         .channel(`messages-${chatId}`)
@@ -525,36 +545,39 @@ export function useMessages(chatId: string | null) {
           async (payload) => {
             const newMessageRaw = payload.new as any;
             console.log("[useMessages] Realtime INSERT received:", newMessageRaw.id);
-            
+
             // Only add if not already present (avoid duplicates from optimistic updates)
             setMessages((prev) => {
               // Check if this message already exists (by id or if it matches our temp message)
               const existsById = prev.some((m) => m.id === newMessageRaw.id);
               const matchesTempMessage = prev.some(
-                (m) => m.id.startsWith('temp-') && 
-                 m.sender_id === newMessageRaw.sender_id && 
-                 m.content === newMessageRaw.content &&
-                 m.type === newMessageRaw.type
+                (m) =>
+                  m.id.startsWith("temp-") &&
+                  m.sender_id === newMessageRaw.sender_id &&
+                  m.content === newMessageRaw.content &&
+                  m.type === newMessageRaw.type,
               );
-              
+
               if (existsById) {
                 console.log("[useMessages] Message already exists by ID, skipping");
                 return prev;
               }
-              
+
               if (matchesTempMessage) {
                 // Replace the temp message with the real one
                 console.log("[useMessages] Replacing temp message with real one");
                 return prev.map((m) => {
-                  if (m.id.startsWith('temp-') && 
-                      m.sender_id === newMessageRaw.sender_id && 
-                      m.content === newMessageRaw.content) {
+                  if (
+                    m.id.startsWith("temp-") &&
+                    m.sender_id === newMessageRaw.sender_id &&
+                    m.content === newMessageRaw.content
+                  ) {
                     return { ...newMessageRaw, sender: m.sender, sticker: m.sticker } as Message;
                   }
                   return m;
                 });
               }
-              
+
               // New message from someone else - add it
               console.log("[useMessages] Adding new message from realtime");
               // For messages from others, we need to fetch full data
