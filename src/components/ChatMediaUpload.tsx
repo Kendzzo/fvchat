@@ -32,18 +32,15 @@ const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
  * - Cross-browser audio recording
  * - Prevents modal close during upload
  */
-export function ChatMediaUpload({
-  onMediaReady,
-  disabled
-}: ChatMediaUploadProps) {
+export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps) {
   const { user } = useAuth();
   const { moderateImageFile, isChecking: isModeratingImage } = useImageModeration();
-  
+
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showAudioModal, setShowAudioModal] = useState(false);
-  
+
   // Audio recording states
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -51,7 +48,7 @@ export function ChatMediaUpload({
   const [audioMimeType, setAudioMimeType] = useState<string | null>(null);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [audioUploadError, setAudioUploadError] = useState<string | null>(null);
-  
+
   // Audio recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -69,7 +66,7 @@ export function ChatMediaUpload({
       console.log("[CHAT][AUDIO_CLICK] Blocked - returning early");
       return;
     }
-    
+
     // Check if audio recording is supported
     const mimeType = getBestAudioMimeType();
     if (!mimeType) {
@@ -77,7 +74,7 @@ export function ChatMediaUpload({
       toast.error("Tu navegador no soporta grabación de audio");
       return;
     }
-    
+
     setAudioMimeType(mimeType);
     setAudioUploadError(null);
     console.log("[CHAT][AUDIO_CLICK] Opening audio modal with MIME:", mimeType);
@@ -89,14 +86,14 @@ export function ChatMediaUpload({
       toast.error("No autenticado");
       return;
     }
-    
+
     console.log("[CHAT][UPLOAD_START]", {
       kind: "image",
       size: file.size,
       mime: file.type,
       name: file.name,
     });
-    
+
     if (file.size > MAX_IMAGE_SIZE) {
       console.log("[CHAT][UPLOAD_FAIL] Image too large:", file.size);
       toast.error("La imagen debe ser menor a 10MB");
@@ -109,7 +106,7 @@ export function ChatMediaUpload({
     try {
       // Compress if needed (>6MB)
       const { blob: processedBlob, compressed } = await compressImageIfNeeded(file);
-      
+
       // MODERATION: Check image before uploading (with timeout, non-blocking if fails)
       console.log("[CHAT][MODERATION_START_ASYNC] Checking image...");
       try {
@@ -126,31 +123,29 @@ export function ChatMediaUpload({
         // Fail open - continue with upload
       }
 
-      const fileExt = compressed ? "jpg" : (file.name.split(".").pop()?.toLowerCase() || "jpg");
+      const fileExt = compressed ? "jpg" : file.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${user.id}/chat/images/${Date.now()}.${fileExt}`;
-      
+
       console.log("[CHAT][DB_INSERT_START]", { type: "image", path: fileName });
-      
+
       // Use robust upload with retry
       await robustUpload(async () => {
-        const { error: uploadError } = await supabase.storage
-          .from("content")
-          .upload(fileName, processedBlob, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: compressed ? "image/jpeg" : (file.type || "image/jpeg"),
-          });
-        
+        const { error: uploadError } = await supabase.storage.from("content").upload(fileName, processedBlob, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: compressed ? "image/jpeg" : file.type || "image/jpeg",
+        });
+
         if (uploadError) {
           throw uploadError;
         }
-        
+
         return true;
       }, "image-upload");
-      
+
       const { data: urlData } = supabase.storage.from("content").getPublicUrl(fileName);
       console.log("[CHAT][UPLOAD_OK]", { publicUrl: urlData.publicUrl.slice(0, 60) + "..." });
-      
+
       onMediaReady(urlData.publicUrl, "image");
       toast.success("Imagen lista para enviar");
       setUploadError(null);
@@ -160,7 +155,7 @@ export function ChatMediaUpload({
         name: (error as any)?.name,
         message: (error as any)?.message,
       });
-      
+
       const errorMsg = formatUploadError(error, "image");
       setUploadError(errorMsg);
       toast.error(errorMsg);
@@ -182,15 +177,33 @@ export function ChatMediaUpload({
       toast.error("Tu navegador no soporta grabación de audio");
       return;
     }
-    
+
     try {
       console.log("[CHAT][AUDIO_RECORD_START] Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       chunksRef.current = [];
 
-      console.log("[CHAT][AUDIO_RECORD] Using MIME type:", mimeType);
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      console.log("[CHAT][AUDIO_RECORD] mimeType chosen:", mimeType);
+      console.log("[CHAT][AUDIO_RECORD] MediaRecorder supported?", typeof MediaRecorder !== "undefined");
+      console.log("[CHAT][AUDIO_RECORD] isTypeSupported?", (MediaRecorder as any)?.isTypeSupported?.(mimeType));
+
+      let finalMime = mimeType;
+
+      // Fallbacks (muy importantes para Safari/iOS)
+      if ((MediaRecorder as any)?.isTypeSupported) {
+        if (!MediaRecorder.isTypeSupported(finalMime)) {
+          finalMime = "audio/mp4";
+          if (!MediaRecorder.isTypeSupported(finalMime)) {
+            finalMime = "audio/webm";
+          }
+        }
+      }
+
+      console.log("[CHAT][AUDIO_RECORD] final mimeType:", finalMime);
+      setAudioMimeType(finalMime);
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: finalMime });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
@@ -200,14 +213,32 @@ export function ChatMediaUpload({
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType });
+        console.log("[CHAT][AUDIO_RECORD_STOP] chunks count:", chunksRef.current.length);
+        console.log(
+          "[CHAT][AUDIO_RECORD_STOP] chunk sizes:",
+          chunksRef.current.map((c) => c.size),
+        );
+
+        const blob = new Blob(chunksRef.current, { type: finalMime });
+
+        console.log("[CHAT][AUDIO_RECORD_STOP] blob size:", blob.size);
+        console.log("[CHAT][AUDIO_RECORD_STOP] blob type:", blob.type);
+
+        if (blob.size === 0) {
+          console.error("[CHAT][AUDIO_RECORD_STOP] ❌ Blob vacío, grabación fallida");
+          toast.error("No se pudo grabar el audio. Intenta de nuevo.");
+          return;
+        }
+
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
-        console.log("[CHAT][AUDIO_RECORD_STOP] Recording stopped, blob size:", blob.size);
+        console.log("[CHAT][AUDIO_RECORD_STOP] ✅ Audio URL created");
       };
 
-      mediaRecorder.start();
+      // 🔥 Esto evita muchos blobs de 0 bytes: forzar chunks cada 250ms
+      mediaRecorder.start(250);
+
       setIsRecording(true);
       setAudioUploadError(null);
       console.log("[CHAT][AUDIO_RECORD] Recording started");
@@ -221,10 +252,10 @@ export function ChatMediaUpload({
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
+
       // Stop all tracks
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
       console.log("[CHAT][AUDIO_RECORD] Recording stopped by user");
@@ -264,32 +295,30 @@ export function ChatMediaUpload({
     try {
       const extension = getAudioExtension(audioMimeType);
       const fileName = `${user.id}/chat/audio/${Date.now()}.${extension}`;
-      
+
       console.log("[CHAT][DB_INSERT_START]", { type: "audio", path: fileName });
-      
+
       // Use robust upload with retry
       await robustUpload(async () => {
-        const { error: uploadError } = await supabase.storage
-          .from("content")
-          .upload(fileName, audioBlob, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: audioMimeType,
-          });
-        
+        const { error: uploadError } = await supabase.storage.from("content").upload(fileName, audioBlob, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: audioMimeType,
+        });
+
         if (uploadError) {
           throw uploadError;
         }
-        
+
         return true;
       }, "audio-upload");
-      
+
       const { data: urlData } = supabase.storage.from("content").getPublicUrl(fileName);
       console.log("[CHAT][UPLOAD_OK]", { publicUrl: urlData.publicUrl.slice(0, 60) + "..." });
-      
+
       onMediaReady(urlData.publicUrl, "audio");
       toast.success("Audio listo para enviar");
-      
+
       // Cleanup and close modal on success
       resetAudio();
       setShowAudioModal(false);
@@ -299,7 +328,7 @@ export function ChatMediaUpload({
         name: (error as any)?.name,
         message: (error as any)?.message,
       });
-      
+
       const errorMsg = formatUploadError(error, "audio");
       setAudioUploadError(errorMsg);
       toast.error(errorMsg);
@@ -316,16 +345,16 @@ export function ChatMediaUpload({
       toast.info("Espera a que termine la subida...");
       return;
     }
-    
+
     // Stop recording if active
     if (isRecording) {
       stopRecording();
     }
-    
+
     // Cleanup
     resetAudio();
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     setShowAudioModal(false);
@@ -334,19 +363,19 @@ export function ChatMediaUpload({
   return (
     <>
       {/* Hidden image input - NO video input in chat */}
-      <input 
-        ref={imageInputRef} 
-        type="file" 
-        accept="image/*" 
-        capture="environment" 
-        onChange={handleImageChange} 
-        className="hidden" 
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleImageChange}
+        className="hidden"
       />
 
       {/* Image button */}
-      <button 
-        onClick={handleImageClick} 
-        disabled={disabled || isUploading || isModeratingImage} 
+      <button
+        onClick={handleImageClick}
+        disabled={disabled || isUploading || isModeratingImage}
         className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
       >
         {isUploading || isModeratingImage ? (
@@ -357,9 +386,9 @@ export function ChatMediaUpload({
       </button>
 
       {/* Audio button */}
-      <button 
-        onClick={handleAudioClick} 
-        disabled={disabled || isUploading} 
+      <button
+        onClick={handleAudioClick}
+        disabled={disabled || isUploading}
         className="p-3 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
       >
         <Mic className="w-5 h-5 text-white" />
@@ -370,27 +399,27 @@ export function ChatMediaUpload({
         <AnimatePresence>
           {showAudioModal && (
             <>
-              <motion.div 
+              <motion.div
                 key="audio-overlay"
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }} 
-                onClick={isUploadingAudio ? undefined : closeAudioModal} 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={isUploadingAudio ? undefined : closeAudioModal}
                 className={`fixed inset-0 bg-black/50 z-[9999] ${isUploadingAudio ? "cursor-not-allowed" : ""}`}
               />
-              <motion.div 
+              <motion.div
                 key="audio-modal"
-                initial={{ scale: 0.95, opacity: 0 }} 
-                animate={{ scale: 1, opacity: 1 }} 
-                exit={{ scale: 0.95, opacity: 0 }} 
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[10000] w-11/12 max-w-sm" 
-                role="dialog" 
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[10000] w-11/12 max-w-sm"
+                role="dialog"
                 aria-modal="true"
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold text-lg">Nota de voz</h3>
-                  <button 
-                    onClick={closeAudioModal} 
+                  <button
+                    onClick={closeAudioModal}
                     disabled={isUploadingAudio}
                     aria-label="Cerrar"
                     className="disabled:opacity-50 disabled:cursor-not-allowed"
@@ -410,10 +439,12 @@ export function ChatMediaUpload({
                   {!audioUrl ? (
                     // Recording UI
                     <>
-                      <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${isRecording ? "bg-destructive/20 animate-pulse" : "bg-muted"}`}>
+                      <div
+                        className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${isRecording ? "bg-destructive/20 animate-pulse" : "bg-muted"}`}
+                      >
                         <Mic className={`w-10 h-10 ${isRecording ? "text-destructive" : "text-muted-foreground"}`} />
                       </div>
-                      
+
                       {isRecording ? (
                         <>
                           <p className="text-sm text-muted-foreground mb-4">Grabando...</p>
@@ -442,7 +473,7 @@ export function ChatMediaUpload({
                     // Preview UI
                     <>
                       <audio src={audioUrl} controls className="w-full mb-4" />
-                      
+
                       <div className="flex gap-2">
                         <button
                           onClick={resetAudio}
@@ -472,7 +503,7 @@ export function ChatMediaUpload({
                   )}
                 </div>
 
-                <button 
+                <button
                   onClick={closeAudioModal}
                   disabled={isUploadingAudio}
                   className="w-full py-3 rounded-xl bg-muted text-muted-foreground font-medium mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -483,7 +514,7 @@ export function ChatMediaUpload({
             </>
           )}
         </AnimatePresence>,
-        document.body
+        document.body,
       )}
     </>
   );
