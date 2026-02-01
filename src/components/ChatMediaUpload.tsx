@@ -188,11 +188,13 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
       console.log("[CHAT][AUDIO_RECORD] MediaRecorder supported?", typeof MediaRecorder !== "undefined");
       console.log("[CHAT][AUDIO_RECORD] isTypeSupported?", (MediaRecorder as any)?.isTypeSupported?.(mimeType));
 
-      // ✅ LOVABLE + SUPABASE: grabar y subir como MP3 REAL
+      // ✅ LOVABLE + SUPABASE: grabar SIEMPRE como MP3
       const finalMime = "audio/mpeg";
       setAudioMimeType(finalMime);
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: finalMime });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: finalMime,
+      });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
@@ -208,21 +210,25 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
           chunksRef.current.map((c) => c.size),
         );
 
-        const blob = new Blob(chunksRef.current, { type: finalMime });
+        const rawBlob = new Blob(chunksRef.current, { type: finalMime });
 
-        console.log("[CHAT][AUDIO_RECORD_STOP] blob size:", blob.size);
-        console.log("[CHAT][AUDIO_RECORD_STOP] blob type:", blob.type);
+        console.log("[CHAT][AUDIO_RECORD_STOP] raw blob size:", rawBlob.size);
+        console.log("[CHAT][AUDIO_RECORD_STOP] raw blob type:", rawBlob.type);
 
-        if (blob.size === 0) {
+        if (rawBlob.size === 0) {
           console.error("[CHAT][AUDIO_RECORD_STOP] ❌ Blob vacío, grabación fallida");
           toast.error("No se pudo grabar el audio. Intenta de nuevo.");
           return;
         }
 
-        setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
+        // ✅ FIX: Supabase (Lovable) rechaza audio/webm -> forzamos MP4 al guardar y al subir
+        const forcedMp4Blob = rawBlob.slice(0, rawBlob.size, "audio/mp4");
+
+        setAudioMimeType("audio/mp4");
+        setAudioBlob(forcedMp4Blob);
+        const url = URL.createObjectURL(forcedMp4Blob);
         setAudioUrl(url);
-        console.log("[CHAT][AUDIO_RECORD_STOP] ✅ Audio URL created (mp3)");
+        console.log("[CHAT][AUDIO_RECORD_STOP] ✅ Audio URL created (forced mp4)");
       };
 
       // 🔥 Esto evita muchos blobs de 0 bytes: forzar chunks cada 250ms
@@ -232,8 +238,23 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
       setAudioUploadError(null);
       console.log("[CHAT][AUDIO_RECORD] Recording started");
     } catch (error) {
-      console.error("[CHAT][AUDIO_RECORD_FAIL] Microphone access error:", error);
-      toast.error("No se pudo acceder al micrófono");
+      // ✅ NUEVO: error detallado + toast específico (permiso / no hay micro / ocupado / iframe)
+      console.error("[CHAT][AUDIO_RECORD_FAIL] Microphone access error:", {
+        name: (error as any)?.name,
+        message: (error as any)?.message,
+      });
+
+      toast.error(
+        (error as any)?.name === "NotAllowedError"
+          ? "Permiso del micrófono denegado. Actívalo en el candado del navegador y en macOS > Privacidad > Micrófono."
+          : (error as any)?.name === "NotFoundError"
+            ? "No se detecta micrófono. Revisa que esté conectado y seleccionado en macOS."
+            : (error as any)?.name === "NotReadableError"
+              ? "El micrófono está en uso por otra app (Zoom/Meet/etc). Ciérrala e inténtalo de nuevo."
+              : (error as any)?.name === "SecurityError"
+                ? "Bloqueado por seguridad (HTTPS/iframe). Abre el preview en pestaña completa e inténtalo."
+                : "No se pudo acceder al micrófono",
+      );
     }
   };
 
@@ -272,8 +293,8 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
       return;
     }
 
-    // ✅ FIX Lovable: subir como MP3 real
-    const uploadMime = "audio/mpeg";
+    // ✅ FIX: subir siempre como MP4 (Supabase Lovable rechaza audio/webm)
+    const uploadMime = "audio/mp4";
 
     console.log("[CHAT][UPLOAD_START]", {
       kind: "audio",
@@ -285,7 +306,7 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
     setAudioUploadError(null);
 
     try {
-      const fileName = `${user.id}/chat/audio/${Date.now()}.mp3`;
+      const fileName = `${user.id}/chat/audio/${Date.now()}.mp4`;
 
       console.log("[CHAT][DB_INSERT_START]", { type: "audio", path: fileName });
 
