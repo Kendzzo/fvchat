@@ -478,31 +478,43 @@ export type Database = {
       messages: {
         Row: {
           chat_id: string
+          client_temp_id: string | null
           content: string
           created_at: string
           id: string
           is_blocked: boolean
+          moderation_checked_at: string | null
+          moderation_reason: string | null
           sender_id: string
+          status: string
           sticker_id: string | null
           type: Database["public"]["Enums"]["content_type"]
         }
         Insert: {
           chat_id: string
+          client_temp_id?: string | null
           content: string
           created_at?: string
           id?: string
           is_blocked?: boolean
+          moderation_checked_at?: string | null
+          moderation_reason?: string | null
           sender_id: string
+          status?: string
           sticker_id?: string | null
           type?: Database["public"]["Enums"]["content_type"]
         }
         Update: {
           chat_id?: string
+          client_temp_id?: string | null
           content?: string
           created_at?: string
           id?: string
           is_blocked?: boolean
+          moderation_checked_at?: string | null
+          moderation_reason?: string | null
           sender_id?: string
+          status?: string
           sticker_id?: string | null
           type?: Database["public"]["Enums"]["content_type"]
         }

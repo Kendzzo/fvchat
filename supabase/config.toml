@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.parent-dashboard-data]
 verify_jwt = false
+
+[functions.chat-send-message]
+verify_jwt = false
