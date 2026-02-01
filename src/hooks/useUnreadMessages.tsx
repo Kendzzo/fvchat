@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
 export function useUnreadMessages() {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Prevent concurrent fetches and debounce
   const fetchingRef = useRef(false);
   const debounceTimerRef = useRef<number | null>(null);
@@ -23,7 +23,7 @@ export function useUnreadMessages() {
     if (fetchingRef.current) {
       return;
     }
-    
+
     // Debounce: skip if fetched within last 2 seconds
     const now = Date.now();
     if (now - lastFetchRef.current < 2000) {
@@ -36,12 +36,12 @@ export function useUnreadMessages() {
     try {
       // Get all chats where user is a participant
       const { data: chats, error: chatsError } = await supabase
-        .from('chats')
-        .select('id')
-        .contains('participant_ids', [user.id]);
+        .from("chats")
+        .select("id")
+        .contains("participant_ids", [user.id]);
 
       if (chatsError) {
-        console.error('Error fetching chats:', chatsError);
+        console.error("Error fetching chats:", chatsError);
         return;
       }
 
@@ -51,17 +51,17 @@ export function useUnreadMessages() {
         return;
       }
 
-      const chatIds = chats.map(c => c.id);
+      const chatIds = chats.map((c) => c.id);
 
       // Get all messages in those chats that are not from the user
       const { data: messages, error: messagesError } = await supabase
-        .from('messages')
-        .select('id')
-        .in('chat_id', chatIds)
-        .neq('sender_id', user.id);
+        .from("messages")
+        .select("id")
+        .in("chat_id", chatIds)
+        .neq("sender_id", user.id);
 
       if (messagesError) {
-        console.error('Error fetching messages:', messagesError);
+        console.error("Error fetching messages:", messagesError);
         return;
       }
 
@@ -71,26 +71,26 @@ export function useUnreadMessages() {
         return;
       }
 
-      const messageIds = messages.map(m => m.id);
+      const messageIds = messages.map((m) => m.id);
 
       // Get read receipts for those messages by the current user
       const { data: reads, error: readsError } = await supabase
-        .from('message_reads')
-        .select('message_id')
-        .eq('user_id', user.id)
-        .in('message_id', messageIds);
+        .from("message_reads")
+        .select("message_id")
+        .eq("user_id", user.id)
+        .in("message_id", messageIds);
 
       if (readsError) {
-        console.error('Error fetching reads:', readsError);
+        console.error("Error fetching reads:", readsError);
         return;
       }
 
-      const readMessageIds = new Set(reads?.map(r => r.message_id) || []);
-      const unread = messageIds.filter(id => !readMessageIds.has(id));
+      const readMessageIds = new Set(reads?.map((r) => r.message_id) || []);
+      const unread = messageIds.filter((id) => !readMessageIds.has(id));
 
       setUnreadCount(unread.length);
     } catch (error) {
-      console.error('Error calculating unread count:', error);
+      console.error("Error calculating unread count:", error);
     } finally {
       setIsLoading(false);
       fetchingRef.current = false;
@@ -107,66 +107,76 @@ export function useUnreadMessages() {
     }, 500);
   }, [fetchUnreadCount]);
 
-  const markChatAsRead = useCallback(async (chatId: string) => {
-    if (!user) return;
+  const markChatAsRead = useCallback(
+    async (chatId: string) => {
+      if (!user) return;
 
-    try {
-      // Get all messages in this chat not from the user
-      const { data: messages, error: messagesError } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('chat_id', chatId)
-        .neq('sender_id', user.id);
+      try {
+        // Get all messages in this chat not from the user
+        const { data: messages, error: messagesError } = await supabase
+          .from("messages")
+          .select("id")
+          .eq("chat_id", chatId)
+          .neq("sender_id", user.id);
 
-      if (messagesError || !messages) return;
+        if (messagesError || !messages) return;
 
-      // Get existing reads
-      const messageIds = messages.map(m => m.id);
-      if (messageIds.length === 0) return;
-      
-      const { data: existingReads } = await supabase
-        .from('message_reads')
-        .select('message_id')
-        .eq('user_id', user.id)
-        .in('message_id', messageIds);
+        // Get existing reads
+        const messageIds = messages.map((m) => m.id);
+        if (messageIds.length === 0) return;
 
-      const existingReadIds = new Set(existingReads?.map(r => r.message_id) || []);
-      const unreadMessageIds = messageIds.filter(id => !existingReadIds.has(id));
+        const { data: existingReads } = await supabase
+          .from("message_reads")
+          .select("message_id")
+          .eq("user_id", user.id)
+          .in("message_id", messageIds);
 
-      if (unreadMessageIds.length === 0) return;
+        const existingReadIds = new Set(existingReads?.map((r) => r.message_id) || []);
+        const unreadMessageIds = messageIds.filter((id) => !existingReadIds.has(id));
 
-      // Insert read receipts for unread messages
-      const readsToInsert = unreadMessageIds.map(messageId => ({
-        message_id: messageId,
-        user_id: user.id,
-      }));
+        if (unreadMessageIds.length === 0) return;
 
-      await supabase.from('message_reads').insert(readsToInsert);
+        // Insert read receipts for unread messages
+        const readsToInsert = unreadMessageIds.map((messageId) => ({
+          message_id: messageId,
+          user_id: user.id,
+        }));
 
-      // Don't fetch immediately - let debounce handle it
-      // This prevents the loop: markChatAsRead -> insert -> realtime -> fetch -> ...
-    } catch (error) {
-      console.error('Error marking chat as read:', error);
-    }
-  }, [user]);
+        await supabase.from("message_reads").upsert(
+          {
+            chat_id: chatId,
+            user_id: user.id,
+            last_read_at: new Date().toISOString(),
+          },
+          { onConflict: "chat_id,user_id" },
+        );
+
+        // Don't fetch immediately - let debounce handle it
+        // This prevents the loop: markChatAsRead -> insert -> realtime -> fetch -> ...
+      } catch (error) {
+        console.error("Error marking chat as read:", error);
+      }
+    },
+    [user],
+  );
 
   useEffect(() => {
     fetchUnreadCount();
 
     // Subscribe to new messages only (not reads, to avoid loops)
     const channel = supabase
-      .channel('unread-messages-v2')
+      .channel("unread-messages-v2")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
         },
         () => {
           // Only trigger on messages from others
           debouncedFetchUnreadCount();
-        }
+        },
       )
       .subscribe();
 
@@ -182,6 +192,6 @@ export function useUnreadMessages() {
     unreadCount,
     isLoading,
     markChatAsRead,
-    refreshUnreadCount: fetchUnreadCount
+    refreshUnreadCount: fetchUnreadCount,
   };
 }
