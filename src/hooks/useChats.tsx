@@ -542,8 +542,10 @@ export function useMessages(chatId: string | null) {
     return sendMessage(stickerUrl, "image", stickerId);
   };
 
-  useEffect(() => {
-    fetchMessages();
+useEffect(() => {
+  if (!chatId || !user) return;
+  fetchMessages();
+}, [chatId]);
 
     if (chatId) {
       console.log("[useMessages] Setting up realtime subscription for chat:", chatId);
