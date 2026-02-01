@@ -299,25 +299,45 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Create client with user's auth
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    // Verify user
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
-    if (claimsError || !claimsData.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.user.id;
-
+    
+    // Parse request body FIRST (can only be read once)
+    const body = await req.json();
+    const { text, surface, context, targetUserId, userId: bodyUserId } = body as ModerationRequest & { userId?: string };
+    
+    // Check if this is a service role call (internal server-to-server)
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
     // Create service client for admin operations
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    let userId: string;
+
+    if (isServiceRoleCall) {
+      // Internal call from another edge function - get userId from body
+      if (!bodyUserId) {
+        return new Response(JSON.stringify({ error: "userId required for internal calls" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = bodyUserId;
+      console.log("[moderate-content] Internal service call for user:", userId.slice(0, 8) + "...");
+    } else {
+      // User call - validate JWT
+      const supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      
+      const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
+      if (claimsError || !claimsData.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = claimsData.user.id;
+    }
 
     // Check if user is suspended
     const { data: profile } = await adminClient
@@ -338,9 +358,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Parse request
-    const { text, surface, context, targetUserId }: ModerationRequest = await req.json();
 
     if (!text || typeof text !== "string") {
       return new Response(JSON.stringify({ error: "Invalid text" }), {
