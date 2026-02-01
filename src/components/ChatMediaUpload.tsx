@@ -201,7 +201,6 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
       }
 
       console.log("[CHAT][AUDIO_RECORD] final mimeType:", finalMime);
-      setAudioMimeType(finalMime);
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType: finalMime });
       mediaRecorderRef.current = mediaRecorder;
@@ -219,21 +218,25 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
           chunksRef.current.map((c) => c.size),
         );
 
-        const blob = new Blob(chunksRef.current, { type: finalMime });
+        const rawBlob = new Blob(chunksRef.current, { type: finalMime });
 
-        console.log("[CHAT][AUDIO_RECORD_STOP] blob size:", blob.size);
-        console.log("[CHAT][AUDIO_RECORD_STOP] blob type:", blob.type);
+        console.log("[CHAT][AUDIO_RECORD_STOP] raw blob size:", rawBlob.size);
+        console.log("[CHAT][AUDIO_RECORD_STOP] raw blob type:", rawBlob.type);
 
-        if (blob.size === 0) {
+        if (rawBlob.size === 0) {
           console.error("[CHAT][AUDIO_RECORD_STOP] ❌ Blob vacío, grabación fallida");
           toast.error("No se pudo grabar el audio. Intenta de nuevo.");
           return;
         }
 
-        setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
+        // ✅ FIX: Supabase (Lovable) rechaza audio/webm -> forzamos MP4 al guardar y al subir
+        const forcedMp4Blob = rawBlob.slice(0, rawBlob.size, "audio/mp4");
+
+        setAudioMimeType("audio/mp4");
+        setAudioBlob(forcedMp4Blob);
+        const url = URL.createObjectURL(forcedMp4Blob);
         setAudioUrl(url);
-        console.log("[CHAT][AUDIO_RECORD_STOP] ✅ Audio URL created");
+        console.log("[CHAT][AUDIO_RECORD_STOP] ✅ Audio URL created (forced mp4)");
       };
 
       // 🔥 Esto evita muchos blobs de 0 bytes: forzar chunks cada 250ms
@@ -273,7 +276,7 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
   };
 
   const uploadAudio = async () => {
-    if (!user || !audioBlob || !audioMimeType) {
+    if (!user || !audioBlob) {
       toast.error("No hay audio para enviar");
       return;
     }
@@ -283,18 +286,20 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
       return;
     }
 
+    // ✅ FIX: subir siempre como MP4 (Supabase Lovable rechaza audio/webm)
+    const uploadMime = "audio/mp4";
+
     console.log("[CHAT][UPLOAD_START]", {
       kind: "audio",
       size: audioBlob.size,
-      mime: audioMimeType,
+      mime: uploadMime,
     });
 
     setIsUploadingAudio(true);
     setAudioUploadError(null);
 
     try {
-      const extension = getAudioExtension(audioMimeType);
-      const fileName = `${user.id}/chat/audio/${Date.now()}.${extension}`;
+      const fileName = `${user.id}/chat/audio/${Date.now()}.mp4`;
 
       console.log("[CHAT][DB_INSERT_START]", { type: "audio", path: fileName });
 
@@ -303,7 +308,7 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
         const { error: uploadError } = await supabase.storage.from("content").upload(fileName, audioBlob, {
           cacheControl: "3600",
           upsert: false,
-          contentType: audioMimeType,
+          contentType: uploadMime,
         });
 
         if (uploadError) {
