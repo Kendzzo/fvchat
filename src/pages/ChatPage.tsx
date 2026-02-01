@@ -436,12 +436,74 @@ function ChatDetail({
     }
   };
 
-  const handleMediaReady = (url: string, type: "image" | "video" | "audio") => {
+  // ✅ CHANGE: auto-send media on ready, fallback to pendingMedia if send fails
+  const handleMediaReady = async (url: string, type: "image" | "video" | "audio") => {
     console.log("[CHAT][MEDIA_READY]", type, url.slice(0, 50) + "...");
-    setPendingMedia({
-      url,
-      type,
-    });
+
+    // Same guards as sending
+    if (!canInteract) {
+      toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
+
+    if (sendLock.current) {
+      console.log("[CHAT][AUTO_MEDIA_SEND] Blocked: sendLock active");
+      return;
+    }
+
+    if (isSending) {
+      console.log("[CHAT][AUTO_MEDIA_SEND] Blocked: already sending");
+      toast.error("Enviando... espera un momento");
+      return;
+    }
+
+    if (isSuspended) {
+      console.log("[CHAT][AUTO_MEDIA_SEND] Blocked: user suspended");
+      toast.error("No puedes enviar mensajes mientras estás suspendido");
+      return;
+    }
+
+    sendLock.current = true;
+    setModerationError(null);
+    setIsSending(true);
+
+    try {
+      console.log("[CHAT][DB_INSERT_START]", { type, chatId: chat.id, auto: true });
+      const { error, data } = await sendMessage(url, type);
+
+      if (error) {
+        console.error("[CHAT][DB_INSERT_FAIL]", {
+          status: (error as any)?.status,
+          message: error.message,
+        });
+
+        // Fallback: keep old behavior so user can retry manually
+        setPendingMedia({ url, type });
+
+        if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("401")) {
+          toast.error("Permiso denegado (DB/RLS). Revisar políticas de messages.");
+        } else {
+          toast.error("No se pudo enviar el archivo");
+        }
+        return;
+      }
+
+      console.log("[CHAT][DB_INSERT_OK]", { messageId: data?.id, auto: true });
+      setPendingMedia(null);
+
+      // Refresh for realtime edge cases
+      setTimeout(() => void refreshMessages(), 300);
+    } catch (err) {
+      console.error("[CHAT][AUTO_MEDIA_SEND_ERROR]", err);
+
+      // Fallback to pending so user can still send
+      setPendingMedia({ url, type });
+      toast.error("No se pudo enviar automáticamente. Pulsa enviar para reintentar.");
+    } finally {
+      setIsSending(false);
+      sendLock.current = false;
+      console.log("[CHAT][AUTO_MEDIA_SEND_COMPLETE]");
+    }
   };
 
   const handleStickerSelect = async (sticker: Sticker) => {
