@@ -142,17 +142,10 @@ export function useUnreadMessages() {
           user_id: user.id,
         }));
 
-        await supabase.from("message_reads").upsert(
-          {
-            chat_id: chatId,
-            user_id: user.id,
-            last_read_at: new Date().toISOString(),
-          },
-          { onConflict: "chat_id,user_id" },
-        );
+        await supabase.from("message_reads").insert(readsToInsert);
 
-        // Don't fetch immediately - let debounce handle it
-        // This prevents the loop: markChatAsRead -> insert -> realtime -> fetch -> ...
+        // Refresh count after marking as read
+        debouncedFetchUnreadCount();
       } catch (error) {
         console.error("Error marking chat as read:", error);
       }
