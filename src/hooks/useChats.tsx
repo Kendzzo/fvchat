@@ -386,17 +386,18 @@ export function useMessages(chatId: string | null) {
     }
   };
 
-  // Optimistic message sending for instant feedback
+  // Optimistic message sending using Edge Function for guaranteed DB insert
   const sendMessage = async (content: string, type: Message["type"] = "text", stickerId?: string): Promise<{ data?: Message; error: Error | null }> => {
     if (!user || !chatId) {
       console.error("[sendMessage] No user or chatId");
       return { error: new Error("No autenticado o chat no seleccionado") };
     }
 
-    console.log("[sendMessage] Starting:", { chatId, contentPreview: content.slice(0, 40), type, stickerId: !!stickerId });
+    // Generate client temp ID for reconciliation
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log("[sendMessage] Starting:", { chatId, contentPreview: content.slice(0, 40), type, stickerId: !!stickerId, tempId });
 
     // Create optimistic message for instant UI feedback
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const optimisticMessage: Message = {
       id: tempId,
       chat_id: chatId,
@@ -419,39 +420,77 @@ export function useMessages(chatId: string | null) {
     console.log("[sendMessage] Optimistic added:", tempId);
 
     try {
-      const insertData = {
-        chat_id: chatId,
-        sender_id: user.id,
-        content,
-        type,
-        sticker_id: stickerId || null,
-      };
-      
-      const { data, error: insertError } = await supabase
-        .from("messages")
-        .insert(insertData)
-        .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey(nick, avatar_data, profile_photo_url),
-          sticker:stickers(id, name, image_url, rarity)
-        `)
-        .single();
+      // Get auth token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
 
-      if (insertError) {
-        console.error("[sendMessage][DB_INSERT_FAIL]", insertError);
-        // Remove optimistic message on error
+      if (!token) {
+        console.error("[sendMessage] No auth token");
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
-        return { error: new Error(insertError.message) };
+        return { error: new Error("Sesión expirada") };
       }
 
-      console.log("[sendMessage][DB_INSERT_OK]", data?.id);
-      
-      // Replace optimistic message with real one
-      setMessages((prev) => 
-        prev.map((m) => (m.id === tempId ? (data as Message) : m))
+      // Map type for stickers
+      let contentType = type;
+      let contentUrl: string | undefined;
+      let contentText: string | undefined;
+
+      if (stickerId) {
+        contentType = "image"; // stickers sent as image with sticker_id
+        contentUrl = content;
+      } else if (type === "text") {
+        contentText = content;
+      } else {
+        contentUrl = content;
+      }
+
+      // Call Edge Function for guaranteed DB insert
+      console.log("[sendMessage] Calling chat-send-message Edge Function...");
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-send-message`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            client_temp_id: tempId,
+            content_type: stickerId ? "sticker" : contentType,
+            content_text: contentText,
+            content_url: contentUrl,
+            sticker_id: stickerId || undefined,
+          }),
+        }
       );
 
-      return { data: data as Message, error: null };
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        console.error("[sendMessage][EDGE_FUNCTION_FAIL]", { 
+          status: response.status, 
+          error: result.error,
+          details: result.details 
+        });
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        return { error: new Error(result.error || "Error al enviar mensaje") };
+      }
+
+      console.log("[sendMessage][EDGE_FUNCTION_OK]", result.message?.id);
+      
+      // Replace optimistic message with real one from server
+      const realMessage = result.message as Message;
+      setMessages((prev) => 
+        prev.map((m) => (m.id === tempId ? { 
+          ...realMessage, 
+          sender: optimisticMessage.sender, // Keep our sender info for display
+          sticker: optimisticMessage.sticker 
+        } : m))
+      );
+
+      return { data: realMessage, error: null };
     } catch (err) {
       console.error("[sendMessage][EXCEPTION]", err);
       // Remove optimistic message on error
