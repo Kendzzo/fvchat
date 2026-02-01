@@ -84,7 +84,14 @@ export default function ChatPage() {
   };
 
   if (selectedChat) {
-    return <ChatDetail chat={selectedChat} canInteract={canInteract} onBack={() => setSelectedChatId(null)} onMarkRead={handleMarkRead} />;
+    return (
+      <ChatDetail
+        chat={selectedChat}
+        canInteract={canInteract}
+        onBack={() => setSelectedChatId(null)}
+        onMarkRead={handleMarkRead}
+      />
+    );
   }
 
   const handleLegalAccepted = async () => {
@@ -256,7 +263,7 @@ function ChatDetail({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null);
-  
+
   // Lock to prevent duplicate sends
   const sendLock = useRef(false);
 
@@ -295,7 +302,14 @@ function ChatDetail({
 
   // Mark as read when entering
   useEffect(() => {
-    onMarkRead(chat.id);
+    console.log("[CHAT][MARK_READ] calling onMarkRead for chat:", chat.id);
+    onMarkRead(chat.id)
+      .then(() => {
+        console.log("[CHAT][MARK_READ] done");
+      })
+      .catch((e) => {
+        console.error("[CHAT][MARK_READ] failed", e);
+      });
   }, [chat.id, onMarkRead]);
 
   const isSuspended = suspensionInfo.suspended && suspensionInfo.until && suspensionInfo.until > new Date();
@@ -346,9 +360,9 @@ function ChatDetail({
         console.log("[CHAT][DB_INSERT_START]", { type: pendingMedia.type, chatId: chat.id });
         const { error, data } = await sendMessage(pendingMedia.url, pendingMedia.type);
         if (error) {
-          console.error("[CHAT][DB_INSERT_FAIL]", { 
+          console.error("[CHAT][DB_INSERT_FAIL]", {
             status: (error as any)?.status,
-            message: error.message 
+            message: error.message,
           });
           // Check if permission error
           if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("401")) {
@@ -369,9 +383,9 @@ function ChatDetail({
         console.log("[CHAT][DB_INSERT_START]", { type: "text", chatId: chat.id, preview: textToSend.slice(0, 30) });
         const { error, data } = await sendMessage(textToSend, "text");
         if (error) {
-          console.error("[CHAT][DB_INSERT_FAIL]", { 
+          console.error("[CHAT][DB_INSERT_FAIL]", {
             status: (error as any)?.status,
-            message: error.message 
+            message: error.message,
           });
           // Check if permission error
           if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("401")) {
@@ -383,15 +397,15 @@ function ChatDetail({
           textSentOk = true;
           setMessageText("");
           console.log("[CHAT][DB_INSERT_OK]", { messageId: data?.id });
-          
+
           // ASYNC post-send moderation (non-blocking) with timeout
           void (async () => {
             try {
               console.log("[CHAT][MODERATION_START_ASYNC]", { messageId: data?.id });
               const modResult = await checkContent(textToSend, "chat");
-              console.log("[CHAT][MODERATION_RESULT]", { 
-                allowed: modResult.allowed, 
-                reason: modResult.reason 
+              console.log("[CHAT][MODERATION_RESULT]", {
+                allowed: modResult.allowed,
+                reason: modResult.reason,
               });
               if (!modResult.allowed) {
                 setModerationError({
@@ -448,10 +462,10 @@ function ChatDetail({
       console.log("[CHAT][SEND_STICKER] Blocked");
       return;
     }
-    
+
     sendLock.current = true;
     setIsSending(true);
-    
+
     try {
       console.log("[CHAT][SEND_STICKER] Sending:", sticker.name);
       const { error } = await sendSticker(sticker.id, sticker.image_url);
@@ -549,9 +563,9 @@ function ChatDetail({
               >
                 <div className={isSticker ? "p-1" : isMine ? "chat-bubble-sent" : "chat-bubble-received"}>
                   {isSticker ? (
-                    <img 
-                      src={msg.sticker!.image_url} 
-                      alt={msg.sticker!.name} 
+                    <img
+                      src={msg.sticker!.image_url}
+                      alt={msg.sticker!.name}
                       className="w-32 h-32 object-contain"
                       style={{ imageRendering: "auto" }}
                       onError={(e) => {
@@ -667,7 +681,13 @@ function ChatDetail({
               setModerationError(null);
             }}
             onKeyPress={handleKeyPress}
-            placeholder={!canInteract ? "🔒 Modo solo lectura" : isSuspended ? "Cuenta bloqueada temporalmente" : "Escribe un mensaje..."}
+            placeholder={
+              !canInteract
+                ? "🔒 Modo solo lectura"
+                : isSuspended
+                  ? "Cuenta bloqueada temporalmente"
+                  : "Escribe un mensaje..."
+            }
             className="input-gaming flex-1 mb-[5px] mt-0 py-[9px]"
             disabled={!canInteract || isSending || isSuspended}
           />
