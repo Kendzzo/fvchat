@@ -467,6 +467,8 @@ export function useMessages(chatId: string | null) {
       const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-send-message`;
       console.log("📡 [SEND][4] Edge URL:", fnUrl);
 
+      const t0 = performance.now();
+
       const response = await fetch(fnUrl, {
         method: "POST",
         headers: {
@@ -483,8 +485,10 @@ export function useMessages(chatId: string | null) {
         }),
       });
 
+      const t1 = performance.now();
       console.log("📡 [SEND][4] Response status:", response.status);
       console.log("📡 [SEND][4] Response ok:", response.ok);
+      console.log("⏱️ [SEND][4] ms:", Math.round(t1 - t0));
 
       let result: any = null;
       try {
@@ -492,7 +496,20 @@ export function useMessages(chatId: string | null) {
       } catch (e) {
         console.error("📡 [SEND][4] Response JSON parse failed", e);
       }
+
       console.log("📡 [SEND][4] Response body:", result);
+
+      if (!response.ok || !result?.ok) {
+        console.error("[sendMessage][EDGE_FUNCTION_FAIL]", {
+          status: response.status,
+          error: result?.error,
+          details: result?.details,
+        });
+
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        return { error: new Error(result?.error || "Error al enviar mensaje") };
+      }
 
       console.log("[sendMessage][EDGE_FUNCTION_OK]", result.message?.id);
 
