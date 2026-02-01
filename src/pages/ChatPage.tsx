@@ -300,18 +300,11 @@ function ChatDetail({
     }
   }, [messages]);
 
-  // Mark as read when entering
+  // Mark as read when entering (run only when chat changes)
   useEffect(() => {
-    console.log("[CHAT][MARK_READ] calling onMarkRead for chat:", chat.id);
-    onMarkRead(chat.id)
-      .then(() => {
-        console.log("[CHAT][MARK_READ] done");
-      })
-      .catch((e) => {
-        console.error("[CHAT][MARK_READ] failed", e);
-      });
-  }, [chat.id, onMarkRead]);
-
+    void onMarkRead(chat.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat.id]);
   const isSuspended = suspensionInfo.suspended && suspensionInfo.until && suspensionInfo.until > new Date();
 
   const handleSend = async () => {
