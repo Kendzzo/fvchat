@@ -542,77 +542,73 @@ export function useMessages(chatId: string | null) {
     return sendMessage(stickerUrl, "image", stickerId);
   };
 
-useEffect(() => {
-  if (!chatId || !user) return;
-  fetchMessages();
-}, [chatId]);
+  useEffect(() => {
+    if (!chatId || !user) return;
+    fetchMessages();
 
-    if (chatId) {
-      console.log("[useMessages] Setting up realtime subscription for chat:", chatId);
+    console.log("[useMessages] Setting up realtime subscription for chat:", chatId);
 
-      // Subscribe to new messages for this chat
-      const channel = supabase
-        .channel(`messages-${chatId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-            filter: `chat_id=eq.${chatId}`,
-          },
-          async (payload) => {
-            const newMessageRaw = payload.new as any;
-            console.log("[useMessages] Realtime INSERT received:", newMessageRaw.id);
+    // Subscribe to new messages for this chat
+    const channel = supabase
+      .channel(`messages-${chatId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `chat_id=eq.${chatId}`,
+        },
+        async (payload) => {
+          const newMessageRaw = payload.new as any;
+          console.log("[useMessages] Realtime INSERT received:", newMessageRaw.id);
 
-            // Only add if not already present (avoid duplicates from optimistic updates)
-            setMessages((prev) => {
-              // Check if this message already exists (by id or if it matches our temp message)
-              const existsById = prev.some((m) => m.id === newMessageRaw.id);
-              const matchesTempMessage = prev.some(
-                (m) =>
+          // Only add if not already present (avoid duplicates from optimistic updates)
+          setMessages((prev) => {
+            // Check if this message already exists (by id or if it matches our temp message)
+            const existsById = prev.some((m) => m.id === newMessageRaw.id);
+            const matchesTempMessage = prev.some(
+              (m) =>
+                m.id.startsWith("temp-") &&
+                m.sender_id === newMessageRaw.sender_id &&
+                m.content === newMessageRaw.content &&
+                m.type === newMessageRaw.type,
+            );
+
+            if (existsById) {
+              console.log("[useMessages] Message already exists by ID, skipping");
+              return prev;
+            }
+
+            if (matchesTempMessage) {
+              // Replace the temp message with the real one
+              console.log("[useMessages] Replacing temp message with real one");
+              return prev.map((m) => {
+                if (
                   m.id.startsWith("temp-") &&
                   m.sender_id === newMessageRaw.sender_id &&
-                  m.content === newMessageRaw.content &&
-                  m.type === newMessageRaw.type,
-              );
+                  m.content === newMessageRaw.content
+                ) {
+                  return { ...newMessageRaw, sender: m.sender, sticker: m.sticker } as Message;
+                }
+                return m;
+              });
+            }
 
-              if (existsById) {
-                console.log("[useMessages] Message already exists by ID, skipping");
-                return prev;
-              }
+            // New message from someone else - add it
+            console.log("[useMessages] Adding new message from realtime");
+            return [...prev, newMessageRaw as Message];
+          });
+        },
+      )
+      .subscribe((status) => {
+        console.log("[useMessages] Subscription status:", status);
+      });
 
-              if (matchesTempMessage) {
-                // Replace the temp message with the real one
-                console.log("[useMessages] Replacing temp message with real one");
-                return prev.map((m) => {
-                  if (
-                    m.id.startsWith("temp-") &&
-                    m.sender_id === newMessageRaw.sender_id &&
-                    m.content === newMessageRaw.content
-                  ) {
-                    return { ...newMessageRaw, sender: m.sender, sticker: m.sticker } as Message;
-                  }
-                  return m;
-                });
-              }
-
-              // New message from someone else - add it
-              console.log("[useMessages] Adding new message from realtime");
-              // For messages from others, we need to fetch full data
-              return [...prev, newMessageRaw as Message];
-            });
-          },
-        )
-        .subscribe((status) => {
-          console.log("[useMessages] Subscription status:", status);
-        });
-
-      return () => {
-        console.log("[useMessages] Cleaning up subscription for chat:", chatId);
-        supabase.removeChannel(channel);
-      };
-    }
+    return () => {
+      console.log("[useMessages] Cleaning up subscription for chat:", chatId);
+      supabase.removeChannel(channel);
+    };
   }, [chatId, user]);
 
   return {
