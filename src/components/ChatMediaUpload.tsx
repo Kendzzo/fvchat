@@ -409,7 +409,7 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
   initial={{ y: 24, opacity: 0 }}
   animate={{ y: 0, opacity: 1 }}
   exit={{ y: 24, opacity: 0 }}
-  className="fixed left-1/2 bottom-0 -translate-x-1/2 bg-card rounded-t-2xl p-6 z-[10000] w-full max-w-sm max-h-[85dvh] overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+16px)]"
+  className="fixed inset-x-0 bottom-0 z-[10000] mx-auto w-full max-w-sm bg-card rounded-t-2xl p-6 max-h-[75dvh] overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+96px)]"
   role="dialog"
   aria-modal="true"
 >
