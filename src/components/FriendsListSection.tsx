@@ -94,7 +94,7 @@ export function FriendsListSection({
   return <div className="glass-card p-4 shadow-none">
       <div className="flex items-center gap-2 mb-4">
         <Users className="w-5 h-5 text-muted-foreground" />
-        <h3 className="font-semibold text-white">Amigos</h3>
+        <h3 className="font-semibold text-white text-lg">Amigos</h3>
         <span className="text-sm text-muted-foreground ml-auto">{friends.length}</span>
       </div>
 
