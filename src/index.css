@@ -284,9 +284,10 @@
   }
 
   .chat-bubble-received {
-    @apply rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%] bg-muted;
+    @apply rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%] border;
+background: hsl(185 35% 85%);
+border-color: hsl(185 40% 60%);
   }
-}
 
 @layer utilities {
   /* Animations */
