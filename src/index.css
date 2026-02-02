@@ -282,9 +282,8 @@
   }
 
   .chat-bubble-received {
-    @apply rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%] border;
-    background: linear-gradient(135deg, hsl(195 85% 55% / 0.95), hsl(210 90% 45% / 0.95));
-    border-color: hsl(205 85% 40% / 0.55);
+    @apply rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%];
+    background: linear-gradient(135deg, hsl(195 70% 42%), hsl(165 70% 38%));
   }
 }
 
