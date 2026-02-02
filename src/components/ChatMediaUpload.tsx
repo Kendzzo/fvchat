@@ -405,13 +405,14 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
                 className={`fixed inset-0 bg-black/50 z-[9999] ${isUploadingAudio ? "cursor-not-allowed" : ""}`}
               />
               <motion.div
-                key="audio-modal"
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-2xl p-6 z-[10000] w-11/12 max-w-sm"
-                role="dialog"
-                aria-modal="true"
+  key="audio-modal"
+  initial={{ y: 24, opacity: 0 }}
+  animate={{ y: 0, opacity: 1 }}
+  exit={{ y: 24, opacity: 0 }}
+  className="fixed left-1/2 bottom-0 -translate-x-1/2 bg-card rounded-t-2xl p-6 z-[10000] w-full max-w-sm max-h-[85dvh] overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+16px)]"
+  role="dialog"
+  aria-modal="true"
+>
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold text-lg">Nota de voz</h3>
