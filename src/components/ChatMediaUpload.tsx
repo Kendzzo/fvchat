@@ -409,10 +409,9 @@ export function ChatMediaUpload({ onMediaReady, disabled }: ChatMediaUploadProps
   initial={{ y: 24, opacity: 0 }}
   animate={{ y: 0, opacity: 1 }}
   exit={{ y: 24, opacity: 0 }}
-  className="fixed inset-x-0 bottom-0 z-[10000] mx-auto w-full max-w-sm bg-card rounded-t-2xl p-6 max-h-[75dvh] overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+96px)]"
-  role="dialog"
-  aria-modal="true"
->
+                className="fixed inset-x-0 bottom-0 z-[10000] mx-auto w-full max-w-sm bg-card rounded-t-2xl p-6 max-h-[75dvh] overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+96px)]"
+                role="dialog"
+                aria-modal="true"
               >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold text-lg">Nota de voz</h3>
