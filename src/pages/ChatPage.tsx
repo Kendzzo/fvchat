@@ -618,26 +618,24 @@ function ChatDetail({
               >
                 <div className={isSticker ? "p-1" : isMine ? "chat-bubble-sent" : "chat-bubble-received"}>
                   {isSticker ? (
-  <div className="bg-white rounded-2xl p-2 inline-flex">
-    <img
-      src={msg.sticker!.image_url}
-      alt={msg.sticker!.name}
-      className="w-32 h-32 object-contain bg-transparent"
-      style={{ imageRendering: "auto" }}
-      onError={(e) => {
-        const target = e.target as HTMLImageElement;
-        if (!target.src.includes("?v=")) {
-          target.src = msg.sticker!.image_url + "?v=1";
-        } else {
-          console.error("[CHAT] Sticker load failed:", msg.sticker!.image_url);
-          toast.error("Sticker no disponible");
-        }
-      }}
-    />
-  </div>
-) : (
-  ...
-)}
+                    <div className="bg-white rounded-2xl p-2 inline-flex">
+                      <img
+                        src={msg.sticker!.image_url}
+                        alt={msg.sticker!.name}
+                        className="w-32 h-32 object-contain bg-transparent"
+                        style={{ imageRendering: "auto" }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (!target.src.includes("?v=")) {
+                            target.src = msg.sticker!.image_url + "?v=1";
+                          } else {
+                            console.error("[CHAT] Sticker load failed:", msg.sticker!.image_url);
+                            toast.error("Sticker no disponible");
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : isAudio ? (
                     <audio src={msg.content} controls className="max-w-[240px]" />
                   ) : isMedia ? (
                     msg.type === "video" ? (
