@@ -23,7 +23,7 @@ async function hashToken(token: string): Promise<string> {
   return hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-const VERSION = "1.0.1"; // For deployment verification
+const VERSION = "1.0.2"; // For deployment verification
 
 serve(async (req) => {
   console.log(`[send-parent-approval-email v${VERSION}] Request received`);
