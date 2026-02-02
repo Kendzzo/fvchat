@@ -22,6 +22,7 @@ import { SecurityScreen } from "@/components/settings/SecurityScreen";
 import { RulesScreen } from "@/components/settings/RulesScreen";
 import { HelpScreen } from "@/components/settings/HelpScreen";
 import { LegalScreen } from "@/components/settings/LegalScreen";
+import { ProfileQRModal } from "@/components/ProfileQRModal";
 type SettingsScreen = "main" | "edit-profile" | "account-info" | "notifications" | "privacy" | "security" | "rules" | "legal" | "help";
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function ProfilePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>("main");
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const handleLogout = async () => {
     await signOut();
     navigate("/");
@@ -214,14 +216,23 @@ export default function ProfilePage() {
               </div>
             </SheetContent>
           </Sheet>
-          <motion.button whileHover={{
-          scale: 1.02
-        }} whileTap={{
-          scale: 0.98
-        }} className="py-3 px-4 rounded-xl border-2 text-muted-foreground hover:text-foreground transition-colors border-transparent">
+          <motion.button 
+            whileHover={{ scale: 1.02 }} 
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowQRModal(true)}
+            className="py-3 px-4 rounded-xl border-2 text-muted-foreground hover:text-foreground transition-colors border-transparent"
+          >
             <QrCode className="bg-transparent text-black w-[35px] h-[35px]" />
           </motion.button>
         </div>
+
+        {/* QR Modal */}
+        <ProfileQRModal
+          isOpen={showQRModal}
+          onClose={() => setShowQRModal(false)}
+          userId={profile?.id || ""}
+          nick={profile?.nick || "Usuario"}
+        />
 
         {/* Friends List Section - Instagram style */}
         {profile && <FriendsListSection userId={profile.id} isOwnProfile={true} />}
