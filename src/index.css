@@ -275,18 +275,16 @@
     border: 1px solid hsl(45 100% 55% / 0.3);
   }
 
-  /* Chat Bubble */
+    /* Chat Bubble */
   .chat-bubble-sent {
-    @apply rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%] border;
-    background: hsl(185 35% 85%);
-    border-color: hsl(185 40% 60%);
+    @apply rounded-2xl rounded-br-md px-4 py-2 max-w-[80%];
     background: var(--gradient-primary);
   }
 
   .chat-bubble-received {
     @apply rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%] border;
-background: hsl(185 35% 85%);
-border-color: hsl(185 40% 60%);
+    background: hsl(185 35% 85%);
+    border-color: hsl(185 40% 60%);
   }
 
 @layer utilities {
