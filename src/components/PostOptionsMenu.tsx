@@ -155,7 +155,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
                 <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
                   <Trophy className="w-4 h-4 text-amber-600" />
                 </div>
-                <span className="font-medium text-black">Ver desafío</span>
+                <span className="font-medium">Ver desafío</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -166,7 +166,10 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
             <>
               {/* Edit text - only if post has text */}
               {post.text && (
-                <DropdownMenuItem onClick={handleEditText} className="flex items-center gap-3 py-3 cursor-pointer">
+                <DropdownMenuItem
+                  onClick={handleEditText}
+                  className="flex items-center gap-3 py-3 cursor-pointer text-black"
+                >
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                     <Pencil className="w-4 h-4 text-blue-600" />
                   </div>
@@ -187,7 +190,10 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
 
               {/* Stats */}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleShowStats} className="flex items-center gap-3 py-3 cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleShowStats}
+                className="flex items-center gap-3 py-3 cursor-pointer text-black"
+              >
                 <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
                   <BarChart3 className="w-4 h-4 text-purple-600" />
                 </div>
@@ -198,7 +204,10 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
             /* Other user's post options */
             <>
               {/* View profile */}
-              <DropdownMenuItem onClick={handleViewProfile} className="flex items-center gap-3 py-3 cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleViewProfile}
+                className="flex items-center gap-3 py-3 cursor-pointer text-black"
+              >
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                   <User className="w-4 h-4 text-blue-600" />
                 </div>
@@ -209,7 +218,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
               <DropdownMenuItem
                 onClick={handleMuteUser}
                 disabled={isLoading}
-                className="flex items-center gap-3 py-3 cursor-pointer"
+                className="flex items-center gap-3 py-3 cursor-pointer text-black"
               >
                 <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
                   <VolumeX className="w-4 h-4 text-orange-600" />
@@ -218,7 +227,10 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
               </DropdownMenuItem>
 
               {/* Report */}
-              <DropdownMenuItem onClick={handleReportClick} className="flex items-center gap-3 py-3 cursor-pointer">
+              <DropdownMenuItem
+                onClick={handleReportClick}
+                className="flex items-center gap-3 py-3 cursor-pointer text-black"
+              >
                 <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
                   <Flag className="w-4 h-4 text-yellow-600" />
                 </div>
