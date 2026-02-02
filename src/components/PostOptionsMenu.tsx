@@ -148,14 +148,11 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
           {/* Challenge option - always first if applicable */}
           {isChallenge && (
             <>
-              <DropdownMenuItem
-                onClick={handleViewChallenge}
-                className="flex items-center gap-3 py-3 cursor-pointer text-black"
-              >
+              <DropdownMenuItem onClick={handleViewChallenge} className="flex items-center gap-3 py-3 cursor-pointer">
                 <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
                   <Trophy className="w-4 h-4 text-amber-600" />
                 </div>
-                <span className="font-medium text-black">Ver desafío</span>
+                <span className="font-medium">Ver desafío</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -209,12 +206,12 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
               <DropdownMenuItem
                 onClick={handleMuteUser}
                 disabled={isLoading}
-                className="flex items-center gap-3 py-3 cursor-pointer"
+                className="flex items-center gap-3 py-3 cursor-pointer text-black"
               >
                 <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
                   <VolumeX className="w-4 h-4 text-orange-600" />
                 </div>
-                <span>Silenciar usuario</span>
+                <span className="text-black">Silenciar usuario</span>
               </DropdownMenuItem>
 
               {/* Report */}
