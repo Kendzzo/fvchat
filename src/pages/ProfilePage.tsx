@@ -277,7 +277,7 @@ export default function ProfilePage() {
           scale: 1
         }} transition={{
           delay: i * 0.05
-        }} className="aspect-square rounded-xl overflow-hidden bg-card/50 border border-border/30 flex items-center justify-center p-2">
+        }} className="aspect-square rounded-xl overflow-hidden bg-card/50 flex items-center justify-center p-2 border-0 border-white">
                   {sticker.image_url ? <img src={sticker.image_url} alt={sticker.name} className="w-full h-full object-contain" /> : <span className="text-4xl">✨</span>}
                 </motion.div>)}
             </div>)}
