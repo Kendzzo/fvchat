@@ -11,8 +11,8 @@ interface ProfileQRModalProps {
 }
 
 export function ProfileQRModal({ isOpen, onClose, userId, nick }: ProfileQRModalProps) {
-  // Construir la URL del perfil público
-  const profileUrl = `${window.location.origin}/u/${userId}`;
+  // Construir la URL con deep-link para añadir amigo (usa HashRouter)
+  const profileUrl = `${window.location.origin}/#/app/profile?addFriendUid=${userId}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
