@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Settings, Edit3, UserPlus, QrCode, Grid, Sticker, Shield, LogOut, ChevronRight, Lock, Bell, HelpCircle, Loader2, Users, AlertCircle, FileText, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePosts } from "@/hooks/usePosts";
@@ -26,6 +26,7 @@ import { ProfileQRModal } from "@/components/ProfileQRModal";
 type SettingsScreen = "main" | "edit-profile" | "account-info" | "notifications" | "privacy" | "security" | "rules" | "legal" | "help";
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     profile,
     signOut,
@@ -51,6 +52,23 @@ export default function ProfilePage() {
   const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>("main");
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showFriendsSheet, setShowFriendsSheet] = useState(false);
+  const [preloadFriendId, setPreloadFriendId] = useState<string | null>(null);
+
+  // Handle deep-link: auto-open friends sheet with preloaded user
+  useEffect(() => {
+    const addFriendUid = searchParams.get("addFriendUid");
+    if (addFriendUid && profile) {
+      setPreloadFriendId(addFriendUid);
+      setShowFriendsSheet(true);
+      // Clear the param from URL to prevent re-opening on refresh
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, profile, setSearchParams]);
+
+  const handlePreloadComplete = () => {
+    // Optionally clear preload after it's done
+  };
   const handleLogout = async () => {
     await signOut();
     navigate("/");
@@ -178,7 +196,12 @@ export default function ProfilePage() {
 
         {/* Actions */}
         <div className="flex gap-3">
-          <Sheet>
+          <Sheet open={showFriendsSheet} onOpenChange={(open) => {
+            setShowFriendsSheet(open);
+            if (!open) {
+              setPreloadFriendId(null);
+            }
+          }}>
             <SheetTrigger asChild>
               <motion.button whileHover={{
               scale: 1.02
@@ -187,6 +210,8 @@ export default function ProfilePage() {
             }} onClick={() => {
               if (!canInteract) {
                 toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+              } else {
+                setShowFriendsSheet(true);
               }
             }} className={`flex-1 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary font-medium flex items-center justify-center gap-2 text-white ${!canInteract ? "opacity-50" : ""}`}>
                 <UserPlus className="w-5 h-5" />
@@ -206,13 +231,20 @@ export default function ProfilePage() {
                 {pendingRequests.length > 0 && <FriendRequestsList />}
 
                 {/* Search */}
-                {canInteract ? <UserSearch /> : <div className="text-center py-6">
+                {canInteract ? (
+                  <UserSearch 
+                    preloadUserId={preloadFriendId} 
+                    onPreloadComplete={handlePreloadComplete} 
+                  />
+                ) : (
+                  <div className="text-center py-6">
                     <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
                     <p className="text-muted-foreground">Cuenta pendiente de aprobación parental</p>
                     <p className="text-sm text-muted-foreground mt-2">
                       No puedes buscar amigos hasta que tu tutor apruebe tu cuenta.
                     </p>
-                  </div>}
+                  </div>
+                )}
               </div>
             </SheetContent>
           </Sheet>

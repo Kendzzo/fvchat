@@ -1,8 +1,10 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useFriendships } from '@/hooks/useFriendships';
 import { FriendRequestButton } from '@/components/FriendRequestButton';
 import { Input } from '@/components/ui/input';
 import { Search, Users, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 
 interface SearchResult {
@@ -12,7 +14,12 @@ interface SearchResult {
   age_group: string;
 }
 
-export function UserSearch() {
+interface UserSearchProps {
+  preloadUserId?: string | null;
+  onPreloadComplete?: () => void;
+}
+
+export function UserSearch({ preloadUserId, onPreloadComplete }: UserSearchProps = {}) {
   const { searchUsers } = useFriendships();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -20,6 +27,40 @@ export function UserSearch() {
   const [hasSearched, setHasSearched] = useState(false);
   const searchRequestId = useRef(0);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const preloadedRef = useRef(false);
+
+  // Preload user by ID if provided
+  useEffect(() => {
+    if (!preloadUserId || preloadedRef.current) return;
+    preloadedRef.current = true;
+
+    const loadUserById = async () => {
+      setIsSearching(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, nick, avatar_data, age_group')
+          .eq('id', preloadUserId)
+          .maybeSingle();
+
+        if (error || !data) {
+          toast.error('Usuario no encontrado');
+          setResults([]);
+        } else {
+          setResults([data as SearchResult]);
+          setHasSearched(true);
+        }
+      } catch (err) {
+        toast.error('Error al buscar usuario');
+        setResults([]);
+      } finally {
+        setIsSearching(false);
+        onPreloadComplete?.();
+      }
+    };
+
+    loadUserById();
+  }, [preloadUserId, onPreloadComplete]);
 
   const handleQueryChange = useCallback((newQuery: string) => {
     setQuery(newQuery);
