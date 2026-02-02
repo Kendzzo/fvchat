@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const STICKER_PROMPT = `Create a high-quality digital sticker designed for a kids gaming social app.
@@ -17,7 +18,10 @@ Style:
 - NOT cartoon-flat, NOT emoji-like, NOT simplistic
 
 Sticker characteristics:
-- Transparent background (mandatory)
+- Solid pure white background (mandatory)
+- Background must be a single flat color: #FFFFFF
+- No transparency
+- No checkerboard pattern
 - No border
 - No text
 - No watermark
@@ -31,7 +35,7 @@ Forbidden:
 - Violence, weapons, horror, aggressive, scary
 
 Resolution:
-- 1024x1024 PNG transparent`;
+- 1024x1024 PNG with white background (#FFFFFF)`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -61,7 +65,7 @@ serve(async (req) => {
 
     // Build enhanced prompt based on rarity
     let enhancedPrompt = STICKER_PROMPT + `\n\nSpecific subject: ${name}`;
-    
+
     if (rarity === "rare") {
       enhancedPrompt += "\n\nRarity modifiers: enhanced lighting, subtle glow effect";
     } else if (rarity === "epic") {
@@ -108,12 +112,10 @@ serve(async (req) => {
 
     // Upload to storage
     const fileName = `${Date.now()}-${name.toLowerCase().replace(/\s+/g, "-")}.png`;
-    const { error: uploadError } = await supabase.storage
-      .from("stickers")
-      .upload(fileName, imageBuffer, {
-        contentType: "image/png",
-        upsert: false,
-      });
+    const { error: uploadError } = await supabase.storage.from("stickers").upload(fileName, imageBuffer, {
+      contentType: "image/png",
+      upsert: false,
+    });
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
@@ -126,24 +128,21 @@ serve(async (req) => {
 
     // MODERATION: Verify sticker is safe before saving
     console.log("[generate-sticker] Moderating generated sticker");
-    
+
     let moderated = true;
     try {
-      const moderationResponse = await fetch(
-        `${supabaseUrl}/functions/v1/moderate-image`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-          },
-          body: JSON.stringify({
-            imageBase64: imageBase64,
-            surface: "sticker",
-            checkText: true,
-          }),
-        }
-      );
+      const moderationResponse = await fetch(`${supabaseUrl}/functions/v1/moderate-image`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+        },
+        body: JSON.stringify({
+          imageBase64: imageBase64,
+          surface: "sticker",
+          checkText: true,
+        }),
+      });
 
       if (moderationResponse.ok) {
         const modResult = await moderationResponse.json();
@@ -180,13 +179,16 @@ serve(async (req) => {
     // If moderation failed, don't return success
     if (!moderated) {
       console.log("[generate-sticker] Sticker created but failed moderation, not assigning");
-      return new Response(JSON.stringify({ 
-        error: "Sticker generated but failed content moderation",
-        moderated: false 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Sticker generated but failed content moderation",
+          moderated: false,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     console.log("Sticker generated successfully:", sticker.id);
