@@ -104,7 +104,7 @@ serve(async (req) => {
 
     // Generate links - using HashRouter format (/#/)
     console.log("[send-parent-approval-email] Step 4: Generating links...");
-    const baseUrl = "https://vfchat.lovable.app";
+    const baseUrl = "https://fvchat.lovable.app";
     const approveUrl = `${baseUrl}/#/parent/approve?token=${token}&child=${child_user_id}`;
     const dashboardUrl = `${baseUrl}/#/parent?token=${token}`;
     console.log(`[send-parent-approval-email] Step 4: approveUrl = ${approveUrl}`);
