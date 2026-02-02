@@ -1,24 +1,13 @@
-import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  MoreHorizontal, 
-  Pencil, 
-  Trash2, 
-  BarChart3, 
-  User, 
-  VolumeX, 
-  Flag, 
-  Ban,
-  Trophy,
-  X
-} from 'lucide-react';
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { MoreHorizontal, Pencil, Trash2, BarChart3, User, VolumeX, Flag, Ban, Trophy, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,43 +17,37 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/hooks/useAuth';
-import { usePostActions } from '@/hooks/usePostActions';
-import { Post } from '@/hooks/usePosts';
+} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/useAuth";
+import { usePostActions } from "@/hooks/usePostActions";
+import { Post } from "@/hooks/usePosts";
 
 interface PostOptionsMenuProps {
   post: Post;
 }
 
 const REPORT_REASONS = [
-  { id: 'inappropriate', label: 'Contenido inapropiado' },
-  { id: 'bullying', label: 'Bullying / acoso' },
-  { id: 'spam', label: 'Spam' },
-  { id: 'other', label: 'Otro' },
+  { id: "inappropriate", label: "Contenido inapropiado" },
+  { id: "bullying", label: "Bullying / acoso" },
+  { id: "spam", label: "Spam" },
+  { id: "other", label: "Otro" },
 ];
 
 export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { deletePost, updatePostText, muteUser, blockUser, reportPost, isLoading } = usePostActions();
-  
+
   const [open, setOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showStatsDialog, setShowStatsDialog] = useState(false);
-  const [editText, setEditText] = useState(post.text || '');
+  const [editText, setEditText] = useState(post.text || "");
   const [selectedReportReason, setSelectedReportReason] = useState<string | null>(null);
 
   const isOwnPost = user?.id === post.author_id;
@@ -72,7 +55,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
 
   // Handler for viewing challenge
   const handleViewChallenge = useCallback(() => {
-    navigate('/app/challenges');
+    navigate("/app/challenges");
     setOpen(false);
   }, [navigate]);
 
@@ -84,7 +67,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
 
   // Handler for edit text
   const handleEditText = useCallback(() => {
-    setEditText(post.text || '');
+    setEditText(post.text || "");
     setShowEditDialog(true);
     setOpen(false);
   }, [post.text]);
@@ -126,7 +109,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
 
   const handleConfirmReport = useCallback(async () => {
     if (!selectedReportReason) return;
-    const reason = REPORT_REASONS.find(r => r.id === selectedReportReason)?.label || 'Otro';
+    const reason = REPORT_REASONS.find((r) => r.id === selectedReportReason)?.label || "Otro";
     await reportPost(post.id, post.author_id, reason);
     setShowReportDialog(false);
   }, [post.id, post.author_id, selectedReportReason, reportPost]);
@@ -146,7 +129,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
     <>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <button 
+          <button
             className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
             onClick={(e) => {
               e.preventDefault();
@@ -156,8 +139,8 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
             <MoreHorizontal className="w-5 h-5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          align="end" 
+        <DropdownMenuContent
+          align="end"
           className="w-56 z-[999] bg-white border border-gray-200 shadow-xl rounded-xl"
           onClick={(e) => e.stopPropagation()}
           sideOffset={8}
@@ -165,14 +148,14 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
           {/* Challenge option - always first if applicable */}
           {isChallenge && (
             <>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleViewChallenge}
-                className="flex items-center gap-3 py-3 cursor-pointer"
+                className="flex items-center gap-3 py-3 cursor-pointer text-black"
               >
                 <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
                   <Trophy className="w-4 h-4 text-amber-600" />
                 </div>
-                <span className="font-medium">Ver desafío</span>
+                <span className="font-medium text-black">Ver desafío</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -183,10 +166,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
             <>
               {/* Edit text - only if post has text */}
               {post.text && (
-                <DropdownMenuItem 
-                  onClick={handleEditText}
-                  className="flex items-center gap-3 py-3 cursor-pointer"
-                >
+                <DropdownMenuItem onClick={handleEditText} className="flex items-center gap-3 py-3 cursor-pointer">
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                     <Pencil className="w-4 h-4 text-blue-600" />
                   </div>
@@ -195,7 +175,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
               )}
 
               {/* Delete post */}
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleDeleteClick}
                 className="flex items-center gap-3 py-3 cursor-pointer text-red-600 focus:text-red-600"
               >
@@ -207,10 +187,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
 
               {/* Stats */}
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={handleShowStats}
-                className="flex items-center gap-3 py-3 cursor-pointer"
-              >
+              <DropdownMenuItem onClick={handleShowStats} className="flex items-center gap-3 py-3 cursor-pointer">
                 <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
                   <BarChart3 className="w-4 h-4 text-purple-600" />
                 </div>
@@ -221,10 +198,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
             /* Other user's post options */
             <>
               {/* View profile */}
-              <DropdownMenuItem 
-                onClick={handleViewProfile}
-                className="flex items-center gap-3 py-3 cursor-pointer"
-              >
+              <DropdownMenuItem onClick={handleViewProfile} className="flex items-center gap-3 py-3 cursor-pointer">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                   <User className="w-4 h-4 text-blue-600" />
                 </div>
@@ -232,7 +206,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
               </DropdownMenuItem>
 
               {/* Mute user */}
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleMuteUser}
                 disabled={isLoading}
                 className="flex items-center gap-3 py-3 cursor-pointer"
@@ -244,10 +218,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
               </DropdownMenuItem>
 
               {/* Report */}
-              <DropdownMenuItem 
-                onClick={handleReportClick}
-                className="flex items-center gap-3 py-3 cursor-pointer"
-              >
+              <DropdownMenuItem onClick={handleReportClick} className="flex items-center gap-3 py-3 cursor-pointer">
                 <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
                   <Flag className="w-4 h-4 text-yellow-600" />
                 </div>
@@ -256,7 +227,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
 
               {/* Block user */}
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleBlockClick}
                 disabled={isLoading}
                 className="flex items-center gap-3 py-3 cursor-pointer text-red-600 focus:text-red-600"
@@ -282,10 +253,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -303,10 +271,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmBlock}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogAction onClick={handleConfirmBlock} className="bg-red-600 hover:bg-red-700">
               Bloquear
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -328,8 +293,8 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
                   onClick={() => setSelectedReportReason(reason.id)}
                   className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
                     selectedReportReason === reason.id
-                      ? 'border-purple-500 bg-purple-50 text-purple-700'
-                      : 'border-gray-200 hover:bg-gray-50'
+                      ? "border-purple-500 bg-purple-50 text-purple-700"
+                      : "border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   {reason.label}
@@ -341,7 +306,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
             <Button variant="outline" onClick={() => setShowReportDialog(false)}>
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirmReport}
               disabled={!selectedReportReason || isLoading}
               className="bg-purple-600 hover:bg-purple-700"
@@ -372,11 +337,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancelar
             </Button>
-            <Button 
-              onClick={handleSaveEdit}
-              disabled={isLoading}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
+            <Button onClick={handleSaveEdit} disabled={isLoading} className="bg-purple-600 hover:bg-purple-700">
               Guardar
             </Button>
           </DialogFooter>
@@ -406,9 +367,7 @@ export function PostOptionsMenu({ post }: PostOptionsMenuProps) {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={() => setShowStatsDialog(false)}>
-              Cerrar
-            </Button>
+            <Button onClick={() => setShowStatsDialog(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
