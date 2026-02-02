@@ -27,7 +27,7 @@ const VERSION = "1.0.1"; // For deployment verification
 
 serve(async (req) => {
   console.log(`[send-parent-approval-email v${VERSION}] Request received`);
-  
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -66,7 +66,9 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[send-parent-approval-email] Step 2: Profile found - nick: @${childProfile.nick}, tutor: ${childProfile.tutor_email}`);
+    console.log(
+      `[send-parent-approval-email] Step 2: Profile found - nick: @${childProfile.nick}, tutor: ${childProfile.tutor_email}`,
+    );
 
     // We always send email even if already approved (for re-sends)
     const tutorEmail = childProfile.tutor_email;
@@ -102,7 +104,7 @@ serve(async (req) => {
 
     // Generate links - using HashRouter format (/#/)
     console.log("[send-parent-approval-email] Step 4: Generating links...");
-    const baseUrl = "https://fvchat.lovable.app";
+    const baseUrl = "https://vfchat.lovable.app";
     const approveUrl = `${baseUrl}/#/parent/approve?token=${token}&child=${child_user_id}`;
     const dashboardUrl = `${baseUrl}/#/parent?token=${token}`;
     console.log(`[send-parent-approval-email] Step 4: approveUrl = ${approveUrl}`);
@@ -121,7 +123,7 @@ serve(async (req) => {
         dashboard_url: dashboardUrl,
       },
     });
-    
+
     if (notifError) {
       console.error("[send-parent-approval-email] Step 5: Error inserting notification", notifError);
     } else {
@@ -197,7 +199,9 @@ serve(async (req) => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     if (!resendApiKey) {
-      console.log("[send-parent-approval-email] WARNING: RESEND_API_KEY not configured. Email NOT sent but URLs generated.");
+      console.log(
+        "[send-parent-approval-email] WARNING: RESEND_API_KEY not configured. Email NOT sent but URLs generated.",
+      );
       // Update notification status
       await supabase
         .from("tutor_notifications")
@@ -220,12 +224,12 @@ serve(async (req) => {
     }
 
     console.log("[send-parent-approval-email] Step 6: RESEND_API_KEY found, sending email...");
-    
+
     try {
       // Use onboarding@resend.dev as the from address (Resend's test sender)
       // This works without domain verification
       const fromAddress = "VFC Kids Connect <onboarding@resend.dev>";
-      
+
       const resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -241,7 +245,7 @@ serve(async (req) => {
       });
 
       const resendData = await resendResponse.json();
-      
+
       if (resendResponse.ok) {
         // Update notification status to sent
         await supabase
@@ -255,7 +259,7 @@ serve(async (req) => {
         console.log(`[send-parent-approval-email] Step 6: SUCCESS - Email sent to ${tutorEmail}, id: ${resendData.id}`);
       } else {
         console.error("[send-parent-approval-email] Step 6: Resend API error:", JSON.stringify(resendData));
-        
+
         await supabase
           .from("tutor_notifications")
           .update({ status: "failed", error: JSON.stringify(resendData) })
@@ -266,7 +270,7 @@ serve(async (req) => {
       }
     } catch (emailError) {
       console.error("[send-parent-approval-email] Step 6: Email sending exception:", emailError);
-      
+
       await supabase
         .from("tutor_notifications")
         .update({ status: "failed", error: String(emailError) })
