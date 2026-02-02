@@ -286,6 +286,7 @@
     background: hsl(185 35% 85%);
     border-color: hsl(185 40% 60%);
   }
+}
 
 @layer utilities {
   /* Animations */
