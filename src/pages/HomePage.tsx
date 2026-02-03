@@ -10,7 +10,7 @@ import { Heart, X, Plus, MessageCircle, Swords, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import vfcLogo from "@/assets/vfc-logo.png";
+import vfcLogo from "@/assets/fvc-logo-new.png";
 
 // Emoji placeholders for friends without avatars
 const FRIEND_EMOJIS = ["🎮", "🎨", "🛹", "⚽", "🎸", "🎯", "🌟", "🦋", "🚀", "🎭"];
