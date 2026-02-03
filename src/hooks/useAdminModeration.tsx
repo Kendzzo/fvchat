@@ -241,6 +241,7 @@ export function useAdminModeration() {
           .update({
             suspended_until: null,
             language_infractions_count: 0,
+            strikes_reset_at: new Date().toISOString(),
           })
           .eq("id", userId);
 
