@@ -403,6 +403,7 @@ function ChatDetail({
               });
               const shouldHide =
                 modResult.allowed === false ||
+                modResult.flagged === true ||
                 (modResult.strikes && modResult.strikes > 0);
 
               if (shouldHide) {
