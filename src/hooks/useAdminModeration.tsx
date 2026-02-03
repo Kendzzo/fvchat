@@ -238,6 +238,7 @@ export function useAdminModeration() {
           .from("profiles")
           .update({
             suspended_until: null,
+            language_infractions_count: 0,
           })
           .eq("id", userId);
 
