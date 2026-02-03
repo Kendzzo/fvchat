@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ArrowLeft, Eye, EyeOff, Shield, Loader2 } from "lucide-react";
-import vfcLogo from "@/assets/vfc-logo.png";
+import vfcLogo from "@/assets/fvc-logo-new.png";
 import { useAuth } from "@/hooks/useAuth";
 export default function LoginPage() {
   const navigate = useNavigate();
