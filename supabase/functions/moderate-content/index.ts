@@ -3,20 +3,21 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface ModerationRequest {
   text: string;
-  surface: 'chat' | 'post' | 'comment' | 'nick' | 'group_name';
-  context?: string[];  // Previous messages for context (chat)
-  targetUserId?: string;  // For bullying detection
+  surface: "chat" | "post" | "comment" | "nick" | "group_name";
+  context?: string[]; // Previous messages for context (chat)
+  targetUserId?: string; // For bullying detection
 }
 
 interface ModerationResult {
   allowed: boolean;
   categories: string[];
-  severity: 'low' | 'medium' | 'high' | null;
+  severity: "low" | "medium" | "high" | null;
   reason: string;
 }
 
@@ -24,40 +25,70 @@ interface ModerationResult {
 function localFilter(text: string): ModerationResult | null {
   const normalized = text
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[.\-_*+\s]+/g, ' ')
-    .replace(/0/g, 'o')
-    .replace(/1/g, 'i')
-    .replace(/3/g, 'e')
-    .replace(/4/g, 'a')
-    .replace(/5/g, 's')
-    .replace(/7/g, 't')
-    .replace(/@/g, 'a')
-    .replace(/\$/g, 's');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.\-_*+\s]+/g, " ")
+    .replace(/0/g, "o")
+    .replace(/1/g, "i")
+    .replace(/3/g, "e")
+    .replace(/4/g, "a")
+    .replace(/5/g, "s")
+    .replace(/7/g, "t")
+    .replace(/@/g, "a")
+    .replace(/\$/g, "s");
 
   // Profanity patterns (ES/CAT/EN)
   const profanityPatterns = [
-    /puta/gi, /puto/gi, /mierda/gi, /joder/gi, /cono/gi, /cojones/gi,
-    /gilipollas/gi, /idiota/gi, /imbecil/gi, /subnormal/gi, /retrasado/gi,
-    /maricon/gi, /marica/gi, /bollera/gi, /zorra/gi,
-    /cabron/gi, /hijoputa/gi, /hijo\s*de\s*puta/gi,
-    /hostia/gi, /mecagoen/gi, /me\s*cago\s*en/gi,
-    /fuck/gi, /shit/gi, /bitch/gi, /asshole/gi, /dick/gi, /cock/gi,
-    /gordo/gi, /gorda/gi, /feo/gi, /fea/gi, /tonto/gi, /estupido/gi,
-    /perdedor/gi, /fracasado/gi, /inutil/gi,
+    /puta/gi,
+    /puto/gi,
+    /mierda/gi,
+    /joder/gi,
+    /cono/gi,
+    /cojones/gi,
+    /gilipollas/gi,
+    /idiota/gi,
+    /imbecil/gi,
+    /subnormal/gi,
+    /retrasado/gi,
+    /maricon/gi,
+    /marica/gi,
+    /bollera/gi,
+    /zorra/gi,
+    /cabron/gi,
+    /hijoputa/gi,
+    /hijo\s*de\s*puta/gi,
+    /hostia/gi,
+    /mecagoen/gi,
+    /me\s*cago\s*en/gi,
+    /fuck/gi,
+    /shit/gi,
+    /bitch/gi,
+    /asshole/gi,
+    /dick/gi,
+    /cock/gi,
+    /gordo/gi,
+    /gorda/gi,
+    /feo/gi,
+    /fea/gi,
+    /tonto/gi,
+    /estupido/gi,
+    /perdedor/gi,
+    /fracasado/gi,
+    /inutil/gi,
   ];
 
   // Violence/threats
   const violencePatterns = [
-    /te\s*mato/gi, /te\s*voy\s*a\s*matar/gi, /muere/gi,
-    /suicidate/gi, /matate/gi, /kill\s*you/gi,
+    /te\s*mato/gi,
+    /te\s*voy\s*a\s*matar/gi,
+    /muere/gi,
+    /suicidate/gi,
+    /matate/gi,
+    /kill\s*you/gi,
   ];
 
   // Sexual explicit
-  const sexualPatterns = [
-    /follar/gi, /sexo/gi, /porno/gi, /desnudo/gi, /naked/gi, /porn/gi,
-  ];
+  const sexualPatterns = [/follar/gi, /sexo/gi, /porno/gi, /desnudo/gi, /naked/gi, /porn/gi];
 
   // Personal data patterns
   const personalDataPatterns = [
@@ -67,25 +98,31 @@ function localFilter(text: string): ModerationResult | null {
     /https?:\/\/[^\s]+/gi, // URLs
     /www\.[^\s]+/gi,
     /instagram|tiktok|snapchat|whatsapp/gi,
-    /mi\s*numero\s*es/gi, /mi\s*telefono/gi, /mi\s*direccion/gi,
-    /vivo\s*en/gi, /mi\s*casa\s*esta/gi,
+    /mi\s*numero\s*es/gi,
+    /mi\s*telefono/gi,
+    /mi\s*direccion/gi,
+    /vivo\s*en/gi,
+    /mi\s*casa\s*esta/gi,
   ];
 
   // Dangerous requests
   const dangerousPatterns = [
-    /ven\s*a\s*verme/gi, /quedamos/gi, /pasame\s*tu\s*numero/gi,
+    /ven\s*a\s*verme/gi,
+    /quedamos/gi,
+    /pasame\s*tu\s*numero/gi,
     /dame\s*tu\s*(telefono|direccion|insta)/gi,
-    /nos\s*vemos\s*en/gi, /te\s*recojo/gi,
+    /nos\s*vemos\s*en/gi,
+    /te\s*recojo/gi,
   ];
 
   const categories: string[] = [];
-  let severity: 'low' | 'medium' | 'high' = 'low';
+  let severity: "low" | "medium" | "high" = "low";
 
   // Check profanity
   for (const pattern of profanityPatterns) {
     if (pattern.test(normalized)) {
-      categories.push('profanity');
-      severity = 'medium';
+      categories.push("profanity");
+      severity = "medium";
       break;
     }
     pattern.lastIndex = 0;
@@ -94,8 +131,8 @@ function localFilter(text: string): ModerationResult | null {
   // Check violence
   for (const pattern of violencePatterns) {
     if (pattern.test(normalized)) {
-      categories.push('violence');
-      severity = 'high';
+      categories.push("violence");
+      severity = "high";
       break;
     }
     pattern.lastIndex = 0;
@@ -104,8 +141,8 @@ function localFilter(text: string): ModerationResult | null {
   // Check sexual
   for (const pattern of sexualPatterns) {
     if (pattern.test(normalized)) {
-      categories.push('sexual');
-      severity = 'high';
+      categories.push("sexual");
+      severity = "high";
       break;
     }
     pattern.lastIndex = 0;
@@ -113,9 +150,10 @@ function localFilter(text: string): ModerationResult | null {
 
   // Check personal data
   for (const pattern of personalDataPatterns) {
-    if (pattern.test(text)) { // Use original text for data detection
-      categories.push('personal_data');
-      severity = 'high';
+    if (pattern.test(text)) {
+      // Use original text for data detection
+      categories.push("personal_data");
+      severity = "high";
       break;
     }
     pattern.lastIndex = 0;
@@ -124,8 +162,8 @@ function localFilter(text: string): ModerationResult | null {
   // Check dangerous requests
   for (const pattern of dangerousPatterns) {
     if (pattern.test(normalized)) {
-      categories.push('dangerous_request');
-      severity = 'high';
+      categories.push("dangerous_request");
+      severity = "high";
       break;
     }
     pattern.lastIndex = 0;
@@ -133,18 +171,18 @@ function localFilter(text: string): ModerationResult | null {
 
   if (categories.length > 0) {
     const reasons: Record<string, string> = {
-      profanity: 'Lenguaje no permitido',
-      violence: 'Contenido violento o amenazas',
-      sexual: 'Contenido sexual no permitido',
-      personal_data: 'No compartas datos personales',
-      dangerous_request: 'Solicitud potencialmente peligrosa',
+      profanity: "Lenguaje no permitido",
+      violence: "Contenido violento o amenazas",
+      sexual: "Contenido sexual no permitido",
+      personal_data: "No compartas datos personales",
+      dangerous_request: "Solicitud potencialmente peligrosa",
     };
 
     return {
       allowed: false,
       categories,
       severity,
-      reason: reasons[categories[0]] || 'Contenido no permitido',
+      reason: reasons[categories[0]] || "Contenido no permitido",
     };
   }
 
@@ -152,23 +190,22 @@ function localFilter(text: string): ModerationResult | null {
 }
 
 // Layer 2: AI moderation using Lovable AI with context
-async function aiModeration(
-  text: string, 
-  surface: string, 
-  context?: string[]
-): Promise<ModerationResult> {
+async function aiModeration(text: string, surface: string, context?: string[]): Promise<ModerationResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  
+
   if (!LOVABLE_API_KEY) {
     console.log("[moderate-content] LOVABLE_API_KEY not configured, skipping AI moderation");
-    return { allowed: true, categories: [], severity: null, reason: '' };
+    return { allowed: true, categories: [], severity: null, reason: "" };
   }
 
   try {
     // Build context string for chat
     let contextInfo = "";
     if (context && context.length > 0 && surface === "chat") {
-      contextInfo = `\n\nPrevious messages for context:\n${context.slice(-5).map((m, i) => `${i + 1}. "${m}"`).join("\n")}`;
+      contextInfo = `\n\nPrevious messages for context:\n${context
+        .slice(-5)
+        .map((m, i) => `${i + 1}. "${m}"`)
+        .join("\n")}`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -208,12 +245,12 @@ Respond ONLY with a JSON object (no markdown, no explanation):
 }
 
 If the content is safe, respond with:
-{"allowed": true, "categories": [], "severity": null, "reason": ""}`
+{"allowed": true, "categories": [], "severity": null, "reason": ""}`,
           },
           {
             role: "user",
-            content: `Context: ${surface}\nMessage: "${text}"`
-          }
+            content: `Context: ${surface}\nMessage: "${text}"`,
+          },
         ],
         temperature: 0.1,
         max_tokens: 200,
@@ -223,12 +260,12 @@ If the content is safe, respond with:
     if (!response.ok) {
       console.error("[moderate-content] AI moderation request failed:", response.status);
       // Fail open for availability, but log for review
-      return { allowed: true, categories: [], severity: null, reason: '' };
+      return { allowed: true, categories: [], severity: null, reason: "" };
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
-    
+    const content = data.choices?.[0]?.message?.content || "";
+
     // Parse JSON response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -237,15 +274,15 @@ If the content is safe, respond with:
         allowed: parsed.allowed ?? true,
         categories: parsed.categories || [],
         severity: parsed.severity || null,
-        reason: parsed.reason || '',
+        reason: parsed.reason || "",
       };
     }
 
-    return { allowed: true, categories: [], severity: null, reason: '' };
+    return { allowed: true, categories: [], severity: null, reason: "" };
   } catch (error) {
     console.error("[moderate-content] AI moderation error:", error);
     // Fail open for availability
-    return { allowed: true, categories: [], severity: null, reason: '' };
+    return { allowed: true, categories: [], severity: null, reason: "" };
   }
 }
 
@@ -253,7 +290,7 @@ If the content is safe, respond with:
 async function checkBullyingPattern(
   adminClient: any,
   senderId: string,
-  targetUserId?: string
+  targetUserId?: string,
 ): Promise<{ isBullying: boolean; count: number }> {
   if (!targetUserId) return { isBullying: false, count: 0 };
 
@@ -268,9 +305,9 @@ async function checkBullyingPattern(
       .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
 
     // If 3+ blocked insults in 7 days, flag as bullying pattern
-    return { 
-      isBullying: (count || 0) >= 3, 
-      count: count || 0 
+    return {
+      isBullying: (count || 0) >= 3,
+      count: count || 0,
     };
   } catch (error) {
     console.error("[moderate-content] Bullying check error:", error);
@@ -300,14 +337,20 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const token = authHeader.replace("Bearer ", "");
-    
+
     // Parse request body FIRST (can only be read once)
     const body = await req.json();
-    const { text, surface, context, targetUserId, userId: bodyUserId } = body as ModerationRequest & { userId?: string };
-    
+    const {
+      text,
+      surface,
+      context,
+      targetUserId,
+      userId: bodyUserId,
+    } = body as ModerationRequest & { userId?: string };
+
     // Check if this is a service role call (internal server-to-server)
     const isServiceRoleCall = token === supabaseServiceKey;
-    
+
     // Create service client for admin operations
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -328,7 +371,7 @@ serve(async (req) => {
       const supabase = createClient(supabaseUrl, supabaseKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      
+
       const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
       if (claimsError || !claimsData.user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -348,15 +391,18 @@ serve(async (req) => {
 
     if (profile?.suspended_until && new Date(profile.suspended_until) > new Date()) {
       const suspendedUntil = new Date(profile.suspended_until);
-      return new Response(JSON.stringify({
-        allowed: false,
-        suspended: true,
-        suspended_until: profile.suspended_until,
-        reason: `Cuenta bloqueada hasta ${suspendedUntil.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`,
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          allowed: false,
+          suspended: true,
+          suspended_until: profile.suspended_until,
+          reason: `Cuenta bloqueada hasta ${suspendedUntil.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     if (!text || typeof text !== "string") {
@@ -390,7 +436,7 @@ serve(async (req) => {
     }
 
     // Log moderation event ALWAYS (allowed or blocked)
-    const textSnippet = text.length > 120 ? text.substring(0, 117) + '...' : text;
+    const textSnippet = text.length > 120 ? text.substring(0, 117) + "..." : text;
 
     await adminClient.from("moderation_events").insert({
       user_id: userId,
@@ -417,11 +463,8 @@ serve(async (req) => {
       // If 3+ strikes, suspend for 24 hours
       if (strikeCount >= 3) {
         const suspendedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        
-        await adminClient
-          .from("profiles")
-          .update({ suspended_until: suspendedUntil.toISOString() })
-          .eq("id", userId);
+
+        await adminClient.from("profiles").update({ suspended_until: suspendedUntil.toISOString() }).eq("id", userId);
 
         // Queue tutor notification
         if (profile?.tutor_email) {
@@ -441,50 +484,61 @@ serve(async (req) => {
 
         console.log("[moderate-content] User suspended:", userId);
 
-        return new Response(JSON.stringify({
+        return new Response(
+          JSON.stringify({
+            allowed: false,
+            suspended: true,
+            suspended_until: suspendedUntil.toISOString(),
+            reason: result.reason,
+            categories: result.categories,
+            severity: result.severity,
+            strikes: strikeCount,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
           allowed: false,
-          suspended: true,
-          suspended_until: suspendedUntil.toISOString(),
+          suspended: false,
           reason: result.reason,
           categories: result.categories,
           severity: result.severity,
           strikes: strikeCount,
-        }), {
+        }),
+        {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify({
-        allowed: false,
-        suspended: false,
-        reason: result.reason,
-        categories: result.categories,
-        severity: result.severity,
-        strikes: strikeCount,
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        },
+      );
     }
 
     console.log("[moderate-content] allowed");
 
-    return new Response(JSON.stringify({
-      allowed: true,
-      suspended: false,
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
+    return new Response(
+      JSON.stringify({
+        allowed: true,
+        suspended: false,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
     console.error("[moderate-content] Error:", error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });
