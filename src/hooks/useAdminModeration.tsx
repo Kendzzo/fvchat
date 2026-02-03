@@ -34,7 +34,7 @@ export interface UserWithStrikes {
   suspended_until: string | null;
   strikes_24h: number;
   status: "active" | "suspended";
-  language_infractions_count: (p as any).language_infractions_count ?? 0,
+  language_infractions_count: number;
 }
 
 export function useAdminModeration() {
@@ -188,6 +188,7 @@ export function useAdminModeration() {
           suspended_until: p.suspended_until,
           strikes_24h: strikeMap.get(p.id) || 0,
           status: isSuspended ? "suspended" : "active",
+          language_infractions_count: (p as any).language_infractions_count ?? 0,
         };
       });
 
