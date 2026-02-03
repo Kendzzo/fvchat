@@ -238,7 +238,6 @@ export function useAdminModeration() {
           .from("profiles")
           .update({
             suspended_until: null,
-            strikes: 0,
           })
           .eq("id", userId);
 
