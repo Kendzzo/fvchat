@@ -711,6 +711,7 @@ export type Database = {
           profile_photo_completed: boolean
           profile_photo_updated_at: string | null
           profile_photo_url: string | null
+          strikes_reset_at: string | null
           suspended_until: string | null
           tutor_email: string
           updated_at: string
@@ -734,6 +735,7 @@ export type Database = {
           profile_photo_completed?: boolean
           profile_photo_updated_at?: string | null
           profile_photo_url?: string | null
+          strikes_reset_at?: string | null
           suspended_until?: string | null
           tutor_email: string
           updated_at?: string
@@ -757,6 +759,7 @@ export type Database = {
           profile_photo_completed?: boolean
           profile_photo_updated_at?: string | null
           profile_photo_url?: string | null
+          strikes_reset_at?: string | null
           suspended_until?: string | null
           tutor_email?: string
           updated_at?: string
