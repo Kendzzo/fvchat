@@ -402,43 +402,27 @@ function ChatDetail({
                 reason: modResult.reason,
               });
               const shouldHide =
-  modResult.allowed === false ||
-  (modResult.strikes && modResult.strikes > 0);
+                modResult.allowed === false ||
+                (modResult.strikes && modResult.strikes > 0);
 
-if (shouldHide) {
-  setModerationError({
-    reason: modResult.reason || "Contenido no permitido",
-    strikes: modResult.strikes,
-  });
+              if (shouldHide) {
+                setModerationError({
+                  reason: modResult.reason || "Contenido no permitido",
+                  strikes: modResult.strikes,
+                });
 
-  if (data?.id) {
-    const { error: hideErr } = await supabase
-      .from("messages")
-      .update({ is_hidden: true })
-      .eq("id", data.id);
-
-    if (hideErr) {
-      console.error("[CHAT][HIDE_MESSAGE_FAIL]", hideErr);
-    } else {
-      console.log("[CHAT][HIDE_MESSAGE_OK]", { messageId: data.id });
-      setTimeout(() => void refreshMessages(), 200);
-    }
-  }
-}
-
-                // ✅ Soft-hide the message so users can't see it (parents can via admin/service role)
+                // Soft-hide the message so users can't see it
                 if (data?.id && user?.id) {
-                  const { error: hideError } = await supabase
+                  const { error: hideErr } = await supabase
                     .from("messages")
-                    .update({ is_hidden: true })
+                    .update({ is_hidden: true } as any)
                     .eq("id", data.id)
                     .eq("sender_id", user.id);
 
-                  if (hideError) {
-                    console.error("[CHAT][HIDE_MESSAGE_FAIL]", hideError);
+                  if (hideErr) {
+                    console.error("[CHAT][HIDE_MESSAGE_FAIL]", hideErr);
                   } else {
                     console.log("[CHAT][HIDE_MESSAGE_OK]", { messageId: data.id });
-                    // Refresh so it disappears immediately
                     setTimeout(() => void refreshMessages(), 200);
                   }
                 }
