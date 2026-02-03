@@ -147,9 +147,7 @@ export function useAdminModeration() {
     try {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        // NOTE: some environments may not have strikes_reset_at column.
-        // We compute strikes with a fixed 24h window to avoid breaking builds.
-        .select("id, nick, suspended_until, language_infractions_count")
+        .select("id, nick, suspended_until, language_infractions_count, strikes_reset_at")
         .order("nick");
 
       if (error) {
@@ -162,12 +160,16 @@ export function useAdminModeration() {
         return;
       }
 
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
       const strikeMap = new Map<string, number>();
 
       for (const p of profiles) {
-        const since = twentyFourHoursAgo;
+        // GREATEST(strikes_reset_at, now()-24h) - identical to backend logic
+        const resetAt = p.strikes_reset_at ? new Date(p.strikes_reset_at) : null;
+        const since = resetAt && resetAt > twentyFourHoursAgo 
+          ? resetAt.toISOString() 
+          : twentyFourHoursAgo.toISOString();
 
         const { data: strikes } = await supabase
           .from("moderation_events")
