@@ -246,7 +246,7 @@ function ChatDetail({
   onBack: () => void;
   onMarkRead: (chatId: string) => Promise<void>;
 }) {
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { messages, isLoading, sendMessage, sendSticker, refreshMessages } = useMessages(chat.id);
   const { checkContent, isChecking, suspensionInfo, formatSuspensionTime, checkSuspension } = useModeration();
   const [messageText, setMessageText] = useState("");
@@ -306,11 +306,49 @@ function ChatDetail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chat.id]);
   const isSuspended = suspensionInfo.suspended && suspensionInfo.until && suspensionInfo.until > new Date();
+  const isRestricted = ((profile as any)?.language_infractions_count ?? 0) >= 5;
+
+  const handleSendBlocked = async (error: Error) => {
+    const msg = error?.message || "";
+
+    // Keep profile state fresh
+    try {
+      await refreshProfile();
+    } catch {
+      // ignore
+    }
+
+    if (msg.toLowerCase().includes("restringida")) {
+      toast.error(
+        "Tu cuenta está restringida por seguridad. Si crees que es un error, contacta soporte.",
+      );
+      return;
+    }
+
+    if (msg.toLowerCase().includes("suspend")) {
+      toast.error("Tu cuenta está suspendida temporalmente");
+      return;
+    }
+
+    if (msg.includes("policy") || msg.includes("403") || msg.includes("401")) {
+      toast.error("Permiso denegado.");
+      return;
+    }
+
+    toast.error("No se pudo enviar el mensaje");
+  };
 
   const handleSend = async () => {
     // READ-ONLY mode check first
     if (!canInteract) {
       toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
+
+    if (isRestricted) {
+      toast.error(
+        "Tu cuenta está restringida por seguridad. Si crees que es un error, contacta soporte.",
+      );
       return;
     }
 
@@ -357,12 +395,7 @@ function ChatDetail({
             status: (error as any)?.status,
             message: error.message,
           });
-          // Check if permission error
-          if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("401")) {
-            toast.error("Permiso denegado (DB/RLS). Revisar políticas de messages.");
-          } else {
-            toast.error("No se pudo enviar el archivo");
-          }
+          await handleSendBlocked(error);
           // Keep pendingMedia so user can retry
         } else {
           mediaSentOk = true;
@@ -381,12 +414,7 @@ function ChatDetail({
             status: (error as any)?.status,
             message: error.message,
           });
-          // Check if permission error
-          if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("401")) {
-            toast.error("Permiso denegado (DB/RLS). Revisar políticas de messages.");
-          } else {
-            toast.error("No se pudo enviar el mensaje");
-          }
+          await handleSendBlocked(error);
         } else {
           textSentOk = true;
           setMessageText("");
@@ -450,7 +478,7 @@ function ChatDetail({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   };
 
@@ -461,6 +489,13 @@ function ChatDetail({
     // Same guards as sending
     if (!canInteract) {
       toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
+
+    if (isRestricted) {
+      toast.error(
+        "Tu cuenta está restringida por seguridad. Si crees que es un error, contacta soporte.",
+      );
       return;
     }
 
@@ -498,11 +533,7 @@ function ChatDetail({
         // Fallback: keep old behavior so user can retry manually
         setPendingMedia({ url, type });
 
-        if (error.message?.includes("policy") || error.message?.includes("403") || error.message?.includes("401")) {
-          toast.error("Permiso denegado (DB/RLS). Revisar políticas de messages.");
-        } else {
-          toast.error("No se pudo enviar el archivo");
-        }
+        await handleSendBlocked(error);
         return;
       }
 
@@ -528,6 +559,13 @@ function ChatDetail({
     // READ-ONLY mode check first
     if (!canInteract) {
       toast.info("🔒 Esta función se desbloquea cuando tu tutor apruebe tu cuenta.");
+      return;
+    }
+
+    if (isRestricted) {
+      toast.error(
+        "Tu cuenta está restringida por seguridad. Si crees que es un error, contacta soporte.",
+      );
       return;
     }
 
@@ -771,7 +809,7 @@ function ChatDetail({
             whileTap={{
               scale: 0.9,
             }}
-            onClick={handleSend}
+            onClick={() => void handleSend()}
             disabled={!canInteract || (!messageText.trim() && !pendingMedia) || isSending || isSuspended}
             className="p-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-foreground px-[14px] py-[14px] mb-[5px] opacity-100 disabled:opacity-50"
           >

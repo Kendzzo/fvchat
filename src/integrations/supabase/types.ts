@@ -1191,6 +1191,7 @@ export type Database = {
         Returns: boolean
       }
       is_user_suspended: { Args: { _user_id: string }; Returns: boolean }
+      reset_user_strikes: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       account_status: "pending_approval" | "active" | "suspended"
