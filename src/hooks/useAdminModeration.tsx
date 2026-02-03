@@ -151,7 +151,7 @@ export function useAdminModeration() {
       // Get all profiles
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, nick, suspended_until, language_infractions_count")
+        .select("id, nick, suspended_until, strikes_reset_at")
         .order("nick");
 
       if (error) {
@@ -241,7 +241,6 @@ export function useAdminModeration() {
           .update({
             suspended_until: null,
             language_infractions_count: 0,
-            strikes_reset_at: new Date().toISOString(),
           })
           .eq("id", userId);
 
