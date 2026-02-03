@@ -147,7 +147,9 @@ export function useAdminModeration() {
     try {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, nick, suspended_until, language_infractions_count, strikes_reset_at")
+        // NOTE: some environments may not have strikes_reset_at column.
+        // We compute strikes with a fixed 24h window to avoid breaking builds.
+        .select("id, nick, suspended_until, language_infractions_count")
         .order("nick");
 
       if (error) {
@@ -165,7 +167,7 @@ export function useAdminModeration() {
       const strikeMap = new Map<string, number>();
 
       for (const p of profiles) {
-        const since = (p as any).strikes_reset_at ?? twentyFourHoursAgo;
+        const since = twentyFourHoursAgo;
 
         const { data: strikes } = await supabase
           .from("moderation_events")
@@ -239,7 +241,6 @@ export function useAdminModeration() {
           .update({
             suspended_until: null,
             language_infractions_count: 0,
-            strikes_reset_at: new Date().toISOString(),
           })
           .eq("id", userId);
 
