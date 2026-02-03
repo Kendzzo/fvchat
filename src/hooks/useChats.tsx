@@ -115,7 +115,6 @@ export function useChats() {
         .select("chat_id, content, created_at")
         .in("chat_id", chatIds)
         .eq("is_hidden", false)
-        .eq("is_hidden", false)
         .order("created_at", { ascending: false });
 
       // Group last messages by chat_id (first occurrence is the latest)
