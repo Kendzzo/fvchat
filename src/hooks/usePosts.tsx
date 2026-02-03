@@ -158,6 +158,43 @@ export function usePosts() {
     return () => window.removeEventListener('vfc-posts-refresh', handleRefresh);
   }, []);
 
+  // Realtime subscription for comments count updates
+  useEffect(() => {
+    const channel = supabase
+      .channel("posts-comments-count")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "comments",
+        },
+        (payload) => {
+          const postId = (payload.new as any)?.post_id || (payload.old as any)?.post_id;
+          if (!postId) return;
+
+          // Update the specific post's comment count
+          setPosts((currentPosts) =>
+            currentPosts.map((post) => {
+              if (post.id !== postId) return post;
+              
+              if (payload.eventType === "INSERT") {
+                return { ...post, comments_count: (post.comments_count || 0) + 1 };
+              } else if (payload.eventType === "DELETE") {
+                return { ...post, comments_count: Math.max(0, (post.comments_count || 0) - 1) };
+              }
+              return post;
+            }),
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   return {
     posts,
     isLoading,

@@ -123,7 +123,10 @@ export function useUnreadMessages() {
 
         // Get existing reads
         const messageIds = messages.map((m) => m.id);
-        if (messageIds.length === 0) return;
+        if (messageIds.length === 0) {
+          // No messages from others = nothing to mark, but ensure count is 0 for this chat
+          return;
+        }
 
         const { data: existingReads } = await supabase
           .from("message_reads")
@@ -142,15 +145,25 @@ export function useUnreadMessages() {
           user_id: user.id,
         }));
 
-        await supabase.from("message_reads").insert(readsToInsert);
-
-        // Refresh count after marking as read
-        debouncedFetchUnreadCount();
+        const { error: insertError } = await supabase.from("message_reads").insert(readsToInsert);
+        
+        if (!insertError) {
+          // FIX: Update count IMMEDIATELY (optimistic) and then verify with fetch
+          setUnreadCount((prev) => Math.max(0, prev - unreadMessageIds.length));
+          
+          // Reset debounce to allow immediate fetch
+          lastFetchRef.current = 0;
+          
+          // Then verify with actual fetch (delayed to avoid race)
+          setTimeout(() => {
+            fetchUnreadCount();
+          }, 300);
+        }
       } catch (error) {
         console.error("Error marking chat as read:", error);
       }
     },
-    [user],
+    [user, fetchUnreadCount],
   );
 
   useEffect(() => {
