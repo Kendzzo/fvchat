@@ -405,7 +405,23 @@ function ChatDetail({
                   reason: modResult.reason || "Contenido no permitido",
                   strikes: modResult.strikes,
                 });
-                // TODO: could mark message as hidden via update here
+
+                // ✅ Soft-hide the message so users can't see it (parents can via admin/service role)
+                if (data?.id && user?.id) {
+                  const { error: hideError } = await supabase
+                    .from("messages")
+                    .update({ is_hidden: true })
+                    .eq("id", data.id)
+                    .eq("sender_id", user.id);
+
+                  if (hideError) {
+                    console.error("[CHAT][HIDE_MESSAGE_FAIL]", hideError);
+                  } else {
+                    console.log("[CHAT][HIDE_MESSAGE_OK]", { messageId: data.id });
+                    // Refresh so it disappears immediately
+                    setTimeout(() => void refreshMessages(), 200);
+                  }
+                }
               }
             } catch (modErr) {
               console.error("[CHAT][MODERATION_FAIL]", modErr);
