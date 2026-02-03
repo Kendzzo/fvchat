@@ -483,6 +483,7 @@ export type Database = {
           created_at: string
           id: string
           is_blocked: boolean
+          is_hidden: boolean
           moderation_checked_at: string | null
           moderation_reason: string | null
           sender_id: string
@@ -497,6 +498,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_blocked?: boolean
+          is_hidden?: boolean
           moderation_checked_at?: string | null
           moderation_reason?: string | null
           sender_id: string
@@ -511,6 +513,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_blocked?: boolean
+          is_hidden?: boolean
           moderation_checked_at?: string | null
           moderation_reason?: string | null
           sender_id?: string
