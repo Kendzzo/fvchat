@@ -410,7 +410,7 @@ function ChatDetail({
                 if (data?.id && user?.id) {
                   const { error: hideError } = await supabase
                     .from("messages")
-                    .update({ is_hidden: true })
+                    .update({ is_hidden: true } as any)
                     .eq("id", data.id)
                     .eq("sender_id", user.id);
 
