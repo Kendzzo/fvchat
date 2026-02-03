@@ -31,6 +31,26 @@ serve(async (req) => {
 
     console.log(`[assign-starter-stickers] Processing user: ${user_id}`);
 
+    // CRITICAL: Check if profile exists before doing anything
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user_id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("[assign-starter-stickers] Error checking profile:", profileError);
+      throw profileError;
+    }
+
+    if (!profile) {
+      console.log(`[assign-starter-stickers] Profile not found for user ${user_id}, skipping`);
+      return new Response(
+        JSON.stringify({ ok: true, skipped: true, reason: "profile_not_found" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check if user already has stickers
     const { count: userStickerCount, error: countError } = await supabase
       .from("user_stickers")
