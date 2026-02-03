@@ -616,12 +616,11 @@ function ChatDetail({
             <p className="text-sm text-muted-foreground mt-2">¡Envía el primer mensaje!</p>
           </div>
         ) : (
-          visibleMessages.map((msg) => {
+          messages.filter((msg: any) => msg.is_hidden !== true).map((msg) => {
             const isMine = msg.sender_id === user?.id;
             const isSticker = msg.sticker_id && msg.sticker;
             const isAudio = msg.type === "audio";
             const isMedia = msg.type === "image" || msg.type === "photo" || msg.type === "video";
-            const visibleMessages = messages.filter((msg: any) => msg.is_hidden !== true);
             return (
               <motion.div
                 key={msg.id}
