@@ -401,11 +401,30 @@ function ChatDetail({
                 allowed: modResult.allowed,
                 reason: modResult.reason,
               });
-              if (!modResult.allowed) {
-                setModerationError({
-                  reason: modResult.reason || "Contenido no permitido",
-                  strikes: modResult.strikes,
-                });
+              const shouldHide =
+  modResult.allowed === false ||
+  (modResult.strikes && modResult.strikes > 0);
+
+if (shouldHide) {
+  setModerationError({
+    reason: modResult.reason || "Contenido no permitido",
+    strikes: modResult.strikes,
+  });
+
+  if (data?.id) {
+    const { error: hideErr } = await supabase
+      .from("messages")
+      .update({ is_hidden: true })
+      .eq("id", data.id);
+
+    if (hideErr) {
+      console.error("[CHAT][HIDE_MESSAGE_FAIL]", hideErr);
+    } else {
+      console.log("[CHAT][HIDE_MESSAGE_OK]", { messageId: data.id });
+      setTimeout(() => void refreshMessages(), 200);
+    }
+  }
+}
 
                 // ✅ Soft-hide the message so users can't see it (parents can via admin/service role)
                 if (data?.id && user?.id) {
