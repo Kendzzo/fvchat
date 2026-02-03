@@ -34,6 +34,7 @@ export interface UserWithStrikes {
   suspended_until: string | null;
   strikes_24h: number;
   status: "active" | "suspended";
+  language_infractions_count: (p as any).language_infractions_count ?? 0,
 }
 
 export function useAdminModeration() {
@@ -150,7 +151,7 @@ export function useAdminModeration() {
       // Get all profiles
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, nick, suspended_until")
+        .select("id, nick, suspended_until, language_infractions_count")
         .order("nick");
 
       if (error) {
