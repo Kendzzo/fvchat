@@ -450,13 +450,30 @@ serve(async (req) => {
 
     // If content was blocked, check strikes
     if (!result.allowed) {
-      // Count strikes in last 24 hours
+      // Get strikes_reset_at from profile for accurate count
+      const { data: profileData } = await adminClient
+        .from("profiles")
+        .select("strikes_reset_at")
+        .eq("id", userId)
+        .single();
+
+      // Use strikes_reset_at if set, otherwise fallback to 24h ago
+      const strikesResetAt = profileData?.strikes_reset_at 
+        ? new Date(profileData.strikes_reset_at) 
+        : null;
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+      // Count from the LATER of: strikes_reset_at or 24h ago
+      const countFromDate = strikesResetAt && strikesResetAt > twentyFourHoursAgo 
+        ? strikesResetAt 
+        : twentyFourHoursAgo;
+
       const { count } = await adminClient
         .from("moderation_events")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("allowed", false)
-        .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        .gte("created_at", countFromDate.toISOString());
 
       const strikeCount = count || 0;
 
