@@ -74,13 +74,11 @@ export function useAdminModeration() {
         }
 
         const { data, error } = await query;
-
         if (error) {
           console.error("Error fetching moderation events:", error);
           return;
         }
 
-        // Fetch user nicks
         if (data && data.length > 0) {
           const userIds = [...new Set(data.map((e) => e.user_id))];
           const { data: profiles } = await supabase.from("profiles").select("id, nick").in("id", userIds);
@@ -93,7 +91,6 @@ export function useAdminModeration() {
             user_nick: nickMap.get(event.user_id) || "Unknown",
           })) as ModerationEvent[];
 
-          // Filter by category if specified
           if (filters?.category) {
             setEvents(eventsWithNicks.filter((e) => e.categories.includes(filters.category!)));
           } else {
@@ -148,10 +145,9 @@ export function useAdminModeration() {
     if (!isAdmin) return;
 
     try {
-      // Get all profiles
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, nick, suspended_until, strikes_reset_at")
+        .select("id, nick, suspended_until, language_infractions_count, strikes_reset_at")
         .order("nick");
 
       if (error) {
@@ -164,21 +160,24 @@ export function useAdminModeration() {
         return;
       }
 
-      // Get strike counts for each user
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      const { data: strikeCounts } = await supabase
-        .from("moderation_events")
-        .select("user_id")
-        .eq("allowed", false)
-        .gte("created_at", twentyFourHoursAgo);
-
       const strikeMap = new Map<string, number>();
-      strikeCounts?.forEach((s) => {
-        strikeMap.set(s.user_id, (strikeMap.get(s.user_id) || 0) + 1);
-      });
 
-      const usersData: UserWithStrikes[] = profiles.map((p) => {
+      for (const p of profiles) {
+        const since = (p as any).strikes_reset_at ?? twentyFourHoursAgo;
+
+        const { data: strikes } = await supabase
+          .from("moderation_events")
+          .select("id")
+          .eq("allowed", false)
+          .eq("user_id", p.id)
+          .gte("created_at", since);
+
+        strikeMap.set(p.id, strikes?.length ?? 0);
+      }
+
+      const usersData: UserWithStrikes[] = profiles.map((p: any) => {
         const now = new Date();
         const isSuspended = p.suspended_until && new Date(p.suspended_until) > now;
 
@@ -188,11 +187,10 @@ export function useAdminModeration() {
           suspended_until: p.suspended_until,
           strikes_24h: strikeMap.get(p.id) || 0,
           status: isSuspended ? "suspended" : "active",
-          language_infractions_count: (p as any).language_infractions_count ?? 0,
+          language_infractions_count: p.language_infractions_count ?? 0,
         };
       });
 
-      // Sort by strikes (descending) then by suspended status
       usersData.sort((a, b) => {
         if (a.status !== b.status) {
           return a.status === "suspended" ? -1 : 1;
@@ -241,6 +239,7 @@ export function useAdminModeration() {
           .update({
             suspended_until: null,
             language_infractions_count: 0,
+            strikes_reset_at: new Date().toISOString(),
           })
           .eq("id", userId);
 
