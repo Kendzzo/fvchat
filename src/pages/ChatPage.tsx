@@ -368,6 +368,7 @@ function ChatDetail({
           mediaSentOk = true;
           setPendingMedia(null);
           console.log("[CHAT][DB_INSERT_OK]", { messageId: data?.id });
+          console.log("[CHAT][DB_INSERT_OK][RAW_DATA]", data);
         }
       }
 
@@ -410,7 +411,7 @@ function ChatDetail({
                 if (data?.id && user?.id) {
                   const { error: hideError } = await supabase
                     .from("messages")
-                    .update({ is_hidden: true } as any)
+                    .update({ is_hidden: true })
                     .eq("id", data.id)
                     .eq("sender_id", user.id);
 
