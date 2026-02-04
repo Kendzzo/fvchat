@@ -1,12 +1,10 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { componentTagger } from "lovable-tagger";
+
 export default defineConfig(({ mode }) => ({
-  base: "/",
-  server: {
-    host: "::",
-    port: 8080,
-    hmr: {
-      overlay: false,
-    },
-  },
+  base: "/fvchat/", // 👈 MUY IMPORTANTE para GitHub Pages
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
