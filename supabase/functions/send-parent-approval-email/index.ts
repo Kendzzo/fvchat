@@ -225,9 +225,13 @@ serve(async (req) => {
 
     console.log("[send-parent-approval-email] Step 6: RESEND_API_KEY found, sending email...");
 
+    // Track if email was actually sent
+    let emailSentSuccessfully = false;
+
     try {
       // Use onboarding@resend.dev as the from address (Resend's test sender)
-      // This works without domain verification
+      // NOTE: This only works for sending to the Resend account owner's email
+      // For production, a verified domain is required
       const fromAddress = "VFC Kids Connect <onboarding@resend.dev>";
 
       const resendResponse = await fetch("https://api.resend.com/emails", {
@@ -256,6 +260,7 @@ serve(async (req) => {
           .order("created_at", { ascending: false })
           .limit(1);
 
+        emailSentSuccessfully = true;
         console.log(`[send-parent-approval-email] Step 6: SUCCESS - Email sent to ${tutorEmail}, id: ${resendData.id}`);
       } else {
         console.error("[send-parent-approval-email] Step 6: Resend API error:", JSON.stringify(resendData));
@@ -280,11 +285,11 @@ serve(async (req) => {
         .limit(1);
     }
 
-    console.log("[send-parent-approval-email] Step 7: Returning success response");
+    console.log("[send-parent-approval-email] Step 7: Returning response, email_sent:", emailSentSuccessfully);
     return new Response(
       JSON.stringify({
         ok: true,
-        email_sent: true,
+        email_sent: emailSentSuccessfully,
         approve_url: approveUrl,
         dashboard_url: dashboardUrl,
       }),

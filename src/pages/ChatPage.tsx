@@ -20,6 +20,7 @@ import { formatLastSeen, isOnline } from "@/hooks/usePresence";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sticker } from "@/hooks/useStickers";
+import { ChatMediaRenderer } from "@/components/ChatMediaRenderer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -692,12 +693,12 @@ function ChatDetail({
                       />
                     </div>
                   ) : isAudio ? (
-                    <audio src={msg.content} controls className="max-w-[240px]" />
+                    <ChatMediaRenderer url={msg.content} type="audio" className="max-w-[240px]" />
                   ) : isMedia ? (
                     msg.type === "video" ? (
-                      <video src={msg.content} controls className="max-w-[200px] rounded-lg" playsInline />
+                      <ChatMediaRenderer url={msg.content} type="video" className="max-w-[200px] rounded-lg" />
                     ) : (
-                      <img src={msg.content} alt="Media" className="max-w-[200px] rounded-lg" />
+                      <ChatMediaRenderer url={msg.content} type="image" className="max-w-[200px] rounded-lg" />
                     )
                   ) : (
                     <p className="text-sm">{msg.content}</p>
