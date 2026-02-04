@@ -246,55 +246,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (nick: string, password: string): Promise<{ error: Error | null }> => {
     try {
-      // Admin bypass for development
-      if (nick === 'Admin' && password === '1234') {
-        const adminEmail = 'admin@vfc.local';
-        const adminPassword = 'admin1234';
-        
-        // Try to sign in first
-        const { error } = await supabase.auth.signInWithPassword({
-          email: adminEmail,
-          password: adminPassword
-        });
-        
-        if (error) {
-          // If admin doesn't exist, create it
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: adminEmail,
-            password: adminPassword
-          });
-          
-          if (signUpError) {
-            console.error('Could not create admin:', signUpError);
-            return { error: new Error('Error de administrador') };
-          }
-          
-          if (signUpData.user) {
-            // Create admin profile and role
-            await supabase.from('profiles').insert({
-              id: signUpData.user.id,
-              nick: 'admin',
-              birth_year: 2010,
-              tutor_email: 'admin@vfc.local',
-              age_group: '13-16',
-              account_status: 'active',
-              parent_approved: true
-            });
-            
-            await supabase.from('user_roles').insert({
-              user_id: signUpData.user.id,
-              role: 'admin'
-            });
-            
-            setIsAdmin(true);
-          }
-        } else {
-          setIsAdmin(true);
-        }
-        
-        return { error: null };
-      }
-
       // Regular login using technical email derived from nick
       const technicalEmail = createTechnicalEmail(nick);
       
