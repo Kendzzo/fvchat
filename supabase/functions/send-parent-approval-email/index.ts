@@ -23,7 +23,7 @@ async function hashToken(token: string): Promise<string> {
   return hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-const VERSION = "1.0.2"; // For deployment verification
+const VERSION = "1.1.0"; // Updated to use RESEND_FROM secret
 
 serve(async (req) => {
   console.log(`[send-parent-approval-email v${VERSION}] Request received`);
@@ -227,12 +227,13 @@ serve(async (req) => {
 
     // Track if email was actually sent
     let emailSentSuccessfully = false;
+    let errorCode: string | null = null;
 
     try {
-      // Use onboarding@resend.dev as the from address (Resend's test sender)
-      // NOTE: This only works for sending to the Resend account owner's email
-      // For production, a verified domain is required
-      const fromAddress = "VFC Kids Connect <onboarding@resend.dev>";
+      // Use RESEND_FROM from secrets (must be a verified domain in Resend)
+      // Fallback to onboarding@resend.dev for testing (only works for account owner's email)
+      const fromAddress = Deno.env.get("RESEND_FROM") || "VFC Kids Connect <onboarding@resend.dev>";
+      console.log(`[send-parent-approval-email] Step 6: Using fromAddress = ${fromAddress}`);
 
       const resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -263,33 +264,39 @@ serve(async (req) => {
         emailSentSuccessfully = true;
         console.log(`[send-parent-approval-email] Step 6: SUCCESS - Email sent to ${tutorEmail}, id: ${resendData.id}`);
       } else {
-        console.error("[send-parent-approval-email] Step 6: Resend API error:", JSON.stringify(resendData));
+        // Determine specific error code for debugging
+        errorCode = resendResponse.status === 403 ? "RESEND_403" : `RESEND_${resendResponse.status}`;
+        const errorDetails = `Status: ${resendResponse.status}, Body: ${JSON.stringify(resendData)}`;
+        console.error(`[send-parent-approval-email] Step 6: Resend API error (${errorCode}):`, errorDetails);
 
         await supabase
           .from("tutor_notifications")
-          .update({ status: "failed", error: JSON.stringify(resendData) })
+          .update({ status: "failed", error: errorDetails })
           .eq("user_id", child_user_id)
           .eq("type", "approval")
           .order("created_at", { ascending: false })
           .limit(1);
       }
     } catch (emailError) {
-      console.error("[send-parent-approval-email] Step 6: Email sending exception:", emailError);
+      errorCode = "RESEND_ERROR";
+      const errorMessage = emailError instanceof Error ? emailError.message : String(emailError);
+      console.error(`[send-parent-approval-email] Step 6: Email sending exception (${errorCode}):`, errorMessage);
 
       await supabase
         .from("tutor_notifications")
-        .update({ status: "failed", error: String(emailError) })
+        .update({ status: "failed", error: `Exception: ${errorMessage}` })
         .eq("user_id", child_user_id)
         .eq("type", "approval")
         .order("created_at", { ascending: false })
         .limit(1);
     }
 
-    console.log("[send-parent-approval-email] Step 7: Returning response, email_sent:", emailSentSuccessfully);
+    console.log(`[send-parent-approval-email] Step 7: Returning response, email_sent: ${emailSentSuccessfully}, error_code: ${errorCode}`);
     return new Response(
       JSON.stringify({
         ok: true,
         email_sent: emailSentSuccessfully,
+        ...(errorCode && { error_code: errorCode }),
         approve_url: approveUrl,
         dashboard_url: dashboardUrl,
       }),
