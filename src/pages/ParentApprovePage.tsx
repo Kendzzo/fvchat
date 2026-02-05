@@ -24,17 +24,48 @@ export default function ParentApprovePage() {
 
     const approveChild = async () => {
       try {
+        console.log("[ParentApprovePage] Calling parent-approve-child with:", { token: token?.slice(0, 10) + "...", child_user_id: childId });
+        
         const { data, error } = await supabase.functions.invoke("parent-approve-child", {
           body: { token, child_user_id: childId }
         });
 
+        console.log("[ParentApprovePage] Response:", { data, error });
+
+        // Handle FunctionsHttpError (non-2xx status codes)
         if (error) {
-          console.error("Approval error:", error);
+          console.error("[ParentApprovePage] Function error:", error);
+          
+          // Try to extract error context from the error
+          let errorContext = "";
+          if (error.context) {
+            try {
+              const responseBody = await error.context.json();
+              console.log("[ParentApprovePage] Error context body:", responseBody);
+              errorContext = responseBody?.error || "";
+            } catch {
+              console.log("[ParentApprovePage] Could not parse error context");
+            }
+          }
+          
           setStatus("error");
-          setErrorMessage("Error al aprobar el registro.");
+          
+          // Parse error message for specific codes
+          if (errorContext.includes("Invalid or expired token")) {
+            setErrorMessage("El enlace no es válido o ha caducado. Solicita uno nuevo.");
+          } else if (errorContext.includes("revoked")) {
+            setErrorMessage("Este enlace ha sido revocado. Contacta con soporte.");
+          } else if (errorContext.includes("mismatch")) {
+            setErrorMessage("El enlace no corresponde a esta cuenta.");
+          } else if (errorContext.includes("not found")) {
+            setErrorMessage("No se encontró la cuenta del menor.");
+          } else {
+            setErrorMessage(errorContext || "Error técnico al conectar con el servidor.");
+          }
           return;
         }
 
+        // Success cases
         if (data?.ok) {
           setChildNick(data.child_nick || "");
           if (data.already_approved) {
@@ -42,14 +73,17 @@ export default function ParentApprovePage() {
           } else {
             setStatus("success");
           }
-        } else {
-          setStatus("error");
-          setErrorMessage(data?.error || "Error desconocido");
+          return;
         }
-      } catch (err) {
-        console.error("Approval exception:", err);
+
+        // Fallback error
         setStatus("error");
-        setErrorMessage("Error de conexión.");
+        setErrorMessage(data?.error || "Error desconocido al aprobar.");
+        
+      } catch (err) {
+        console.error("[ParentApprovePage] Exception:", err);
+        setStatus("error");
+        setErrorMessage("Error de conexión. Inténtalo de nuevo.");
       }
     };
 
