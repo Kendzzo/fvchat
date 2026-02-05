@@ -231,8 +231,32 @@ serve(async (req) => {
 
     try {
       // Use RESEND_FROM from secrets (must be a verified domain in Resend)
-      // Fallback to onboarding@resend.dev for testing (only works for account owner's email)
-      const fromAddress = Deno.env.get("RESEND_FROM") || "VFC Kids Connect <onboarding@resend.dev>";
+      const fromAddress = Deno.env.get("RESEND_FROM");
+      
+      if (!fromAddress) {
+        console.error("[send-parent-approval-email] Step 6: RESEND_FROM secret is not configured");
+        
+        await supabase
+          .from("tutor_notifications")
+          .update({ status: "failed", error: "RESEND_FROM secret not configured" })
+          .eq("user_id", child_user_id)
+          .eq("type", "approval")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            email_sent: false,
+            error_code: "RESEND_FROM_MISSING",
+            reason: "RESEND_FROM secret not configured",
+            approve_url: approveUrl,
+            dashboard_url: dashboardUrl,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      
       console.log(`[send-parent-approval-email] Step 6: Using fromAddress = ${fromAddress}`);
 
       const resendResponse = await fetch("https://api.resend.com/emails", {
