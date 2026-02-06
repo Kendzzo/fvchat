@@ -484,8 +484,8 @@ export default function PublishPage() {
                   👥
                 </div>
                 <div className="text-left">
-                  <p className="font-medium">Mi franja de edad</p>
-                  <p className="text-xs text-muted-foreground">Usuarios de tu misma edad</p>
+                  <p className="font-medium">Para todo el mundo</p>
+                  <p className="text-xs text-muted-foreground">Todos los usuarios pueden verlo</p>
                 </div>
                 {privacy === "same_age_group" && <div className="ml-auto w-5 h-5 rounded-full bg-secondary flex items-center justify-center">
                     <span className="text-secondary-foreground text-xs">✓</span>
