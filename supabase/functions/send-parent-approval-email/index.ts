@@ -316,11 +316,26 @@ serve(async (req) => {
     }
 
     console.log(`[send-parent-approval-email] Step 7: Returning response, email_sent: ${emailSentSuccessfully}, error_code: ${errorCode}`);
+    
+    // CRITICAL: Only return ok:true if email was actually sent
+    if (!emailSentSuccessfully) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          email_sent: false,
+          error_code: errorCode || "EMAIL_NOT_SENT",
+          reason: "El email no pudo ser enviado",
+          approve_url: approveUrl,
+          dashboard_url: dashboardUrl,
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    
     return new Response(
       JSON.stringify({
         ok: true,
-        email_sent: emailSentSuccessfully,
-        ...(errorCode && { error_code: errorCode }),
+        email_sent: true,
         approve_url: approveUrl,
         dashboard_url: dashboardUrl,
       }),

@@ -7,112 +7,68 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+type ContentType = "text" | "image" | "audio" | "sticker" | "photo" | "video";
+
 interface SendMessageRequest {
   chat_id: string;
   client_temp_id: string;
-  content_type: "text" | "image" | "audio" | "sticker" | "photo" | "video";
+  content_type: ContentType;
   content_text?: string;
   content_url?: string;
   sticker_id?: string;
 }
 
+function json(status: number, payload: unknown) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "Método no permitido" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (req.method !== "POST") return json(405, { ok: false, error: "Método no permitido" });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ ok: false, error: "No autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) return json(401, { ok: false, error: "No autorizado" });
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // 1) Validar usuario con su token
-    const supabaseUser = createClient(supabaseUrl, anonKey, {
+    // USER client: todo bajo RLS real
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: userRes, error: userErr } = await supabaseUser.auth.getUser();
-    if (userErr || !userRes?.user) {
-      return new Response(JSON.stringify({ ok: false, error: "Token inválido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = userRes.user.id;
+    // 1) Validar usuario real
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    const user = userData?.user;
+    if (userErr || !user) return json(401, { ok: false, error: "Token inválido" });
 
-    const body: SendMessageRequest = await req.json();
+    const body = (await req.json()) as SendMessageRequest;
     const { chat_id, client_temp_id, content_type, content_text, content_url, sticker_id } = body;
 
     if (!chat_id || !client_temp_id || !content_type) {
-      return new Response(JSON.stringify({ ok: false, error: "Faltan campos requeridos" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(400, { ok: false, error: "Faltan campos requeridos" });
     }
 
-    // 2) Admin para DB (insert seguro)
-    const admin = createClient(supabaseUrl, serviceKey);
-
-    // 3) Verificar participante del chat
-    const { data: chat, error: chatErr } = await admin
-      .from("chats")
-      .select("id, participant_ids")
-      .eq("id", chat_id)
-      .single();
-
-    if (chatErr || !chat) {
-      return new Response(JSON.stringify({ ok: false, error: "Chat no encontrado" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const participants = (chat as any).participant_ids as string[] | null;
-    if (!Array.isArray(participants) || !participants.includes(userId)) {
-      return new Response(JSON.stringify({ ok: false, error: "No eres participante de este chat" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 4) Construir content
+    // 2) Validar contenido
     let content = "";
     if (content_type === "text") {
       content = (content_text || "").trim();
-      if (!content) {
-        return new Response(JSON.stringify({ ok: false, error: "Mensaje vacío" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!content) return json(400, { ok: false, error: "Mensaje vacío" });
     } else {
       content = (content_url || "").trim();
-      if (!content) {
-        return new Response(JSON.stringify({ ok: false, error: "URL de contenido requerida" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!content) return json(400, { ok: false, error: "URL de contenido requerida" });
     }
 
     const dbType = content_type === "sticker" ? "image" : content_type;
 
-    // 5) INSERT (admin)
+    // 3) Insert DB (si falla, NO ok)
     const insertData = {
       chat_id,
-      sender_id: userId,
+      sender_id: user.id,
       content,
       type: dbType,
       status: "sent",
@@ -121,30 +77,47 @@ Deno.serve(async (req) => {
       is_blocked: false,
     };
 
-    const { data: message, error: insErr } = await admin
+    const { data: messageData, error: insertErr } = await supabase
       .from("messages")
       .insert(insertData)
       .select("id, chat_id, sender_id, content, type, status, sticker_id, client_temp_id, is_blocked, created_at")
       .single();
 
-    if (insErr) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Error al guardar mensaje", details: insErr.message, code: insErr.code }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    if (insertErr || !messageData) {
+      return json(400, {
+        ok: false,
+        error: "Error al guardar mensaje",
+        details: insertErr?.message || "insert_failed",
+        code: insertErr?.code || null,
+      });
     }
 
-    return new Response(JSON.stringify({ ok: true, message }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // 4) Moderación async SOLO texto (fail-open) — NO afecta respuesta
+    if (content_type === "text") {
+      void (async () => {
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/moderate-content`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader,
+            },
+            body: JSON.stringify({
+              text: content,
+              surface: "chat",
+              userId: user.id,
+              messageId: messageData.id,
+            }),
+          });
+        } catch {
+          // no-op
+        }
+      })();
+    }
+
+    // 5) Respuesta OK real
+    return json(200, { ok: true, message: messageData });
   } catch (e) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Error interno", details: e instanceof Error ? e.message : String(e) }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return json(500, { ok: false, error: "Error interno", details: e instanceof Error ? e.message : String(e) });
   }
 });
