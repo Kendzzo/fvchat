@@ -17,9 +17,7 @@ interface SendMessageRequest {
 }
 
 Deno.serve(async (req) => {
-  // CORS preflight
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
-
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ ok: false, error: "Método no permitido" }), {
       status: 405,
@@ -37,27 +35,22 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Client usuario (para validar sesión)
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+    // 1) Validar usuario con su token
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseUser.auth.getUser();
-
-    if (userError || !user) {
+    const { data: userRes, error: userErr } = await supabaseUser.auth.getUser();
+    if (userErr || !userRes?.user) {
       return new Response(JSON.stringify({ ok: false, error: "Token inválido" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const userId = user.id;
+    const userId = userRes.user.id;
 
     const body: SendMessageRequest = await req.json();
     const { chat_id, client_temp_id, content_type, content_text, content_url, sticker_id } = body;
@@ -69,7 +62,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Determinar contenido
+    // 2) Admin para DB (insert seguro)
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // 3) Verificar participante del chat
+    const { data: chat, error: chatErr } = await admin
+      .from("chats")
+      .select("id, participant_ids")
+      .eq("id", chat_id)
+      .single();
+
+    if (chatErr || !chat) {
+      return new Response(JSON.stringify({ ok: false, error: "Chat no encontrado" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const participants = (chat as any).participant_ids as string[] | null;
+    if (!Array.isArray(participants) || !participants.includes(userId)) {
+      return new Response(JSON.stringify({ ok: false, error: "No eres participante de este chat" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 4) Construir content
     let content = "";
     if (content_type === "text") {
       content = (content_text || "").trim();
@@ -80,7 +98,7 @@ Deno.serve(async (req) => {
         });
       }
     } else {
-      content = content_url || "";
+      content = (content_url || "").trim();
       if (!content) {
         return new Response(JSON.stringify({ ok: false, error: "URL de contenido requerida" }), {
           status: 400,
@@ -89,56 +107,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Admin (service) para checks e insert garantizado
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Verificar que el chat existe y el usuario es participante
-    const { data: chatData, error: chatError } = await supabaseAdmin
-      .from("chats")
-      .select("id, participant_ids")
-      .eq("id", chat_id)
-      .single();
-
-    if (chatError || !chatData) {
-      return new Response(JSON.stringify({ ok: false, error: "Chat no encontrado" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const participantIds = (chatData as any).participant_ids as string[] | null;
-    if (!Array.isArray(participantIds) || !participantIds.includes(userId)) {
-      return new Response(JSON.stringify({ ok: false, error: "No eres participante de este chat" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Bloqueos básicos (si lo usas)
-    const { data: profileData } = await supabaseAdmin
-      .from("profiles")
-      .select("language_infractions_count, suspended_until")
-      .eq("id", userId)
-      .single();
-
-    if ((profileData as any)?.language_infractions_count >= 5) {
-      return new Response(JSON.stringify({ ok: false, error: "Tu cuenta está restringida" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if ((profileData as any)?.suspended_until && new Date((profileData as any).suspended_until) > new Date()) {
-      return new Response(JSON.stringify({ ok: false, error: "Tu cuenta está suspendida temporalmente" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Map type: sticker se guarda como image + sticker_id
     const dbType = content_type === "sticker" ? "image" : content_type;
 
-    // Insert (service role) ✅
+    // 5) INSERT (admin)
     const insertData = {
       chat_id,
       sender_id: userId,
@@ -148,64 +119,32 @@ Deno.serve(async (req) => {
       sticker_id: sticker_id || null,
       client_temp_id,
       is_blocked: false,
-      is_hidden: false,
     };
 
-    const { data: messageData, error: insertError } = await supabaseAdmin
+    const { data: message, error: insErr } = await admin
       .from("messages")
       .insert(insertData)
-      .select(
-        "id, chat_id, sender_id, content, type, status, sticker_id, client_temp_id, is_blocked, is_hidden, created_at",
-      )
+      .select("id, chat_id, sender_id, content, type, status, sticker_id, client_temp_id, is_blocked, created_at")
       .single();
 
-    if (insertError) {
+    if (insErr) {
       return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Error al guardar mensaje",
-          details: insertError.message,
-          code: insertError.code,
-        }),
+        JSON.stringify({ ok: false, error: "Error al guardar mensaje", details: insErr.message, code: insErr.code }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Moderación async solo para texto (fail-open)
-    if (content_type === "text" && content) {
-      void (async () => {
-        try {
-          await fetch(`${supabaseUrl}/functions/v1/moderate-content`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${supabaseServiceKey}`,
-            },
-            body: JSON.stringify({
-              text: content,
-              surface: "chat",
-              userId,
-              messageId: (messageData as any).id,
-            }),
-          });
-        } catch {
-          // no-op
-        }
-      })();
-    }
-
-    return new Response(JSON.stringify({ ok: true, message: messageData }), {
+    return new Response(JSON.stringify({ ok: true, message }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (e) {
     return new Response(
-      JSON.stringify({
-        ok: false,
-        error: "Error interno del servidor",
-        details: error instanceof Error ? error.message : String(error),
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ ok: false, error: "Error interno", details: e instanceof Error ? e.message : String(e) }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
