@@ -1,3 +1,4 @@
+// supabase/functions/chat-send-message/index.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -17,7 +18,6 @@ interface SendMessageRequest {
 }
 
 Deno.serve(async (req) => {
-  // CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -40,17 +40,16 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // ✅ 1) Validar usuario con token REAL (seguridad)
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+    // USER TOKEN for everything (NO service role)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
     const {
       data: { user },
       error: userError,
-    } = await supabaseUser.auth.getUser();
+    } = await supabase.auth.getUser();
 
     if (userError || !user) {
       return new Response(JSON.stringify({ ok: false, error: "Token inválido" }), {
@@ -61,7 +60,6 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
-    // ✅ 2) Leer body
     const body: SendMessageRequest = await req.json();
     const { chat_id, client_temp_id, content_type, content_text, content_url, sticker_id } = body;
 
@@ -72,11 +70,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ✅ 3) Cliente ADMIN para DB (evita que RLS rompa envíos y “desaparezca” el mensaje)
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    // ✅ IDEMPOTENCY: if already created, return it
+    {
+      const { data: existing, error: existingErr } = await supabase
+        .from("messages")
+        .select("id, chat_id, sender_id, content, type, status, sticker_id, client_temp_id, is_blocked, created_at")
+        .eq("client_temp_id", client_temp_id)
+        .maybeSingle();
 
-    // ✅ 4) Verificar chat + participante (con ADMIN para no depender de RLS)
-    const { data: chatData, error: chatError } = await supabaseAdmin
+      if (!existingErr && existing) {
+        return new Response(JSON.stringify({ ok: true, message: existing }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Verify chat exists + user is participant (via RLS)
+    const { data: chatData, error: chatError } = await supabase
       .from("chats")
       .select("id, participant_ids")
       .eq("id", chat_id)
@@ -97,8 +108,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ✅ 5) Comprobar suspensión / bloqueo (ADMIN)
-    const { data: profileData } = await supabaseAdmin
+    // Check block/suspension (via profiles RLS)
+    const { data: profileData } = await supabase
       .from("profiles")
       .select("language_infractions_count, suspended_until")
       .eq("id", userId)
@@ -111,15 +122,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const suspendedUntilRaw = (profileData as any)?.suspended_until as string | null;
-    if (suspendedUntilRaw && new Date(suspendedUntilRaw) > new Date()) {
+    if ((profileData as any)?.suspended_until && new Date((profileData as any).suspended_until) > new Date()) {
       return new Response(JSON.stringify({ ok: false, error: "Tu cuenta está suspendida temporalmente" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ✅ 6) Determinar content
+    // Determine content
     let content = "";
     if (content_type === "text") {
       content = (content_text || "").trim();
@@ -139,15 +149,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ✅ 7) MAPEO CRÍTICO: evitar que “photo” reviente el enum de DB
-    // - sticker -> image
-    // - photo -> image
-    // - image -> image
-    // - audio/video/text 그대로
-    const dbType: "text" | "image" | "audio" | "video" =
-      content_type === "sticker" || content_type === "photo" || content_type === "image" ? "image" : content_type;
+    // Map type: stickers stored as image + sticker_id
+    const dbType = content_type === "sticker" ? "image" : content_type;
 
-    // ✅ 8) Insertar mensaje (ADMIN)
     const insertData = {
       chat_id,
       sender_id: userId,
@@ -159,73 +163,61 @@ Deno.serve(async (req) => {
       is_blocked: false,
     };
 
-    const { data: messageData, error: insertError } = await supabaseAdmin
+    const { data: messageData, error: insertError } = await supabase
       .from("messages")
       .insert(insertData)
       .select("id, chat_id, sender_id, content, type, status, sticker_id, client_temp_id, is_blocked, created_at")
       .single();
 
-    if (insertError || !messageData) {
+    if (insertError) {
+      // if a race happened and another insert won, re-fetch and return
+      const { data: existing } = await supabase
+        .from("messages")
+        .select("id, chat_id, sender_id, content, type, status, sticker_id, client_temp_id, is_blocked, created_at")
+        .eq("client_temp_id", client_temp_id)
+        .maybeSingle();
+
+      if (existing) {
+        return new Response(JSON.stringify({ ok: true, message: existing }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(
         JSON.stringify({
           ok: false,
           error: "Error al guardar mensaje",
-          details: insertError?.message,
-          code: (insertError as any)?.code,
+          details: insertError.message,
+          code: insertError.code,
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // ✅ 9) Moderación ASYNC SOLO para texto (con SERVICE ROLE) + si bloquea, marcar mensaje bloqueado
-    if (content_type === "text" && content) {
+    // Async moderation (fail-open)
+    if (content_type === "text" && content.trim()) {
       void (async () => {
         try {
-          const modRes = await fetch(`${supabaseUrl}/functions/v1/moderate-content`, {
+          await fetch(`${supabaseUrl}/functions/v1/moderate-content`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              // IMPORTANTE: service role para que moderate-content pueda actualizar strikes/suspensión sin depender de RLS
-              Authorization: `Bearer ${supabaseServiceKey}`,
+              Authorization: authHeader,
             },
             body: JSON.stringify({
               text: content,
               surface: "chat",
-              userId, // required para internal service call
+              userId,
               messageId: (messageData as any).id,
-              chat_id,
             }),
           });
-
-          if (!modRes.ok) return;
-
-          const mod = await modRes.json();
-
-          if (mod && mod.allowed === false) {
-            await supabaseAdmin
-              .from("messages")
-              .update({
-                status: "blocked",
-                is_blocked: true,
-                moderation_reason: mod.reason || "Contenido no permitido",
-                moderation_checked_at: new Date().toISOString(),
-              })
-              .eq("id", (messageData as any).id);
-          } else {
-            await supabaseAdmin
-              .from("messages")
-              .update({
-                moderation_checked_at: new Date().toISOString(),
-              })
-              .eq("id", (messageData as any).id);
-          }
         } catch {
-          // fail-open (no tocar nada)
+          // no-op
         }
       })();
     }
 
-    // ✅ 10) Respuesta OK
     return new Response(JSON.stringify({ ok: true, message: messageData }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
